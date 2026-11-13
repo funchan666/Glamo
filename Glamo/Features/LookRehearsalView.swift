@@ -4,19 +4,20 @@ struct LookRehearsalEntry: View {
     let open: () -> Void
     var body: some View {
         Button(action: open) {
-            HStack(alignment: .bottom, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    LocalizedText("Look rehearsal").font(.glam(.title3, weight: .semibold, editorial: true))
-                    LocalizedText("Try a look before the night. Mark each mirror check.").font(.glam(.subheadline))
-                        .fixedSize(horizontal: false, vertical: true)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                Glyph(symbol: .back, size: 14, tint: GlamoStyle.accent).rotationEffect(.degrees(180))
+            VStack(alignment: .leading, spacing: 0) {
+                GlamCover(kind: .rehearsal).aspectRatio(3.6, contentMode: .fit)
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        LocalizedText("Look rehearsal").font(.glam(.title3, weight: .semibold, editorial: true))
+                        LocalizedText("Try a look before the night. Mark each mirror check.").font(.glam(.subheadline))
+                            .foregroundStyle(GlamoStyle.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    Glyph(symbol: .back, size: 14, tint: GlamoStyle.accent).rotationEffect(.degrees(180))
+                }.padding(16)
             }
-            .foregroundStyle(GlamoStyle.paper)
-            .padding(20).frame(maxWidth: .infinity, minHeight: 176, alignment: .bottomLeading)
-            .background {
-                GlamCover(kind: .rehearsal).overlay(GlamoStyle.background.opacity(0.35))
-            }
+            .foregroundStyle(GlamoStyle.ink)
+            .background(GlamoStyle.paper)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .contentShape(Rectangle())
         }.buttonStyle(PressStyle()).accessibilityIdentifier("rehearsal.open")
@@ -51,7 +52,7 @@ struct LookRehearsalView: View {
                     if showingHistory { history } else { rehearse }
                 }.glamoPage()
             }.scrollDismissesKeyboard(.interactively)
-        }.foregroundStyle(GlamoStyle.paper).glamoScreenBackground()
+        }.glamoScreenBackground()
             .sheet(item: $selected) { session in details(session) }
     }
 
@@ -66,7 +67,8 @@ struct LookRehearsalView: View {
                 if let match = LookArea.allCases.first(where: { $0.label == label }) { area = match }
             }
             summary(session)
-            TextField("Touch-up note (optional)", text: $checkNote, axis: .vertical)
+            TextField("Touch-up note (optional)", text: $checkNote,
+                      prompt: Text("Touch-up note (optional)").foregroundColor(GlamoStyle.secondary), axis: .vertical)
                 .lineLimit(2...5).glamoField()
             LocalizedText("Mirror check").font(.glam(.headline))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
@@ -94,7 +96,8 @@ struct LookRehearsalView: View {
             LocalizedText("Name the look, start the timer, and mark each area as you check it in the mirror. You’ll see which steps need practice and how long the whole look takes.")
                 .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField(LocalizedStringKey("Look name (optional)"), text: $lookName)
+            TextField("Look name (optional)", text: $lookName,
+                      prompt: Text("Look name (optional)").foregroundColor(GlamoStyle.secondary))
                 .textInputAutocapitalization(.sentences)
                 .submitLabel(.done)
                 .focused($nameFocused)
@@ -129,7 +132,7 @@ struct LookRehearsalView: View {
                         }
                         summary(session)
                     }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-                        .background { GlamSurface(tone: .mauve, radius: 20) }.contentShape(Rectangle())
+                        .background { GlamSurface(tone: .surface, radius: 20) }.contentShape(Rectangle())
                 }.buttonStyle(PressStyle())
             }
         }
@@ -162,7 +165,7 @@ struct LookRehearsalView: View {
                         .buttonStyle(CompactActionStyle())
                 }.glamoPage()
             }
-        }.glamoScreenBackground().foregroundStyle(GlamoStyle.paper)
+        }.glamoScreenBackground()
             .sheet(item: $sharedExport) { ShareSheet(items: [$0.url]) }
             .fullScreenCover(item: $pendingRemoval) { session in
                 AccountDecisionDialog(title: "Delete rehearsal?", message: "This removes the rehearsal and all of its mirror checks from this device.",

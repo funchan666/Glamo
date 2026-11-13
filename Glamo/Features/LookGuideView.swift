@@ -103,7 +103,7 @@ struct LookGuideEntry: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: 8) {
                     LocalizedText("Party look notes").font(.glam(.headline))
-                        .foregroundStyle(GlamoStyle.paper)
+                        .foregroundStyle(GlamoStyle.ink)
                     LocalizedText("\(LookNote.all.count) short reads · Available offline")
                         .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
                 }.fixedSize(horizontal: false, vertical: true)
@@ -111,7 +111,7 @@ struct LookGuideEntry: View {
                 Glyph(symbol: .back, size: 12, tint: GlamoStyle.accent)
                     .rotationEffect(.degrees(180)).frame(width: 20)
             }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
-                .background { GlamSurface(tone: .mauve, radius: 22) }
+                .background { GlamSurface(tone: .blush, radius: 22) }
                 .contentShape(Rectangle())
         }.buttonStyle(PressStyle()).accessibilityIdentifier("lookGuide.open")
     }
@@ -121,12 +121,18 @@ struct LookGuideView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var category = "All"
+    @State private var path: [String]
     private let categories = ["All", "Base", "Eyes", "Lips", "Glow", "Care"]
+
+    init(initialNoteID: String? = nil) {
+        _path = State(initialValue: initialNoteID.map { [$0] } ?? [])
+    }
+
     private var notes: [LookNote] {
         LookNote.all.filter { category == "All" || $0.category == category }
     }
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 SheetHeading(title: "Party look notes") { dismiss() }
                 ScrollView {
@@ -138,11 +144,11 @@ struct LookGuideView: View {
                                     GlamCover(kind: first.cover).aspectRatio(4 / 3, contentMode: .fit)
                                     VStack(alignment: .leading, spacing: 8) {
                                         LocalizedText(first.category).font(.glam(.caption, weight: .semibold))
-                                            .foregroundStyle(GlamoStyle.paperSecondary)
+                                            .foregroundStyle(GlamoStyle.secondary)
                                         LocalizedText(first.title).font(.glam(.title2, editorial: true))
                                             .fixedSize(horizontal: false, vertical: true)
                                         LocalizedText(first.summary).font(.glam(.subheadline))
-                                            .foregroundStyle(GlamoStyle.paperSecondary)
+                                            .foregroundStyle(GlamoStyle.secondary)
                                             .fixedSize(horizontal: false, vertical: true)
                                     }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
                                 }.foregroundStyle(GlamoStyle.ink)
@@ -162,13 +168,13 @@ struct LookGuideView: View {
                                         LocalizedText(note.title).font(.glam(.headline, editorial: true))
                                             .fixedSize(horizontal: false, vertical: true)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                    }.foregroundStyle(GlamoStyle.paper).contentShape(Rectangle())
+                                    }.foregroundStyle(GlamoStyle.ink).contentShape(Rectangle())
                                 }.buttonStyle(PressStyle()).accessibilityIdentifier("lookGuide.\(note.id)")
                             }
                         }
                     }.glamoPage()
                 }
-            }.glamoScreenBackground().foregroundStyle(GlamoStyle.paper)
+            }.glamoScreenBackground()
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: String.self) { id in
                     if let note = LookNote.all.first(where: { $0.id == id }) {
@@ -199,7 +205,7 @@ private struct LookNoteReader: View {
                     VStack(alignment: .leading, spacing: 10) {
                         LocalizedText(note.title)
                             .font(.glam(.title, editorial: true))
-                            .foregroundStyle(GlamoStyle.paper).accessibilityAddTraits(.isHeader)
+                            .foregroundStyle(GlamoStyle.ink).accessibilityAddTraits(.isHeader)
                             .fixedSize(horizontal: false, vertical: true)
                         LocalizedText(note.summary).font(.glam(.subheadline))
                             .foregroundStyle(GlamoStyle.secondary)
@@ -210,13 +216,13 @@ private struct LookNoteReader: View {
                             LocalizedText(note.sections[index].title).font(.glam(.headline))
                                 .accessibilityAddTraits(.isHeader)
                             LocalizedText(note.sections[index].body).font(.glam(.body)).lineSpacing(5)
-                                .foregroundStyle(GlamoStyle.paper.opacity(0.92))
+                                .foregroundStyle(GlamoStyle.ink)
                                 .textSelection(.enabled)
                         }.fixedSize(horizontal: false, vertical: true)
                     }
                     VStack(alignment: .leading, spacing: 10) {
                         LocalizedText("Before you head out").font(.glam(.subheadline, weight: .semibold))
-                            .foregroundStyle(GlamoStyle.paperSecondary)
+                            .foregroundStyle(GlamoStyle.secondary)
                         LocalizedText(note.takeaway).font(.glam(.title3, editorial: true)).lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }.foregroundStyle(GlamoStyle.ink)
@@ -243,7 +249,7 @@ private struct LookNoteReader: View {
                     }
                 }.glamoPage()
             }
-        }.glamoScreenBackground().foregroundStyle(GlamoStyle.paper)
+        }.glamoScreenBackground()
             .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $source) { PolicyBrowser(document: $0) }
     }

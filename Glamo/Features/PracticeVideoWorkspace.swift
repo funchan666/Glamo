@@ -59,7 +59,7 @@ struct ToolsView: View {
                                 LocalizedText(tool.title).font(.glam(.headline))
                                     .fixedSize(horizontal: false, vertical: true)
                             }.padding(10).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                                .foregroundStyle(GlamoStyle.paper)
+                                .foregroundStyle(GlamoStyle.ink)
                                 .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 18))
                                 .contentShape(Rectangle())
                         }.buttonStyle(PressStyle())
@@ -103,7 +103,7 @@ struct EditorSheet: View {
         VStack(spacing: 0) {
             SheetHeading(title: initialTool.title) { departure.request { dismiss() } }
             EditorWorkspace(initialMovie: initialMovie, initialTool: initialTool)
-        }.glamoScreenBackground().foregroundStyle(.white)
+        }.glamoScreenBackground()
             .environmentObject(departure)
             .modifier(ExportDepartureProtection(departure: departure))
     }
@@ -159,8 +159,8 @@ struct EditorWorkspace: View {
                                     Button(LocalizedStringKey(name)) { tool = name }.font(.glam(.subheadline, weight: .semibold))
                                         .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                                         .padding(.horizontal, 20).frame(minHeight: 48)
-                                        .foregroundStyle(tool == name ? GlamoStyle.ink : .white)
-                                        .background { GlamSurface(tone: tool == name ? .accent : .plum) }.buttonStyle(PressStyle())
+                                        .foregroundStyle(tool == name ? GlamoStyle.onAccent : GlamoStyle.ink)
+                                        .background { GlamSurface(tone: tool == name ? .accent : .raised) }.buttonStyle(PressStyle())
                                         .accessibilityAddTraits(tool == name ? .isSelected : [])
                                 }
                             }
@@ -201,7 +201,7 @@ struct EditorWorkspace: View {
                                 LocalizedText(importing ? "Importing…" : "Choose from Photos").font(.glam(.subheadline, weight: .semibold))
                                     .lineLimit(1).minimumScaleFactor(0.75)
                                     .padding(.horizontal, 16).padding(.vertical, 12)
-                                    .frame(maxWidth: .infinity, minHeight: 48).foregroundStyle(GlamoStyle.ink)
+                                    .frame(maxWidth: .infinity, minHeight: 48).foregroundStyle(GlamoStyle.onAccent)
                                     .background { GlamSurface(tone: .accent) }
                                     .contentShape(Rectangle())
                             }.disabled(importing).buttonStyle(PressStyle())
@@ -358,7 +358,7 @@ struct PreviewButton: View {
     @ObservedObject var playback: PlaybackController
     var body: some View {
         IconButton(symbol: playback.isPlaying ? .pause : .play, label: playback.isPlaying ? "Pause preview" : "Play preview") { playback.toggle() }
-            .background { GlamSurface(tone: .plum) }
+            .background { GlamSurface(tone: .raised) }
     }
 }
 struct FlowChoices: View {

@@ -13,22 +13,48 @@ struct LibraryView: View {
     @State private var removing: PracticeRecording?
     @State private var removingDownload: OfflineVideo?
     @State private var sharingMovieID: UUID?
-    private var itemCount: Int {
-        if filter == "Downloads" { return offline.videos.count }
-        return filter == "Saved" ? library.favorites.count : library.movies.filter { $0.isExport == (filter == "Exports") }.count
+    @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var category: Category { Category(rawValue: filter) ?? .saved }
+    private var localMovies: [PracticeRecording] {
+        library.movies.filter { $0.isExport == (category == .exports) }
     }
+
+    private enum Category: String, CaseIterable, Identifiable {
+        case saved = "Saved"
+        case offline = "Downloads"
+        case imports = "Imports"
+        case exports = "Exports"
+
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .saved: "Favorites"
+            case .offline: "Offline videos"
+            case .imports, .exports: rawValue
+            }
+        }
+        var glyph: GlamoGlyph {
+            switch self {
+            case .saved: .bookmark
+            case .offline: .download
+            case .imports: .folder
+            case .exports: .edit
+            }
+        }
+    }
+
     var body: some View {
-        GeometryReader { geometry in
+        GeometryReader { container in
+            let compact = typeSize.isAccessibilitySize || container.size.width < 330 || hasReservedRegion(container)
             ScrollView {
-                VStack(spacing: 0) {
-                    GlamArtwork(kind: .notebook, height: min(geometry.size.width * 0.60, 260))
-                        .padding(.top, geometry.safeAreaInsets.top + 12)
-                        .padding(.bottom, 8)
-                        .frame(maxWidth: .infinity)
-                        .background(GlamoStyle.background)
-                    libraryContent
-                }
-            }.ignoresSafeArea(.container, edges: .top)
+                VStack(alignment: .leading, spacing: 20) {
+                    libraryHeader
+                    paletteTabs
+                    librarySection(compactGallery: compact)
+                }.glamoPage()
+            }
         }.glamoScreenBackground().sheet(item: $sharing) { ShareSheet(items: [$0.url]) }
             .sheet(isPresented: $showingExportMembership) { MembershipView(exportRequired: true) }
             .fullScreenCover(item: $player) { PlayerScreen(route: $0) }
@@ -58,141 +84,275 @@ struct LibraryView: View {
                 }.glamoScreenBackground().presentationDetents([.medium, .large])
             }
     }
-    private var libraryContent: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            libraryFilters
-            if filter == "Downloads" { DownloadAllowanceSummary() }
-            SectionLabel(title: categoryTitle(filter), detail: "\(itemCount) \(itemCount == 1 ? "item" : "items") · On this device")
-            if offline.downloadingID != nil {
-                if let title = offline.currentTitle { Text(verbatim: title).font(.glam(.subheadline)).lineLimit(2) }
-                LocalizedText("Downloading · \(Int(offline.progress * 100))%").font(.glam(.caption))
-                ActionButton(title: "Cancel download", primary: false) { Task { await offline.cancel() } }
-            }
-            if let error = offline.error {
-                ErrorNote(message: error)
-                if offline.downloadingID != nil {
-                    ActionButton(title: "Retry", primary: false) { Task { await offline.retryCompletion() } }
+
+    private var libraryHeader: some View {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 16))
+        return layout {
+            libraryTitle.foregroundStyle(GlamoStyle.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            GlamCover(kind: .vanity).frame(width: 82, height: 104)
+                .clipShape(.rect(cornerRadius: 14))
+        }.padding(16).background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 22))
+    }
+
+    private var libraryTitle: some View {
+        LocalizedText("My lookbook").font(.glam(.largeTitle, weight: .semibold, editorial: true))
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func hasReservedRegion(_ container: GeometryProxy) -> Bool {
+        guard #available(iOS 27.1, *) else { return false }
+        let bounds = CGRect(origin: .zero, size: container.size)
+        let regions = container.reservedRegions(kind: .division) + container.reservedRegions(kind: .occlusion)
+        return regions.contains { $0.isActive && bounds.intersects($0.frame) }
+    }
+
+    private var paletteTabs: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { ForEach(Category.allCases) { paletteTab($0) } }
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    paletteTab(.saved)
+                    paletteTab(.offline)
+                }
+                HStack(spacing: 8) {
+                    paletteTab(.imports)
+                    paletteTab(.exports)
                 }
             }
-            if filter == "Saved" {
-                if library.favorites.isEmpty { LibraryEmptyState(title: "Build your look book.", message: "Save lessons as you watch, then come back to them before your next night out.") }
-                ForEach(library.favorites) { clip in
-                    HStack(spacing: 14) {
-                        Button { player = PlayerRoute(clips: library.favorites, startID: clip.id) } label: {
-                            HStack(spacing: 14) {
-                                MediaCover(url: clip.coverURL).frame(width: 76, height: 100).clipShape(RoundedRectangle(cornerRadius: 14))
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(verbatim: clip.title).font(.glam(.headline)).lineLimit(3)
-                                    Text(verbatim: clip.channel).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                                }.frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.buttonStyle(PressStyle())
-                        IconButton(symbol: .bookmark, label: "Remove saved video", selected: true) { library.toggle(clip) }
+            VStack(spacing: 8) { ForEach(Category.allCases) { paletteTab($0, multiline: true) } }
+        }
+    }
+
+    private func paletteTab(_ entry: Category, multiline: Bool = false) -> some View {
+        let selected = category == entry
+        return Button { filter = entry.rawValue } label: {
+            LocalizedText(entry.title).font(.glam(.footnote, weight: .semibold))
+                .fixedSize(horizontal: !multiline, vertical: true)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(selected ? GlamoStyle.onAccent : GlamoStyle.ink)
+                .background(selected ? GlamoStyle.accent : GlamoStyle.surface, in: Capsule())
+                .overlay { Capsule().strokeBorder(selected ? .clear : GlamoStyle.controlLine).allowsHitTesting(false) }
+                .contentShape(Rectangle())
+        }.buttonStyle(PressStyle()).accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func librarySection(compactGallery: Bool) -> some View {
+        let total = count(in: category)
+        return VStack(alignment: .leading, spacing: 16) {
+            SectionLabel(title: category.title, detail: "\(total) \(total == 1 ? "item" : "items") · On this device")
+                .accessibilityAddTraits(.isHeader)
+            if category == .offline { DownloadAllowanceSummary() }
+            downloadStatus
+            switch category {
+            case .saved:
+                if library.favorites.isEmpty {
+                    LibraryEmptyState(title: "Build your look book.", message: "Save lessons as you watch, then come back to them before your next night out.")
+                } else {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top),
+                                             count: compactGallery ? 1 : 2), alignment: .leading, spacing: 16) {
+                        ForEach(library.favorites) { clip in lookCard(clip, wide: compactGallery) }
                     }
                 }
-            } else if filter == "Downloads" {
+            case .offline:
                 if offline.videos.isEmpty {
                     LibraryEmptyState(title: "Available offline",
                                       message: "Download a lesson from its playback options to watch without a connection.")
-                }
-                ForEach(offline.videos) { video in
-                    HStack(spacing: 14) {
-                        Button {
-                            let clips = offline.videos.compactMap { item -> LessonClip? in
-                                offline.cached(item.id) == nil ? nil : offline.playable(item.clip)
-                            }
-                            if clips.contains(where: { $0.id == video.id }) {
-                                player = PlayerRoute(clips: clips, startID: video.id)
-                            } else { offline.error = "This download is no longer on this device. Download it again." }
-                        } label: {
-                            HStack(spacing: 14) {
-                                Glyph(symbol: .download, size: 28).frame(width: 60, height: 72)
-                                Text(verbatim: video.clip.title).font(.glam(.headline)).lineLimit(3)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }.contentShape(Rectangle())
-                        }.buttonStyle(PressStyle())
-                        VStack(spacing: 8) {
-                            VideoExportEntry(clip: offline.playable(video.clip), compact: true)
-                            IconButton(symbol: .close, label: "Remove download") { removingDownload = video }
-                        }
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(offline.videos) { video in downloadRow(video) }
                     }
                 }
-            } else {
-                let movies = library.movies.filter { $0.isExport == (filter == "Exports") }
-                if movies.isEmpty {
-                    LibraryEmptyState(title: filter == "Exports" ? "Ready for your next session." : "Your practice, in focus.",
-                                      message: filter == "Exports" ? "Finish a video or extract its audio in Tools. Your exports will be collected here." : "Choose your practice footage in Tools to keep a local working copy.")
-                }
-                ForEach(movies) { movie in
-                    HStack(spacing: 12) {
-                        Glyph(symbol: movie.isExport ? .download : .feed, size: 27)
-                            .frame(width: 60, height: 76)
-                            .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 16))
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(verbatim: movie.title).font(.glam(.headline)).lineLimit(2)
-                            LocalizedDateText(date: movie.date).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    if movie.filename.hasSuffix("m4a") == false {
-                                        Button("Edit") { edit(movie) }
-                                    }
-                                    Button(LocalizedStringKey(sharingMovieID == movie.id ? "Preparing export…" : "Export")) {
-                                        guard commerce.canExportMedia else { showingExportMembership = true; return }
-                                        sharingMovieID = movie.id
-                                        Task {
-                                            defer { sharingMovieID = nil }
-                                            do { sharing = SharedFile(url: try await library.shareFile(for: movie, commerce: commerce)) }
-                                            catch { library.error = error.localizedDescription }
-                                        }
-                                    }.disabled(sharingMovieID != nil)
-                                }
-                                .buttonStyle(CompactActionStyle())
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        IconButton(symbol: .close, label: "Delete local file") { removing = movie }
-                    }.padding(.vertical, 8)
-                }
-            }
-        }.glamoPage()
-    }
-
-    // Use the actual localized intrinsic widths, not device-name or language
-    // breakpoints. All categories stay visible, including in narrow containers.
-    private var libraryFilters: some View {
-        ViewThatFits(in: .horizontal) {
-            filterRow(["Saved", "Downloads", "Imports", "Exports"])
-            VStack(spacing: 8) {
-                filterRow(["Saved", "Downloads"])
-                filterRow(["Imports", "Exports"])
-            }
-            VStack(spacing: 8) {
-                ForEach(["Saved", "Downloads", "Imports", "Exports"], id: \.self) { value in
-                    filterButton(value)
+            case .imports, .exports:
+                if localMovies.isEmpty {
+                    LibraryEmptyState(title: category == .exports ? "Ready for your next session." : "Your practice, in focus.",
+                                      message: category == .exports ? "Finish a video or extract its audio in Tools. Your exports will be collected here." : "Choose your practice footage in Tools to keep a local working copy.")
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(localMovies) { movie in movieRow(movie) }
+                    }
                 }
             }
         }
     }
 
-    private func filterRow(_ values: [String]) -> some View {
-        HStack(spacing: 6) {
-            ForEach(values, id: \.self) { value in filterButton(value) }
+    private func count(in entry: Category) -> Int {
+        switch entry {
+        case .saved: library.favorites.count
+        case .offline: offline.videos.count
+        case .imports: library.movies.lazy.filter { !$0.isExport }.count
+        case .exports: library.movies.lazy.filter(\.isExport).count
         }
     }
 
-    private func categoryTitle(_ value: String) -> String {
-        value == "Saved" ? "Favorites" : value == "Downloads" ? "Offline videos" : value
+    @ViewBuilder private var downloadStatus: some View {
+        if offline.downloadingID != nil || offline.error != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                if offline.downloadingID != nil {
+                    if let title = offline.currentTitle {
+                        Text(verbatim: title).font(.glam(.subheadline, weight: .semibold)).lineLimit(2)
+                    }
+                    LocalizedText("Downloading · \(Int(offline.progress * 100))%")
+                        .font(.glam(.caption)).monospacedDigit()
+                    Button("Cancel download") { Task { await offline.cancel() } }
+                        .buttonStyle(LibraryActionStyle())
+                }
+                if let error = offline.error {
+                    ErrorNote(message: error)
+                    if offline.downloadingID != nil {
+                        Button("Retry") { Task { await offline.retryCompletion() } }
+                            .buttonStyle(LibraryActionStyle())
+                    }
+                }
+            }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 14))
+        }
     }
-    private func filterButton(_ value: String) -> some View {
-        Button { filter = value } label: {
-            LocalizedText(categoryTitle(value)).font(.glam(.footnote, weight: .semibold))
-                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 10).padding(.vertical, 12)
-                .frame(maxWidth: .infinity, minHeight: 46)
-                .foregroundStyle(filter == value ? GlamoStyle.ink : GlamoStyle.paper)
-                .background { GlamSurface(tone: filter == value ? .accent : .plum) }
-                .contentShape(Rectangle())
-        }.buttonStyle(PressStyle())
-            .accessibilityAddTraits(filter == value ? .isSelected : [])
+
+    private func lookCard(_ clip: LessonClip, wide: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button { player = PlayerRoute(clips: library.favorites, startID: clip.id) } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    MediaCover(url: clip.coverURL).aspectRatio(wide ? 1.45 : 0.84, contentMode: .fit)
+                        .clipShape(.rect(cornerRadius: 14))
+                        .overlay(alignment: .bottomTrailing) {
+                            Glyph(symbol: .play, size: 15, tint: GlamoStyle.ink)
+                                .frame(width: 40, height: 28)
+                                .background(GlamoStyle.paper, in: Capsule())
+                                .padding(6).allowsHitTesting(false)
+                        }.accessibilityHidden(true)
+                    lessonTitle(clip).foregroundStyle(GlamoStyle.ink)
+                }.contentShape(Rectangle())
+            }.buttonStyle(PressStyle())
+            HStack {
+                Spacer(minLength: 0)
+                removeButton(.bookmark, title: "Remove saved video") { library.toggle(clip) }
+            }
+        }.padding(9).frame(maxWidth: .infinity, alignment: .leading)
+            .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+
+    private func lessonTitle(_ clip: LessonClip) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: clip.title).font(.glam(.headline, weight: .semibold, editorial: true)).lineLimit(3)
+            if !clip.channel.isEmpty {
+                Text(verbatim: clip.channel).font(.glam(.caption))
+                    .foregroundStyle(GlamoStyle.secondary).lineLimit(2)
+            }
+        }.fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func downloadRow(_ video: OfflineVideo) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button { playDownload(video) } label: {
+                HStack(spacing: 12) {
+                    itemGlyph(.play)
+                    Text(verbatim: video.clip.title).font(.glam(.headline, weight: .semibold, editorial: true)).lineLimit(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }.contentShape(Rectangle())
+            }.buttonStyle(PressStyle())
+            HStack(spacing: 8) {
+                VideoExportEntry(clip: offline.playable(video.clip), compact: true)
+                Spacer(minLength: 0)
+                removeButton(.close, title: "Remove download") { removingDownload = video }
+            }
+        }
+        .modifier(LibraryRowSurface())
+    }
+
+    private func movieRow(_ movie: PracticeRecording) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 12) {
+                itemGlyph(movie.filename.hasSuffix("m4a") ? .sound : movie.isExport ? .download : .feed)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: movie.title).font(.glam(.headline, weight: .semibold, editorial: true)).lineLimit(2)
+                    LocalizedDateText(date: movie.date).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                removeButton(.close, title: "Delete local file") { removing = movie }
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { movieActions(movie) }
+                VStack(alignment: .leading, spacing: 6) { movieActions(movie) }
+            }
+        }
+        .modifier(LibraryRowSurface())
+    }
+
+    @ViewBuilder private func movieActions(_ movie: PracticeRecording) -> some View {
+        if movie.filename.hasSuffix("m4a") == false {
+            Button("Edit") { edit(movie) }.buttonStyle(LibraryActionStyle())
+        }
+        Button(LocalizedStringKey(sharingMovieID == movie.id ? "Preparing export…" : "Export")) {
+            shareMovie(movie)
+        }.buttonStyle(LibraryActionStyle()).disabled(sharingMovieID != nil)
+    }
+
+    private func itemGlyph(_ symbol: GlamoGlyph) -> some View {
+        Glyph(symbol: symbol, size: 19, tint: GlamoStyle.accent)
+            .frame(width: 46, height: 46)
+            .background(GlamoStyle.raised, in: Capsule())
+            .accessibilityHidden(true)
+    }
+
+    private func removeButton(_ symbol: GlamoGlyph, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Glyph(symbol: symbol, size: 16, tint: GlamoStyle.ink)
+                .frame(width: 36, height: 36)
+                .background(GlamoStyle.paperMuted, in: Capsule())
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+        }.buttonStyle(PressStyle()).accessibilityLabel(LocalizedStringKey(title))
+    }
+
+    private func playDownload(_ video: OfflineVideo) {
+        let clips = offline.videos.compactMap { item -> LessonClip? in
+            offline.cached(item.id) == nil ? nil : offline.playable(item.clip)
+        }
+        if clips.contains(where: { $0.id == video.id }) {
+            player = PlayerRoute(clips: clips, startID: video.id)
+        } else { offline.error = "This download is no longer on this device. Download it again." }
+    }
+
+    private func shareMovie(_ movie: PracticeRecording) {
+        guard commerce.canExportMedia else {
+            showingExportMembership = true
+            return
+        }
+        sharingMovieID = movie.id
+        Task {
+            defer { sharingMovieID = nil }
+            do { sharing = SharedFile(url: try await library.shareFile(for: movie, commerce: commerce)) }
+            catch { library.error = error.localizedDescription }
+        }
+    }
+}
+
+private struct LibraryRowSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12).background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct LibraryActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.glam(.footnote, weight: .semibold))
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 13).padding(.vertical, 8)
+            .frame(minWidth: 44, minHeight: 44)
+            .foregroundStyle(GlamoStyle.onAccent)
+            .background(GlamoStyle.accent, in: Capsule())
+            .contentShape(Rectangle())
+            .opacity(!enabled ? 0.75 : (configuration.isPressed ? 0.88 : 1))
     }
 }
 
@@ -249,7 +409,7 @@ struct VideoExportEntry: View {
     var body: some View {
         Group {
             if compact {
-                Button("Export") { showingExport = true }.buttonStyle(CompactActionStyle())
+                Button("Export") { showingExport = true }.buttonStyle(LibraryActionStyle())
             } else {
                 ActionButton(title: "Export video", primary: false) { showingExport = true }
             }
@@ -320,7 +480,8 @@ struct ExportDepartureProtection: ViewModifier {
                                 ActionButton(title: "Keep exporting", action: departure.keepWorking)
                                 ActionButton(title: "Stop export", primary: false, action: departure.stop)
                             }.padding(22).frame(maxWidth: 360)
-                                .background { GlamSurface(tone: .plum) }.padding(20)
+                                .foregroundStyle(GlamoStyle.ink)
+                                .background { GlamSurface(tone: .surface) }.padding(20)
                                 .frame(maxWidth: .infinity, minHeight: container.size.height)
                         }.background(.black.opacity(0.7))
                             .accessibilityAddTraits(.isModal)
@@ -344,8 +505,8 @@ struct DownloadCompletionNotice: View {
                         library.openDownloads()
                     }.buttonStyle(CompactActionStyle())
                     IconButton(symbol: .close, label: "Dismiss message") { offline.completedDownloadID = nil }
-                }.padding(12).foregroundStyle(GlamoStyle.paper)
-                    .background { GlamSurface(tone: .plum) }
+                }.padding(12).foregroundStyle(GlamoStyle.ink)
+                    .background { GlamSurface(tone: .surface) }
                     .padding(.horizontal, 12)
             }
         }.task(id: offline.completedDownloadID) {
@@ -503,7 +664,7 @@ struct DownloadAllowanceSummary: View {
                 ActionButton(title: "Get more downloads", primary: false) { showingReward = true }
             }
         }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-            .background { GlamSurface(tone: .plum) }
+            .background { GlamSurface(tone: .raised) }
             .accessibilityElement(children: .contain)
             .onAppear { quota.resetIfNeeded() }
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in quota.resetIfNeeded() }

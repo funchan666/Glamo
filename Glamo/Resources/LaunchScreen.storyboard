@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24500" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="launch-controller">
-    <device id="retina6_12" orientation="portrait" appearance="dark"/>
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24500"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -47,6 +47,6 @@
     <resources>
         <image name="GlamoLaunchMark" width="108" height="108"/>
         <image name="GlamoLoadingMark" width="40" height="5"/>
-        <namedColor name="LaunchBackground"><color red="0.106" green="0.063" blue="0.125" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></namedColor>
+        <namedColor name="LaunchBackground"><color red="1.000" green="0.973" blue="0.961" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></namedColor>
     </resources>
 </document>

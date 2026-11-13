@@ -1,21 +1,20 @@
 import SwiftUI
 import UIKit
 
-// Glamo's palette: an after-dark vanity. Deep aubergine walls, a blush card for the
-// one thing you type, and a rose-shimmer accent for the next action.
+// Warm cream, blush surfaces, and lipstick rose for primary actions.
 enum GlamoStyle {
-    static let background = Color(red: 0.106, green: 0.063, blue: 0.125)   // #1B1020
-    static let surface = Color(red: 0.165, green: 0.102, blue: 0.188)      // #2A1A30
-    static let raised = Color(red: 0.231, green: 0.149, blue: 0.263)       // #3B2643
-    static let accent = Color(red: 0.957, green: 0.655, blue: 0.765)       // #F4A7C3
-    static let ink = Color(red: 0.169, green: 0.063, blue: 0.125)          // #2B1020
-    static let secondary = Color(red: 0.776, green: 0.690, blue: 0.761)    // #C6B0C2
-    static let paper = Color(red: 0.976, green: 0.906, blue: 0.925)        // #F9E7EC
-    static let paperSecondary = Color(red: 0.482, green: 0.329, blue: 0.400) // #7B5466
-    static let paperMuted = Color(red: 0.910, green: 0.796, blue: 0.835)   // #E8CBD5
-    static let gold = Color(red: 0.914, green: 0.773, blue: 0.549)         // #E9C58C
-    static let line = Color.white.opacity(0.10)
-    static let danger = Color(red: 1, green: 0.620, blue: 0.573)           // #FF9E92
+    static let background = Color(red: 1, green: 0.973, blue: 0.961)      // #FFF8F5
+    static let surface = Color(red: 1, green: 0.992, blue: 0.988)         // #FFFDFC
+    static let raised = Color(red: 0.973, green: 0.898, blue: 0.910)      // #F8E5E8
+    static let accent = Color(red: 0.702, green: 0.176, blue: 0.314)      // #B32D50
+    static let onAccent = Color(red: 1, green: 0.976, blue: 0.965)        // #FFF9F6
+    static let ink = Color(red: 0.216, green: 0.118, blue: 0.165)         // #371E2A
+    static let secondary = Color(red: 0.447, green: 0.314, blue: 0.373)   // #72505F
+    static let paper = Color(red: 0.988, green: 0.922, blue: 0.922)       // #FCEBEB
+    static let paperMuted = Color(red: 0.953, green: 0.843, blue: 0.871)  // #F3D7DE
+    static let line = Color(red: 0.894, green: 0.800, blue: 0.824)        // #E4CCD2
+    static let controlLine = Color(red: 0.612, green: 0.439, blue: 0.502) // #9C7080
+    static let danger = Color(red: 0.647, green: 0.176, blue: 0.212)     // #A52D36
 }
 
 // MARK: - Original raster artwork
@@ -82,7 +81,7 @@ struct GlamCover: View {
 /// original asset is missing, so controls stay identifiable during development.
 struct AssetMask: View {
     let name: String
-    var tint: Color = .white
+    var tint: Color = GlamoStyle.ink
     var fallback: String? = nil
     var body: some View {
         if UIImage(named: name) != nil {
@@ -128,7 +127,7 @@ struct Glyph: View {
     @Environment(\.layoutDirection) private var direction
     let symbol: GlamoGlyph
     var size: CGFloat = 25
-    var tint: Color = .white
+    var tint: Color = GlamoStyle.ink
     var body: some View {
         AssetMask(name: symbol.assetName, tint: tint, fallback: symbol.fallback)
             .frame(minWidth: size, minHeight: size)
@@ -141,18 +140,16 @@ struct Glyph: View {
 // MARK: - Control surfaces (flat fills; no decorative drawing)
 
 struct GlamSurface: View {
-    enum Tone { case accent, plum, blush, mauve, inkOnPaper, mutedOnPaper, gold }
+    enum Tone { case accent, raised, blush, surface, mutedOnPaper }
     let tone: Tone
     var radius: CGFloat = 14
     private var fill: Color {
         switch tone {
         case .accent: GlamoStyle.accent
-        case .plum: GlamoStyle.raised
+        case .raised: GlamoStyle.raised
         case .blush: GlamoStyle.paper
-        case .mauve: GlamoStyle.surface
-        case .inkOnPaper: GlamoStyle.ink
+        case .surface: GlamoStyle.surface
         case .mutedOnPaper: GlamoStyle.paperMuted
-        case .gold: GlamoStyle.gold
         }
     }
     var body: some View {
@@ -165,10 +162,11 @@ struct IconButton: View {
     let symbol: GlamoGlyph
     let label: String
     var selected = false
+    var tint: Color = GlamoStyle.ink
     var action: () -> Void
     var body: some View {
         Button(action: action) {
-            Glyph(symbol: symbol, size: 20, tint: selected ? GlamoStyle.ink : .white)
+            Glyph(symbol: symbol, size: 20, tint: selected ? GlamoStyle.onAccent : tint)
                 .allowsHitTesting(false)
                 .frame(minWidth: 44, minHeight: 44)
                 .background {
@@ -182,7 +180,7 @@ struct IconButton: View {
 struct PressStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(!isEnabled ? 0.55 : (configuration.isPressed ? 0.7 : 1))
+        configuration.label.opacity(!isEnabled ? 0.75 : (configuration.isPressed ? 0.88 : 1))
     }
 }
 // Compact controls keep their full localized label; enclosing layouts can scroll
@@ -194,8 +192,8 @@ struct CompactActionStyle: ButtonStyle {
             .font(.glam(.footnote, weight: .semibold))
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 16).frame(minHeight: 44)
-            .foregroundStyle(GlamoStyle.paper)
-            .background { GlamSurface(tone: .plum, radius: 22) }
+            .foregroundStyle(GlamoStyle.ink)
+            .background { GlamSurface(tone: .raised, radius: 22) }
             .contentShape(.interaction, Rectangle())
             .opacity(!isEnabled ? 0.55 : (configuration.isPressed ? 0.7 : 1))
     }
@@ -210,7 +208,7 @@ struct ActionButton: View {
             LocalizedText(busy ? "Please wait…" : title).font(.glam(.subheadline, weight: .semibold))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center).padding(.horizontal, 16).padding(.vertical, 12)
-                .foregroundStyle(primary ? GlamoStyle.ink : GlamoStyle.paper)
+                .foregroundStyle(primary ? GlamoStyle.onAccent : GlamoStyle.ink)
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .background(primary ? GlamoStyle.accent : GlamoStyle.raised, in: Capsule())
                 .contentShape(.interaction, Rectangle())
@@ -224,7 +222,7 @@ struct MessagePanel: View {
     var action: (() -> Void)? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            LocalizedText(title).font(.glam(.headline)).foregroundStyle(.white)
+            LocalizedText(title).font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
             LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)
             if let actionTitle, let action { ActionButton(title: actionTitle, primary: false, action: action) }
         }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
@@ -242,8 +240,12 @@ struct ErrorNote: View {
 }
 struct FieldStyle: ViewModifier {
     func body(content: Content) -> some View {
-        content.font(.glam(.subheadline)).foregroundStyle(.white).padding(14)
-            .background(GlamoStyle.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        content.font(.glam(.subheadline)).foregroundStyle(GlamoStyle.ink).padding(14)
+            .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14).strokeBorder(GlamoStyle.controlLine)
+                    .allowsHitTesting(false)
+            }
             .tint(GlamoStyle.accent)
     }
 }
@@ -286,7 +288,12 @@ extension View {
     func glamoField() -> some View { modifier(FieldStyle()) }
     // Extend backgrounds to every container edge while keeping interactive
     // content inside the safe area (asymmetric on iPhone Duo with vertical bars).
-    func glamoScreenBackground(_ color: Color = GlamoStyle.background) -> some View {
+    func glamoScreenBackground() -> some View {
+        glamoScreenBackground(GlamoStyle.background)
+            .foregroundStyle(GlamoStyle.ink)
+            .preferredColorScheme(.light)
+    }
+    func glamoScreenBackground(_ color: Color) -> some View {
         background { color.ignoresSafeArea(.container, edges: .all) }
     }
     // A readable column that follows the available container width.
@@ -363,7 +370,7 @@ struct FeatureRow: View {
                 .frame(width: 48, height: 48)
                 .background(GlamoStyle.raised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             VStack(alignment: .leading, spacing: 4) {
-                LocalizedText(title).font(.glam(.subheadline, weight: .semibold)).foregroundStyle(.white)
+                LocalizedText(title).font(.glam(.subheadline, weight: .semibold)).foregroundStyle(GlamoStyle.ink)
                 LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -380,8 +387,8 @@ struct SoftActionStyle: ButtonStyle {
             .font(.glam(.footnote, weight: .semibold))
             .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 14).padding(.vertical, 10).frame(minHeight: 44)
-            .foregroundStyle(onPaper ? GlamoStyle.ink : GlamoStyle.paper)
-            .background { GlamSurface(tone: onPaper ? .mutedOnPaper : .plum, radius: 22) }
+            .foregroundStyle(GlamoStyle.ink)
+            .background { GlamSurface(tone: onPaper ? .mutedOnPaper : .raised, radius: 22) }
             .contentShape(Rectangle())
             .opacity(!isEnabled ? 0.55 : (configuration.isPressed ? 0.75 : 1))
     }
@@ -402,8 +409,8 @@ struct ChipFilter: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 16).padding(.vertical, 10)
                             .frame(minHeight: 44)
-                            .foregroundStyle(selected == value ? GlamoStyle.ink : GlamoStyle.paper)
-                            .background { GlamSurface(tone: selected == value ? .accent : .plum, radius: 22) }
+                            .foregroundStyle(selected == value ? GlamoStyle.onAccent : GlamoStyle.ink)
+                            .background { GlamSurface(tone: selected == value ? .accent : .raised, radius: 22) }
                             .contentShape(Rectangle())
                     }.buttonStyle(PressStyle())
                         .accessibilityAddTraits(selected == value ? .isSelected : [])
@@ -447,7 +454,7 @@ struct GlamHeroBanner: View {
                 .foregroundStyle(GlamoStyle.ink)
                 .accessibilityAddTraits(.isHeader)
             LocalizedText("Short makeup lessons for nights out. Watch a look, then try it in your mirror.")
-                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.paperSecondary)
+                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
         }.fixedSize(horizontal: false, vertical: true)
     }
     private var portrait: some View {

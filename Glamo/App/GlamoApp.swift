@@ -33,7 +33,7 @@ struct GlamoApp: App {
                 .environment(\.locale, language.locale)
                 .environment(\.layoutDirection, language.direction)
                 .font(.glam(.body))
-                .preferredColorScheme(.dark).tint(GlamoStyle.accent)
+                .preferredColorScheme(.light).tint(GlamoStyle.accent)
                 .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
                     systemLanguage = AppLanguage.systemLanguage()
                 }
@@ -57,7 +57,7 @@ struct GlamoStartupHost: View {
 
     var body: some View {
         ZStack {
-            Color("LaunchBackground").ignoresSafeArea()
+            GlamoStyle.background.ignoresSafeArea()
             // Mount once so local content and authentication prepare while the
             // bounded app-open opportunity runs, without rebuilding navigation.
             GlamoRootView()
@@ -113,10 +113,10 @@ struct GlamoStartupView: View {
 }
 
 enum GlamoTab: Int, CaseIterable, Hashable {
-    case home, discover, tools, library, me
-    var name: String { ["Home", "Discover", "Tools", "Library", "Me"][rawValue] }
+    case home, tools, library
+    var name: String { ["Looks", "Tools", "Library"][rawValue] }
     // Original template artwork; the system tab bar tints selection.
-    var artwork: String { ["TabHome", "TabDiscover", "TabTools", "TabLibrary", "TabMe"][rawValue] }
+    var artwork: String { ["TabHome", "TabTools", "TabLibrary"][rawValue] }
 }
 
 // System TabView so the bar can move to the vertical side position on iPhone Duo
@@ -128,30 +128,36 @@ struct GlamoRootView: View {
     @EnvironmentObject private var quota: QuotaStore
     @EnvironmentObject private var offline: OfflineStore
     @Environment(\.scenePhase) private var scenePhase
-    @State private var tab: GlamoTab = .home
+    @SceneStorage("root.tab") private var tab: GlamoTab = .home
     @State private var editing: PracticeRecording?
-    @State private var linkDraft = ""
+    @SceneStorage("home.linkDraft") private var linkDraft = ""
     @State private var libraryFilter = "Saved"
+    @State private var showingLessons = false
+    @State private var showingAccount = false
     var body: some View {
         TabView(selection: $tab) {
-            HomeView(openAccount: { tab = .me }, discover: { tab = .discover }, openTools: { tab = .tools }, link: $linkDraft)
+            HomeView(openAccount: { showingAccount = true }, discover: { showingLessons = true },
+                     openTools: { tab = .tools }, link: $linkDraft)
                 .tabItem { tabLabel(.home) }.tag(GlamoTab.home)
-            DiscoverView(onExit: { tab = .home })
-                .tabItem { tabLabel(.discover) }.tag(GlamoTab.discover)
             ToolsView()
                 .tabItem { tabLabel(.tools) }.tag(GlamoTab.tools)
             LibraryView(edit: { editing = $0 }, filter: $libraryFilter)
                 .tabItem { tabLabel(.library) }.tag(GlamoTab.library)
-            AccountView()
-                .tabItem { tabLabel(.me) }.tag(GlamoTab.me)
         }
-        .toolbarBackground(GlamoStyle.background, for: .tabBar)
+        .toolbarBackground(GlamoStyle.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
-        .toolbarColorScheme(.dark, for: .tabBar)
-        .foregroundStyle(.white)
+        .toolbarColorScheme(.light, for: .tabBar)
+        .foregroundStyle(GlamoStyle.ink)
             .sheet(item: $editing) { EditorSheet(initialMovie: $0) }
+            .sheet(isPresented: $showingAccount) {
+                VStack(spacing: 0) {
+                    SheetHeading(title: "Me") { showingAccount = false }
+                    AccountView()
+                }.glamoScreenBackground().modifier(AccountBusyModifier())
+            }
+            .fullScreenCover(isPresented: $showingLessons) { DiscoverView(canDismiss: true) }
             .overlay(alignment: .top) {
-                if tab != .discover { DownloadCompletionNotice().padding(.top, 8) }
+                if !showingLessons { DownloadCompletionNotice().padding(.top, 8) }
             }
             .task(id: library.downloadsRequest) {
                 guard library.downloadsRequest != nil else { return }

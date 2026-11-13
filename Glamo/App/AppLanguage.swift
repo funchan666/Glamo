@@ -154,7 +154,7 @@ struct LanguagePicker: View {
                                     LocalizedText("Selected").font(.glam(.caption, weight: .semibold)).foregroundStyle(GlamoStyle.accent)
                                 }
                             }.padding(20).frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-                                .background { GlamSurface(tone: languageCode == AppLanguage.systemSelection ? .plum : .mauve) }
+                                .background { GlamSurface(tone: languageCode == AppLanguage.systemSelection ? .raised : .surface) }
                                 .contentShape(Rectangle())
                         }.buttonStyle(PressStyle())
                             .accessibilityAddTraits(languageCode == AppLanguage.systemSelection ? .isSelected : [])
@@ -182,7 +182,7 @@ struct LanguagePicker: View {
                     }.background(GlamoStyle.surface).clipShape(RoundedRectangle(cornerRadius: 22))
                 }.glamoPage()
             }
-        }.foregroundStyle(GlamoStyle.paper).glamoScreenBackground()
+        }.glamoScreenBackground()
     }
 }
 

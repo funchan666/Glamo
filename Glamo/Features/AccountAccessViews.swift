@@ -31,8 +31,8 @@ struct AccountLoadingIndicator: View {
                 .accessibilityHidden(true)
             LocalizedText(title).font(.glam(.subheadline, weight: .semibold)).multilineTextAlignment(.center)
         }.padding(22).frame(maxWidth: 250)
-            .foregroundStyle(.white)
-            .background { GlamSurface(tone: .plum) }
+            .foregroundStyle(GlamoStyle.ink)
+            .background { GlamSurface(tone: .raised) }
             .accessibilityElement(children: .combine)
     }
 }
@@ -67,7 +67,7 @@ struct AccountDecisionDialog: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    LocalizedText(title).font(.glam(.headline)).foregroundStyle(.white)
+                    LocalizedText(title).font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
                         .accessibilityAddTraits(.isHeader).accessibilityFocused($titleFocused)
                     LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -78,13 +78,13 @@ struct AccountDecisionDialog: View {
                                 .lineLimit(1).minimumScaleFactor(0.75)
                                 .multilineTextAlignment(.center).padding(.horizontal, 16).padding(.vertical, 12)
                                 .frame(maxWidth: .infinity, minHeight: 48)
-                                .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
-                                .background { GlamSurface(tone: destructive ? .mauve : .accent) }
+                                .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.onAccent)
+                                .background { GlamSurface(tone: destructive ? .raised : .accent) }
                         }.buttonStyle(PressStyle())
                         if let cancel { ActionButton(title: "Cancel", primary: false, action: cancel) }
                     }
                 }.padding(20).frame(maxWidth: 360)
-                    .background { GlamSurface(tone: .plum) }
+                    .background { GlamSurface(tone: .surface) }
                     .padding(24).frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
         }.background(Color.black.opacity(0.68).ignoresSafeArea())
@@ -175,7 +175,7 @@ struct PolicyBrowser: View {
                     AccountLoadingIndicator(title: webSearch ? "Opening page…" : "Opening document…").padding(24)
                 }
             }
-        }.glamoScreenBackground().foregroundStyle(.white)
+        }.glamoScreenBackground()
     }
 }
 
@@ -362,7 +362,7 @@ private struct AccountMenuRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 LocalizedText(title).font(.glam(.subheadline, weight: .medium))
-                    .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.paper)
+                    .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
                 if let detail {
                     LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
                 }

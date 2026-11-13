@@ -20,69 +20,45 @@ struct HomeView: View {
     @State private var showingLinkGuide = false
     @State private var showingLookGuide = false
     @State private var showingRehearsal = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var lookTopic: LookTopic?
+    @State private var showingLink = false
+    @State private var pendingLinkSearch: LessonSearch?
+    @State private var composerError: String?
     @FocusState private var focused: Bool
     var body: some View {
         let request = ChannelRequest(links: commerce.release?.lcList?["us"] ?? [], attempt: channelRetry)
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                HStack(spacing: 10) {
-                    Text(verbatim: "Glamo").font(.glam(.title2, weight: .semibold, editorial: true))
-                        .italic().foregroundStyle(GlamoStyle.paper)
-                        .accessibilityAddTraits(.isHeader)
-                    Spacer()
-                    Button(LocalizedStringKey(commerce.premium ? "Plus" : "Get Plus")) { paywall = true }
-                        .buttonStyle(SoftActionStyle())
-                    IconButton(symbol: .settings, label: "Open Me and account settings", action: openAccount)
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                lookSpread
+                LookRehearsalEntry { showingRehearsal = true }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { editorialActions }
+                    VStack(alignment: .leading, spacing: 8) { editorialActions }
                 }
-                GlamHeroBanner()
-                linkComposer
-                if let error {
-                    MessagePanel(title: "Couldn’t load lesson collections", message: error, actionTitle: "Try again") {
-                        channelRetry += 1
-                    }
-                }
-                if api.session == nil { ConnectionPanel() }
-                VStack(alignment: .leading, spacing: 16) {
-                    SectionLabel(title: "From the screen to your mirror")
-                    LookRehearsalEntry { showingRehearsal = true }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                        quickAction(artwork: .lesson, title: "Watch looks", detail: "Swipe through short party makeup lessons.", action: discover)
-                        quickAction(artwork: .review, title: "Review your try-on", detail: "Slow down or reframe a video of your own look.", action: openTools)
-                    }
-                    LookGuideEntry(compact: true) { showingLookGuide = true }
-                }
+                connection
+                lookCollections
+                LookGuideEntry(compact: true) { showingLookGuide = true }
                 recentLinks
-                if !channels.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(alignment: .center, spacing: 16) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                LocalizedText("Look collections").font(.glam(.title3, editorial: true))
-                                LocalizedText("Complete looks, from base to finishing spray.").font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                            GlamArtwork(kind: .pouch, height: 72).frame(width: 84)
-                        }
-                        ForEach(Array(channels.enumerated()), id: \.offset) { _, item in
-                            if let info = item.extraInfo, let title = info.channelName, let short = info.externalLinks {
-                                Button { channel = ChannelRoute(link: short, title: title) } label: {
-                                    HStack(spacing: 14) {
-                                        MediaCover(url: WebAddress.media(item.shortCover), folder: false).frame(width: 64, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                        VStack(alignment: .leading, spacing: 5) {
-                                            Text(verbatim: title).font(.glam(.headline)).lineLimit(2)
-                                            if let count = info.videoFileCount { LocalizedText("\(count) videos").font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary) }
-                                        }
-                                        Spacer()
-                                        Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary).rotationEffect(.degrees(180))
-                                    }.contentShape(Rectangle())
-                                }.buttonStyle(PressStyle())
-                            }
-                        }
-                    }
-                }
+                Button(LocalizedStringKey(commerce.premium ? "Plus" : "Get Plus")) { paywall = true }
+                    .buttonStyle(SoftActionStyle())
             }.glamoPage()
         }.glamoScreenBackground().scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnOutsideTap($focused, scope: "home-link-input")
+            .sheet(isPresented: $showingLink, onDismiss: openPendingLesson) {
+                VStack(spacing: 0) {
+                    SheetHeading(title: "Open a makeup lesson") { showingLink = false }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            linkComposer
+                            if let composerError { ErrorNote(message: composerError) }
+                            if api.session == nil { ConnectionPanel() }
+                        }.glamoPage()
+                    }.scrollDismissesKeyboard(.interactively)
+                }.glamoScreenBackground()
+                    .dismissKeyboardOnOutsideTap($focused, scope: "home-link-input")
+                    .sheet(isPresented: $showingLinkGuide) { LinkGuideSheet() }
+            }
             .sheet(item: $channel) { ChannelView(route: $0) }
             .fullScreenCover(item: $searchRequest) { request in
                 DiscoverView(initialSearch: request.query, canDismiss: true) { query, clip in
@@ -95,8 +71,8 @@ struct HomeView: View {
                     .presentationBackground(.clear)
             }
             .sheet(isPresented: $paywall) { MembershipView() }
-            .sheet(isPresented: $showingLinkGuide) { LinkGuideSheet() }
             .sheet(isPresented: $showingLookGuide) { LookGuideView() }
+            .sheet(item: $lookTopic) { topic in LookGuideView(initialNoteID: topic.id) }
             .sheet(isPresented: $showingRehearsal) { LookRehearsalView() }
             .task(id: request) {
                 guard !Task.isCancelled else { return }
@@ -111,89 +87,221 @@ struct HomeView: View {
                 }
             }
     }
-    // The one thing to type on Home: a blush card that reads like a vanity note.
+
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { headerContent }
+            VStack(alignment: .leading, spacing: 6) { headerContent }
+        }
+    }
+
+    @ViewBuilder private var headerContent: some View {
+            Text(verbatim: "Glamo").font(.glam(.title2, editorial: true))
+                .foregroundStyle(GlamoStyle.ink).accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0).frame(maxHeight: 0)
+            Button { showingLink = true } label: {
+                LocalizedText("Open a lesson").font(.glam(.footnote, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 10).padding(.vertical, 8).frame(minHeight: 44)
+                    .foregroundStyle(GlamoStyle.onAccent)
+                    .background(GlamoStyle.accent, in: Capsule())
+                    .contentShape(Rectangle())
+            }.buttonStyle(PressStyle()).accessibilityIdentifier("home.showLink")
+            IconButton(symbol: .settings, label: "Open Me and account settings", action: openAccount)
+    }
+
+    @ViewBuilder private var connection: some View {
+        if api.session == nil { ConnectionPanel() }
+        if let error {
+            MessagePanel(title: "Couldn’t load lesson collections", message: error, actionTitle: "Try again") {
+                channelRetry += 1
+            }
+        }
+    }
+
+    private enum LookTopic: String, Identifiable {
+        case eyes, base, lips
+        var id: String { rawValue }
+        var title: String {
+            switch self { case .eyes: "Eyes"; case .base: "Base"; case .lips: "Lips" }
+        }
+        var cover: GlamArt {
+            switch self { case .eyes: .eyes; case .base: .base; case .lips: .lips }
+        }
+    }
+
+    private var lookSpread: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LocalizedText("Party look notes").font(.glam(.title2, editorial: true))
+                .accessibilityAddTraits(.isHeader)
+            if typeSize.isAccessibilitySize {
+                VStack(spacing: 10) {
+                    lookTile(.eyes, ratio: 1.8)
+                    lookTile(.base, ratio: 1.8)
+                    lookTile(.lips, ratio: 1.8)
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 10) {
+                        lookTile(.eyes, ratio: 0.80).frame(minWidth: 148)
+                        VStack(spacing: 10) {
+                            lookTile(.base, ratio: 1.75)
+                            lookTile(.lips, ratio: 1.75)
+                        }.frame(minWidth: 86, maxWidth: 142)
+                    }
+                    VStack(spacing: 10) {
+                        lookTile(.eyes, ratio: 1.6)
+                        HStack(spacing: 10) {
+                            lookTile(.base, ratio: 1.3)
+                            lookTile(.lips, ratio: 1.3)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func lookTile(_ topic: LookTopic, ratio: CGFloat) -> some View {
+        Button { lookTopic = topic } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                GlamCover(kind: topic.cover).aspectRatio(ratio, contentMode: .fit)
+                LocalizedText(topic.title).font(.glam(.headline, editorial: true))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.horizontal, 12)
+            }.foregroundStyle(GlamoStyle.ink)
+                .background(GlamoStyle.paper)
+                .clipShape(.rect(cornerRadius: 12))
+                .contentShape(Rectangle())
+        }.buttonStyle(PressStyle())
+            .accessibilityIdentifier("home.look.\(topic.id)")
+    }
+
+    @ViewBuilder private var lookCollections: some View {
+        if !channels.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                LocalizedText("Look collections").font(.glam(.title2, editorial: true))
+                    .accessibilityAddTraits(.isHeader)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: typeSize.isAccessibilitySize ? 260 : 138),
+                                             spacing: 12)], alignment: .leading, spacing: 18) {
+                    ForEach(channels.indices, id: \.self) { index in
+                        let item = channels[index]
+                        if let info = item.extraInfo, let title = info.channelName, let short = info.externalLinks {
+                            Button { channel = ChannelRoute(link: short, title: title) } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    MediaCover(url: WebAddress.media(item.shortCover)).aspectRatio(0.94, contentMode: .fit)
+                                        .clipShape(.rect(cornerRadius: 14)).accessibilityHidden(true)
+                                    Text(verbatim: title).font(.glam(.headline, editorial: true))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    if let count = info.videoFileCount {
+                                        LocalizedText("\(count) videos").font(.glam(.caption))
+                                            .foregroundStyle(GlamoStyle.secondary)
+                                    }
+                                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                            }.buttonStyle(PressStyle())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func openPendingLesson() {
+        composerError = nil
+        guard let request = pendingLinkSearch else { return }
+        pendingLinkSearch = nil
+        searchRequest = request
+    }
+
     private var linkComposer: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                LocalizedText("Open a makeup lesson").font(.glam(.title3, weight: .semibold, editorial: true))
-                    .foregroundStyle(GlamoStyle.ink).fixedSize(horizontal: false, vertical: true)
-                LocalizedText("Paste a lesson link or enter its code.")
-                    .font(.glam(.caption)).foregroundStyle(GlamoStyle.paperSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                LocalizedText("Lesson link or code").font(.glam(.headline, editorial: true))
+                    .foregroundStyle(GlamoStyle.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                pasteButton
             }
-            HStack(spacing: 0) {
-                Glyph(symbol: .link, size: 18, tint: GlamoStyle.paperSecondary)
-                    .padding(.leading, 12)
-                TextField("Lesson link or code", text: $link, axis: .vertical)
-                    .lineLimit(1...3).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .focused($focused).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.ink)
-                    .tint(GlamoStyle.ink)
-                    .padding(.leading, 10).padding(.vertical, 14)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityLabel(LocalizedStringKey("Lesson link or code"))
-                    .accessibilityIdentifier("home.linkField")
-                if !link.isEmpty {
-                    Button {
-                        link = ""
-                        focused = true
-                    } label: {
-                        Glyph(symbol: .close, size: 14, tint: GlamoStyle.ink.opacity(0.65))
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }.buttonStyle(ComposerPressStyle())
-                        .accessibilityLabel(LocalizedStringKey("Clear link"))
-                        .accessibilityIdentifier("home.clearLink")
-                }
-            }
-                // Link input and its clear action stay together, including when
-                // the outside-tap handler decides whether to dismiss the keyboard.
-                .padding(.trailing, link.isEmpty ? 14 : 4)
-                .environment(\.layoutDirection, .leftToRight)
-                .background(Color.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .environment(\.colorScheme, .light)
-                .keyboardInputRegion("home-link-input")
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    allowanceLabel.fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 8)
-                    pasteButton
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack { Spacer(minLength: 0); pasteButton }
-                    allowanceLabel
-                }
-            }
+            linkField
             Button(action: resolve) {
-                LocalizedText("Open lesson")
-                    .font(.glam(.subheadline, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.75)
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .foregroundStyle(canOpenLink ? GlamoStyle.paper : GlamoStyle.paperSecondary)
-                    .background { GlamSurface(tone: canOpenLink ? .inkOnPaper : .mutedOnPaper) }
+                LocalizedText("Open lesson").font(.glam(.headline, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .foregroundStyle(canOpenLink ? GlamoStyle.onAccent : GlamoStyle.secondary)
+                    .background(canOpenLink ? GlamoStyle.accent : GlamoStyle.raised, in: Capsule())
                     .contentShape(Rectangle())
             }.buttonStyle(ComposerPressStyle()).disabled(!canOpenLink)
                 .accessibilityIdentifier("home.openLesson")
-            HStack(alignment: .center, spacing: 12) {
-                LocalizedText("Codes are case-sensitive.")
-                    .font(.glam(.caption)).foregroundStyle(GlamoStyle.paperSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Button { showingLinkGuide = true } label: {
-                    LocalizedText("How it works").font(.glam(.caption, weight: .semibold))
-                        .underline().foregroundStyle(GlamoStyle.ink)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .frame(minWidth: 44, minHeight: 44)
+            allowanceLabel
+            Button { showingLinkGuide = true } label: {
+                LocalizedText("How it works").font(.glam(.footnote, weight: .semibold))
+                    .underline().foregroundStyle(GlamoStyle.accent)
+                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+            }.buttonStyle(PressStyle()).accessibilityIdentifier("home.linkHelp")
+        }.padding(16).background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    @ViewBuilder private var editorialActions: some View {
+        editorialButton("Watch looks", action: discover)
+        editorialButton("Review your try-on", action: openTools)
+    }
+
+    private func editorialButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            LocalizedText(title).font(.glam(.subheadline, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(minWidth: 44, minHeight: 44)
+                .foregroundStyle(GlamoStyle.ink)
+                .background(GlamoStyle.raised, in: Capsule())
+                .contentShape(Rectangle())
+        }.buttonStyle(PressStyle())
+    }
+
+    private var linkField: some View {
+        HStack(spacing: 0) {
+            Glyph(symbol: .link, size: 18, tint: GlamoStyle.secondary)
+                .padding(.leading, 12)
+            TextField("Lesson link or code", text: $link,
+                      prompt: Text("Lesson link or code").foregroundColor(GlamoStyle.secondary), axis: .vertical)
+                .lineLimit(1...3).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                .focused($focused).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.ink)
+                .tint(GlamoStyle.accent)
+                .padding(.leading, 10).padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel(LocalizedStringKey("Lesson link or code"))
+                .accessibilityIdentifier("home.linkField")
+            if !link.isEmpty {
+                Button {
+                    link = ""
+                    composerError = nil
+                    focused = true
+                } label: {
+                    Glyph(symbol: .close, size: 14, tint: GlamoStyle.secondary)
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }.buttonStyle(ComposerPressStyle())
-                    .accessibilityIdentifier("home.linkHelp")
+                    .accessibilityLabel(LocalizedStringKey("Clear link"))
+                    .accessibilityIdentifier("home.clearLink")
             }
-        }.padding(20).background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        }
+            // Link input and its clear action stay together, including when
+            // the outside-tap handler decides whether to dismiss the keyboard.
+            .padding(.trailing, link.isEmpty ? 14 : 4)
+            .environment(\.layoutDirection, .leftToRight)
+            .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14).strokeBorder(focused ? GlamoStyle.accent : GlamoStyle.controlLine)
+                    .allowsHitTesting(false)
+            }
+            .keyboardInputRegion("home-link-input")
     }
+
     private var canOpenLink: Bool { searchRequest == nil && link.nilIfBlank != nil }
     @ViewBuilder private var allowanceLabel: some View {
         if api.session != nil {
             LocalizedText(quota.usage == nil ? "Loading…" : commerce.premium || quota.unlimited ? "Unlimited viewing today" : "\(quota.watchesLeft) views left today")
-                .font(.glam(.caption)).foregroundStyle(GlamoStyle.paperSecondary)
+                .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -214,6 +322,7 @@ struct HomeView: View {
             showLinkFailure("Copy a lesson link or code first, then tap Paste.")
             return
         }
+        composerError = nil
         link = text
     }
     @ViewBuilder private var recentLinks: some View {
@@ -240,30 +349,25 @@ struct HomeView: View {
             }
         }
     }
-    private func quickAction(artwork: GlamArt, title: String, detail: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 14) {
-                GlamCover(kind: artwork).aspectRatio(1.25, contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                VStack(alignment: .leading, spacing: 6) {
-                    LocalizedText(title).font(.glam(.headline)).foregroundStyle(.white)
-                    LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }.padding(12).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .contentShape(Rectangle())
-        }.buttonStyle(PressStyle())
-    }
     private func resolve() {
         guard let text = link.nilIfBlank, searchRequest == nil else { return }
         focused = false
         guard api.session != nil else { showLinkFailure("Your connection is not ready yet. Please try again."); return }
         // Preserve exactly what was entered (trimmed at the ends only). Search owns
         // loading, errors and cursor pagination.
-        searchRequest = LessonSearch(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
+        let request = LessonSearch(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
+        if showingLink {
+            pendingLinkSearch = request
+            showingLink = false
+        } else {
+            searchRequest = request
+        }
     }
     private func showLinkFailure(_ message: String) {
+        if showingLink {
+            composerError = message
+            return
+        }
         linkFailure = message
         showingLinkFailure = true
     }
@@ -273,7 +377,7 @@ struct HomeView: View {
 // button into the paper surface as the shared PressStyle does.
 private struct ComposerPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(configuration.isPressed ? 0.8 : 1)
+        configuration.label.opacity(configuration.isPressed ? 0.88 : 1)
     }
 }
 
@@ -325,7 +429,7 @@ struct ChannelView: View {
                     if hasMore { ActionButton(title: error == nil ? "Load more" : "Try again", primary: false, busy: loading) { Task { await load() } } }
                 }.padding(22)
             }
-        }.glamoScreenBackground().foregroundStyle(.white)
+        }.glamoScreenBackground()
             .task { if items.isEmpty { await load() } }
             .sheet(item: $child) { ChannelView(route: $0) }
             .fullScreenCover(item: $player) { PlayerScreen(route: $0) }
@@ -368,6 +472,6 @@ struct LinkGuideSheet: View {
                     ActionButton(title: "Got it") { dismiss() }
                 }.glamoPage()
             }
-        }.glamoScreenBackground().foregroundStyle(.white)
+        }.glamoScreenBackground()
     }
 }

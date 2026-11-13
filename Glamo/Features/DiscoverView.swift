@@ -95,6 +95,12 @@ final class FeedStore: ObservableObject {
         }
     }
 }
+
+private enum PlayerPalette {
+    static let overlay = Color(red: 0.169, green: 0.090, blue: 0.133)  // #2B1722
+    static let highlight = Color(red: 1, green: 0.722, blue: 0.792)    // #FFB8CA
+}
+
 struct DiscoverView: View {
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
@@ -124,17 +130,21 @@ struct DiscoverView: View {
         _search = State(initialValue: initialSearch)
     }
     var body: some View {
+        let showingClips = api.session != nil && !feed.clips.isEmpty
         ZStack(alignment: .top) {
             if api.session == nil {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        GlamArtwork(kind: .lesson, height: 208)
-                        LocalizedText("Connecting your lesson feed…")
-                            .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                        ConnectionPanel()
-                    }.glamoPage()
+                VStack(spacing: 0) {
+                    feedHeader
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            GlamArtwork(kind: .lesson, height: 208)
+                            LocalizedText("Connecting your lesson feed…")
+                                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                            ConnectionPanel()
+                        }.glamoPage()
+                    }
                 }
-            } else if feed.clips.isEmpty {
+            } else if !showingClips {
                 VStack(spacing: 0) {
                     feedHeader
                     ScrollView {
@@ -170,7 +180,7 @@ struct DiscoverView: View {
                                 }
                                 if !feed.entries.isEmpty {
                                     VStack(spacing: 16) {
-                                        LocalizedText(feed.error ?? "Finding more clips…").foregroundStyle(GlamoStyle.secondary)
+                                        LocalizedText(feed.error ?? "Finding more clips…").foregroundStyle(.white)
                                         ActionButton(title: "Load more", primary: false, busy: feed.loading) { Task { await feed.load(api: api) } }
                                     }.padding(28).padding(container.safeAreaInsets)
                                         .frame(width: geometry.size.width, height: geometry.size.height).id(morePageID)
@@ -183,10 +193,12 @@ struct DiscoverView: View {
                     }.ignoresSafeArea(.container, edges: .all)
                 }
             }
-            if api.session != nil, !feed.clips.isEmpty {
+            if showingClips {
                 feedHeader
             }
-        }.glamoScreenBackground(.black)
+        }.glamoScreenBackground(showingClips ? .black : GlamoStyle.background)
+            .foregroundStyle(showingClips ? .white : GlamoStyle.ink)
+            .preferredColorScheme(showingClips ? .dark : .light)
             .modifier(PlayerPagingAccess(entries: displayEntries, selectedID: $activeID, tailID: morePageID, players: players))
             .overlay(alignment: .top) { DownloadCompletionNotice().padding(.top, 56) }
             .onChange(of: library.downloadsRequest) { _, request in
@@ -294,7 +306,7 @@ struct PlayerScreen: View {
                         }
                         if route.continuesRecommendations {
                             VStack(spacing: 16) {
-                                LocalizedText(feed.error ?? "Finding more clips…")
+                                LocalizedText(feed.error ?? "Finding more clips…").foregroundStyle(.white)
                                 ActionButton(title: "Load more", primary: false, busy: feed.loading) {
                                     Task { await feed.load(api: api) }
                                 }
@@ -457,7 +469,7 @@ private struct PlayerSwipeHint: View {
                                             .scaleEffect(reduceMotion || resting ? 0.94 : 1)
                                         Image("PlayerSwipeGesture").resizable().scaledToFit()
                                             .frame(width: artworkHeight * 0.48, height: artworkHeight * 0.48)
-                                            .shadow(color: GlamoStyle.accent.opacity(0.25), radius: 6)
+                                            .shadow(color: PlayerPalette.highlight.opacity(0.25), radius: 6)
                                             .rotationEffect(.degrees(reduceMotion ? 0 : (step == 2 ? -5 : 3)))
                                             .offset(x: artworkHeight * 0.1,
                                                     y: reduceMotion ? 0 : (step == 2 ? -1 : 1) * artworkHeight * 0.22)
@@ -567,7 +579,8 @@ struct ClipPage: View {
                     HStack(spacing: 10) {
                         LocalizedText(favoriteError).font(.glam(.caption))
                         IconButton(symbol: .close, label: "Dismiss message") { self.favoriteError = nil }
-                    }.padding(12).background { GlamSurface(tone: .plum) }
+                    }.padding(12).foregroundStyle(GlamoStyle.ink)
+                        .background { GlamSurface(tone: .surface) }
                     Spacer()
                 }.padding(.top, controlInsets.top + 60).padding(.horizontal, 16)
             }
@@ -583,14 +596,15 @@ struct ClipPage: View {
                         LocalizedText("Keep watching").font(.glam(.title3, weight: .semibold))
                         ActionButton(title: "Get more views") { gate = true }
                     }.padding(20).frame(maxWidth: 320)
-                        .background { GlamSurface(tone: .plum) }.padding(24)
+                        .foregroundStyle(GlamoStyle.ink)
+                        .background { GlamSurface(tone: .surface) }.padding(24)
                 } else if let error = playback.error {
                     MessagePanel(title: "This clip couldn’t load", message: error, actionTitle: "Retry") { activate(reload: true) }.padding(24)
                 } else if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
                     PlayerLoadingFeedback(buffering: firstFrameReady)
                         .allowsHitTesting(false)
                 } else if allowed, firstFrameReady, !playback.intendsPlayback, !scrubbing {
-                    IconButton(symbol: .play, label: "Play video") { playback.play() }
+                    IconButton(symbol: .play, label: "Play video", tint: .white) { playback.play() }
                         .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
                 }
             }
@@ -640,8 +654,8 @@ struct ClipPage: View {
                                     .font(.glam(.subheadline, weight: .semibold))
                                     .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                                     .padding(.horizontal, 16).frame(minHeight: 44)
-                                    .foregroundStyle(playback.speed == speed ? GlamoStyle.ink : GlamoStyle.paper)
-                                    .background { GlamSurface(tone: playback.speed == speed ? .accent : .plum) }
+                                    .foregroundStyle(playback.speed == speed ? GlamoStyle.onAccent : GlamoStyle.ink)
+                                    .background { GlamSurface(tone: playback.speed == speed ? .accent : .raised) }
                                     .accessibilityAddTraits(playback.speed == speed ? .isSelected : [])
                             }
                         }
@@ -830,13 +844,13 @@ private struct PlayerExitButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                AssetMask(name: "PlayerExit", tint: GlamoStyle.paper)
+                AssetMask(name: "PlayerExit", tint: .white)
                     .frame(width: 14, height: 14)
                 LocalizedText("Exit").font(.glam(.caption, weight: .semibold))
-                    .foregroundStyle(GlamoStyle.paper).lineLimit(1).minimumScaleFactor(0.75)
+                    .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
             }
             .padding(.horizontal, 14).frame(height: 32)
-            .background { GlamSurface(tone: .plum, radius: 16).opacity(0.88) }
+            .background(PlayerPalette.overlay.opacity(0.88), in: RoundedRectangle(cornerRadius: 16))
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
         }.buttonStyle(PressStyle()).accessibilityLabel(LocalizedStringKey("Exit"))
             .accessibilityIdentifier("player.exit")
@@ -879,7 +893,7 @@ private struct PlayerProgressControl: View {
                     if !scrubbing { playback.seek($0) }
                 }
             ), range: 0...max(1, timeline.duration), label: "Playback position",
-                         tint: .white, trackHeight: scrubbing ? 5 : 2,
+                         tint: .white, trackTint: .white.opacity(0.3), trackHeight: scrubbing ? 5 : 2,
                          onEditingChanged: { editing in
                 if editing {
                     scrubPosition = timeline.elapsed
@@ -932,7 +946,8 @@ private struct PlayerLoadingFeedback: View {
     @State private var revealed = false
     var body: some View {
         VStack(spacing: 10) {
-            Image("GlamoLoadingMark").resizable().scaledToFit()
+            Image("GlamoLoadingMark").renderingMode(.template).resizable().scaledToFit()
+                .foregroundStyle(PlayerPalette.highlight)
                 .frame(width: 36, height: 5)
                 .phaseAnimator([false, true]) { content, dimmed in
                     content.opacity(reduceMotion || phase != .active ? 1 : (dimmed ? 0.3 : 1))
@@ -955,7 +970,8 @@ struct GlamoScrubber: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let label: String
-    var tint: Color = GlamoStyle.accent
+    var tint: Color = GlamoStyle.ink
+    var trackTint: Color = GlamoStyle.controlLine
     var trackHeight: CGFloat = 4
     var onEditingChanged: (Bool) -> Void = { _ in }
     @GestureState private var dragging = false
@@ -968,7 +984,7 @@ struct GlamoScrubber: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.3)).frame(height: trackHeight)
+                Capsule().fill(trackTint).frame(height: trackHeight)
                 Capsule().fill(tint).frame(width: geometry.size.width * fraction, height: trackHeight)
             }.frame(height: 44).contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0).updating($dragging) { _, state, _ in state = true }.onChanged { gesture in
@@ -1010,9 +1026,9 @@ private struct PlayerRailLabel<Label: View>: View {
             AssetMask(name: artwork.rawValue, tint: GlamoStyle.ink)
                 .frame(width: 20, height: 20)
                 .frame(width: 30, height: 30)
-                .background(selected ? GlamoStyle.accent : GlamoStyle.paper, in: Capsule())
+                .background(selected ? PlayerPalette.highlight : GlamoStyle.paper, in: Capsule())
             label.font(.glam(.caption2, weight: .medium))
-                .foregroundStyle(selected ? GlamoStyle.accent : .white)
+                .foregroundStyle(selected ? PlayerPalette.highlight : .white)
                 .lineLimit(1).minimumScaleFactor(0.65).multilineTextAlignment(.center)
                 .frame(width: 48, height: labelHeight)
                 .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
