@@ -1,0 +1,23 @@
+// Glamo — fixed TEST configuration (toolkit baseline, Clipo 0d55c2d).
+// Replace only after the user confirms testing passed and supplies production values.
+PRODUCT_BUNDLE_IDENTIFIER = im.seex.lobo
+// Bare host; the client adds https://.
+GLAMO_API_HOST = devapi.io-jp.com
+// Guest login `source` and business `packageName`.
+GLAMO_SERVICE_PACKAGE_NAME = $(PRODUCT_BUNDLE_IDENTIFIER)
+// Placeholder links for testing. Empty expansion preserves // in xcconfig URL values.
+GLAMO_WEBSITE_URL = https:/$()/example.com/
+GLAMO_PRIVACY_URL = https:/$()/example.com/
+GLAMO_TERMS_URL = https:/$()/example.com/
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+SWIFT_VERSION = 5.0
+TARGETED_DEVICE_FAMILY = 1
+MARKETING_VERSION = 1.0.0
+CURRENT_PROJECT_VERSION = 1
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+// Google official iOS demo configuration. Both ad types request Google's official
+// test units while this is YES. Turn off and replace before publishing.
+GLAMO_ADS_TEST_MODE = YES
+GLAMO_GOOGLE_ADS_APP_ID = ca-app-pub-3940256099942544~1458002511
+OTHER_LDFLAGS = $(inherited) -ObjC
