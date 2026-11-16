@@ -54,11 +54,13 @@ final class CommerceStore: NSObject, ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var refreshingOwner: String?
     var premium: Bool { expiration.map { $0 > Date() } ?? false }
-    var canExportMedia: Bool {
-        rightsVerified && premium && ownerID != nil && ownerID == api.session?.userId.value
+    var hasVerifiedRightsForCurrentAccount: Bool {
+        rightsVerified && ownerID != nil && ownerID == api.session?.userId.value
     }
+    var hasVerifiedMembership: Bool { hasVerifiedRightsForCurrentAccount && premium }
+    var canExportMedia: Bool { hasVerifiedMembership }
     func requireMediaExport() throws {
-        guard rightsVerified, ownerID != nil, ownerID == api.session?.userId.value else {
+        guard hasVerifiedRightsForCurrentAccount else {
             throw GlamoError.service("Connect to verify your Plus membership before exporting.")
         }
         guard premium else { throw GlamoError.service("Export is included with Plus.") }
@@ -174,7 +176,7 @@ final class CommerceStore: NSObject, ObservableObject {
             await refresh()
             try Task.checkCancellation()
             guard api.session?.userId.value == owner.userId.value else { throw GlamoError.unauthorized }
-            guard !premium else { message = "Your membership is already active."; return }
+            guard !premium else { message = "Plus is already active."; return }
             await buy(product)
         } catch is CancellationError {
             // No order or payment is created when preparation is cancelled.
@@ -301,7 +303,7 @@ final class CommerceStore: NSObject, ObservableObject {
         guard api.session != nil, ledgerAvailable else { error = "Your connection or purchase records are not ready. Please try again shortly."; return }
         busy = true
         error = nil
-        message = "Checking your Apple purchases…"
+        message = "Restoring purchases…"
         SKPaymentQueue.default().restoreCompletedTransactions()
     }
     func retryPending() {
@@ -381,7 +383,7 @@ final class CommerceStore: NSObject, ObservableObject {
                 let rights = try await api.rights()
                 if api.session?.userId.value == record.owner.userId.value { expiration = rights.expiration }
             }
-            message = "Purchase confirmed. Membership has been refreshed."
+            message = "Purchase confirmed."
         } catch { self.error = "Purchase is pending confirmation. \(error.localizedDescription)" }
     }
     private func refreshReceipt() async throws {
@@ -466,8 +468,8 @@ extension CommerceStore: SKProductsRequestDelegate, SKRequestDelegate, SKPayment
     nonisolated func paymentQueueRestoreCompletedTransactionsFinished(_ queue: SKPaymentQueue) {
         Task { @MainActor in
             busy = false
-            if queue.transactions.isEmpty { message = "Apple has no pending purchases to restore." }
-            else if message == "Checking your Apple purchases…" { message = nil }
+            if queue.transactions.isEmpty { message = "Apple finished checking for purchases." }
+            else if message == "Restoring purchases…" { message = nil }
             await refresh()
         }
     }
@@ -477,7 +479,7 @@ extension CommerceStore: SKProductsRequestDelegate, SKRequestDelegate, SKPayment
             message = nil
             if (error as? SKError)?.code == .paymentCancelled {
                 self.error = nil
-                message = "Restore cancelled. Your purchases have not changed."
+                message = "Restore canceled."
             } else {
                 self.error = "Apple couldn’t restore purchases. Sign in to your Apple account and try again."
             }

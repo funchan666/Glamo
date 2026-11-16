@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ED1700000000000000000001 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */; };
+		ED1700000000000000000003 /* InstrumentSerif-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000004 /* InstrumentSerif-OFL.txt */; };
 		0A80A0B8549C3D5AB3BBC1FC /* Glamo/Resources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 47A27C0CD55779B5085CB27B /* Glamo/Resources/Assets.xcassets */; };
 		0FF11E000000000000000001 /* Glamo/Core/OfflineStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF11E000000000000000002 /* Glamo/Core/OfflineStore.swift */; };
 		16EB816FD26D57C86FA63242 /* Glamo/Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B01A9BEACE5275588553E5AD /* Glamo/Resources/PrivacyInfo.xcprivacy */; };
@@ -41,6 +43,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf"; sourceTree = SOURCE_ROOT; };
+		ED1700000000000000000004 /* InstrumentSerif-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Glamo/Resources/Fonts/InstrumentSerif-OFL.txt"; sourceTree = SOURCE_ROOT; };
 		0FF11E000000000000000002 /* Glamo/Core/OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/OfflineStore.swift; sourceTree = SOURCE_ROOT; };
 		17682BB59D393EEB797E5420 /* Glamo/Features/PracticeVideoWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/PracticeVideoWorkspace.swift; sourceTree = SOURCE_ROOT; };
 		1983D2A3DA5E7E885A18C42A /* Glamo/Core/LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/LibraryStore.swift; sourceTree = SOURCE_ROOT; };
@@ -137,6 +141,8 @@
 				EC62DF084BD6179B0CD0BFAA /* Glamo/Features/MembershipView.swift */,
 				ACCE55100000000000000002 /* Glamo/Features/AccountAccessViews.swift */,
 				47A27C0CD55779B5085CB27B /* Glamo/Resources/Assets.xcassets */,
+				ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */,
+				ED1700000000000000000004 /* InstrumentSerif-OFL.txt */,
 				1E86FD4AD3FF9F970DB0B719 /* Glamo/Resources/Commerce.json */,
 				B01A9BEACE5275588553E5AD /* Glamo/Resources/PrivacyInfo.xcprivacy */,
 				86E8C246447DD4C5D9405F57 /* Glamo/Resources/Info.plist */,
@@ -220,6 +226,8 @@
 				1AC0100000000000000000C9 /* InfoPlist.strings in Resources */,
 				1AC010000000000000000065 /* Localizable.strings in Resources */,
 				0A80A0B8549C3D5AB3BBC1FC /* Glamo/Resources/Assets.xcassets in Resources */,
+				ED1700000000000000000001 /* InstrumentSerif-Regular.ttf in Resources */,
+				ED1700000000000000000003 /* InstrumentSerif-OFL.txt in Resources */,
 				445B4DAFB0E123A139308F4D /* Glamo/Resources/Commerce.json in Resources */,
 				16EB816FD26D57C86FA63242 /* Glamo/Resources/PrivacyInfo.xcprivacy in Resources */,
 				A09B10000000000000000001 /* Glamo/Resources/LaunchScreen.storyboard in Resources */,

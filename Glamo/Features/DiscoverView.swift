@@ -118,6 +118,7 @@ struct DiscoverView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var search = ""
     @State private var visible = false
+    @State private var finishedInitialLoad = false
     @State private var activeID: String?
     @State private var recordedQuery: String?
     @State private var openedBrowserSearchID: UUID?
@@ -135,29 +136,12 @@ struct DiscoverView: View {
             if api.session == nil {
                 VStack(spacing: 0) {
                     feedHeader
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            GlamArtwork(kind: .lesson, height: 208)
-                            LocalizedText("Connecting your lesson feed…")
-                                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                            ConnectionPanel()
-                        }.glamoPage()
-                    }
+                    ScrollView { ConnectionPanel().glamoPage() }
                 }
             } else if !showingClips {
                 VStack(spacing: 0) {
                     feedHeader
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            GlamArtwork(kind: .lesson, height: 208)
-                            MessagePanel(title: feed.loading ? "Finding your next lesson…" : "Your next session starts here.",
-                                         message: feed.error ?? (feed.loading ? "Loading your lesson feed." : feed.emptySearch != nil ? "No matching lessons. Search the web with your original input." : "No lessons are available here yet. Try another search or open a shared lesson link on Home."),
-                                         actionTitle: feed.loading ? nil : feed.emptySearch != nil ? "Search in browser" : "Try again") {
-                                if let request = feed.emptySearch { openBrowserSearch(request) }
-                                else { Task { await feed.load(api: api, search: search) } }
-                            }
-                        }.glamoPage()
-                    }
+                    ScrollView { feedStatus.glamoPage() }
                 }
             } else {
                 GeometryReader { container in
@@ -180,8 +164,10 @@ struct DiscoverView: View {
                                 }
                                 if !feed.entries.isEmpty {
                                     VStack(spacing: 16) {
-                                        LocalizedText(feed.error ?? "Finding more clips…").foregroundStyle(.white)
-                                        ActionButton(title: "Load more", primary: false, busy: feed.loading) { Task { await feed.load(api: api) } }
+                                        if let error = feed.error { LocalizedText(error).foregroundStyle(.white) }
+                                        ActionButton(title: feed.loading ? "Loading lessons…" : feed.error == nil ? "Load more lessons" : "Try again",
+                                                     primary: false) { Task { await feed.load(api: api) } }
+                                            .disabled(feed.loading)
                                     }.padding(28).padding(container.safeAreaInsets)
                                         .frame(width: geometry.size.width, height: geometry.size.height).id(morePageID)
                                 }
@@ -206,10 +192,12 @@ struct DiscoverView: View {
             }
             .onAppear { visible = true; players.update(entries: displayEntries, selectedID: activeID) }
             .task(id: api.session?.userId.value) {
+                finishedInitialLoad = false
                 guard api.session != nil else { return }
                 await feed.load(api: api, search: search)
                 guard !Task.isCancelled else { return }
                 activeID = feed.entries.first?.id
+                finishedInitialLoad = true
             }
             .onChange(of: activeID) { _, id in
                 guard visible, api.session != nil,
@@ -238,6 +226,27 @@ struct DiscoverView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in players.trimMemory() }
     }
+    @ViewBuilder private var feedStatus: some View {
+        if !finishedInitialLoad || feed.loading {
+            AccountLoadingIndicator(title: search.isEmpty ? "Loading lessons…" : "Looking up lesson…")
+                .frame(maxWidth: .infinity)
+        } else if let request = feed.emptySearch {
+            GlamoEmptyState(title: "Lesson not found",
+                            message: "Check the link or code with the person who shared it.") {
+                ActionButton(title: "Search the web") { openBrowserSearch(request) }
+            }
+        } else if let error = feed.error {
+            MessagePanel(title: "Couldn’t load lessons", message: error, actionTitle: "Try again") {
+                Task { await feed.load(api: api, search: search) }
+            }
+        } else {
+            GlamoEmptyState(title: "No lessons available",
+                            message: "Open a shared link or code from Lessons.") {
+                ActionButton(title: "Try again") { Task { await feed.load(api: api, search: search) } }
+            }
+        }
+    }
+
     private func openPendingBrowserSearch() {
         guard visible, scenePhase == .active, let request = feed.emptySearch,
               openedBrowserSearchID != request.id else { return }
@@ -306,10 +315,11 @@ struct PlayerScreen: View {
                         }
                         if route.continuesRecommendations {
                             VStack(spacing: 16) {
-                                LocalizedText(feed.error ?? "Finding more clips…").foregroundStyle(.white)
-                                ActionButton(title: "Load more", primary: false, busy: feed.loading) {
+                                if let error = feed.error { LocalizedText(error).foregroundStyle(.white) }
+                                ActionButton(title: feed.loading ? "Loading lessons…" : feed.error == nil ? "Load more lessons" : "Try again",
+                                             primary: false) {
                                     Task { await feed.load(api: api) }
-                                }
+                                }.disabled(feed.loading)
                             }.padding(28).padding(container.safeAreaInsets)
                                 .containerRelativeFrame([.horizontal, .vertical]).id(morePageID)
                         }
@@ -479,7 +489,7 @@ private struct PlayerSwipeHint: View {
                             } animation: { step in
                                 reduceMotion ? nil : .easeInOut(duration: step == 2 || step == 3 ? 0.85 : 0.3)
                             }
-                        LocalizedText("Swipe up or down to change videos")
+                        LocalizedText("Swipe up or down for another video")
                             .font(.glam(.title3, weight: .semibold))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.white.opacity(0.95))
@@ -580,7 +590,7 @@ struct ClipPage: View {
                         LocalizedText(favoriteError).font(.glam(.caption))
                         IconButton(symbol: .close, label: "Dismiss message") { self.favoriteError = nil }
                     }.padding(12).foregroundStyle(GlamoStyle.ink)
-                        .background { GlamSurface(tone: .surface) }
+                        .glamoCard(radius: 20)
                     Spacer()
                 }.padding(.top, controlInsets.top + 60).padding(.horizontal, 16)
             }
@@ -593,13 +603,15 @@ struct ClipPage: View {
             if active, visible, !pagingGate, !gate, !options, !editor, !downloadPanel, !downloadReward {
                 if accessChecked, !allowed {
                     VStack(spacing: 16) {
-                        LocalizedText("Keep watching").font(.glam(.title3, weight: .semibold))
+                        LocalizedText(quota.canRequestReward(for: .watch, premium: commerce.premium)
+                                      ? "Daily viewing limit reached" : "Playback unavailable")
+                            .font(.glam(.title3, weight: .semibold, editorial: true))
                         ActionButton(title: "Get more views") { gate = true }
                     }.padding(20).frame(maxWidth: 320)
                         .foregroundStyle(GlamoStyle.ink)
-                        .background { GlamSurface(tone: .surface) }.padding(24)
+                        .glamoCard(radius: 24, fill: GlamoStyle.paper).padding(24)
                 } else if let error = playback.error {
-                    MessagePanel(title: "This clip couldn’t load", message: error, actionTitle: "Retry") { activate(reload: true) }.padding(24)
+                    MessagePanel(title: "Couldn’t play this video", message: error, actionTitle: "Retry") { activate(reload: true) }.padding(24)
                 } else if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
                     PlayerLoadingFeedback(buffering: firstFrameReady)
                         .allowsHitTesting(false)
@@ -643,38 +655,42 @@ struct ClipPage: View {
             .sheet(isPresented: $gate, onDismiss: { if active { activate() } }) { MembershipView(rewardKind: .watch) }
             .sheet(isPresented: $options, onDismiss: resumeAfterControls) {
                 ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    SheetHeading(title: "Playback") { options = false }
-                    VideoExportEntry(clip: clip)
-                    LocalizedText("Speed").font(.glam(.headline))
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach([Float(0.5), 1, 1.5, 2], id: \.self) { speed in
-                                Button("\(speed, specifier: "%g")×") { playback.setSpeed(speed) }
-                                    .font(.glam(.subheadline, weight: .semibold))
-                                    .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                                    .padding(.horizontal, 16).frame(minHeight: 44)
-                                    .foregroundStyle(playback.speed == speed ? GlamoStyle.onAccent : GlamoStyle.ink)
-                                    .background { GlamSurface(tone: playback.speed == speed ? .accent : .raised) }
-                                    .accessibilityAddTraits(playback.speed == speed ? .isSelected : [])
+                    VStack(alignment: .leading, spacing: 18) {
+                        SheetHeading(title: "Playback", inset: false) { options = false }
+                        VideoExportEntry(clip: clip)
+                        LocalizedText("Speed").font(.glam(.headline))
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach([Float(0.5), 1, 1.5, 2], id: \.self) { speed in
+                                    Button("\(speed, specifier: "%g")×") { playback.setSpeed(speed) }
+                                        .font(.glam(.subheadline, weight: .semibold))
+                                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                                        .padding(.horizontal, 16).frame(minHeight: 44)
+                                        .foregroundStyle(playback.speed == speed ? GlamoStyle.accent : GlamoStyle.ink)
+                                        .background(playback.speed == speed ? GlamoStyle.paperMuted : GlamoStyle.surface, in: Capsule())
+                                        .overlay {
+                                            Capsule().strokeBorder(playback.speed == speed ? GlamoStyle.accent : GlamoStyle.line)
+                                                .allowsHitTesting(false)
+                                        }
+                                        .accessibilityAddTraits(playback.speed == speed ? .isSelected : [])
+                                }
                             }
-                        }
-                    }.buttonStyle(PressStyle())
-                    LocalizedText("Supported streams adjust quality to your connection.").font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                    ActionButton(title: "Edit a local video", primary: false) { options = false; editor = true }
-                    OfflineDownloadButton(clip: clip)
-                    Spacer()
-                }.padding(22)
+                        }.buttonStyle(PressStyle())
+                        LocalizedText("Video quality adjusts to your connection on supported streams.")
+                            .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                        ActionButton(title: "Open video editor", primary: false) { options = false; editor = true }
+                        OfflineDownloadButton(clip: clip)
+                    }.glamoPage()
                 }.glamoScreenBackground().presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $editor, onDismiss: resumeAfterControls) { EditorSheet() }
             .sheet(isPresented: $downloadPanel, onDismiss: resumeAfterControls) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        SheetHeading(title: "Downloads") { downloadPanel = false }
+                        SheetHeading(title: "Downloads", inset: false) { downloadPanel = false }
                         Text(verbatim: clip.title).font(.glam(.subheadline)).lineLimit(2)
                         OfflineDownloadButton(clip: clip, starting: downloadStarting)
-                    }.padding(22)
+                    }.glamoPage()
                 }.glamoScreenBackground().presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $downloadReward, onDismiss: resumeAfterControls) { MembershipView(rewardKind: .download) }
@@ -709,7 +725,7 @@ struct ClipPage: View {
                 .padding(.bottom, 8)
                 rail {
                     PlayerRailButton(artwork: library.isSaved(clip) ? .saved : .save,
-                                     title: library.isSaved(clip) ? "Favorited" : "Favorite",
+                                     title: library.isSaved(clip) ? "Saved" : "Save",
                                      accessibilityTitle: library.isSaved(clip) ? "Remove saved video" : "Save video",
                                      selected: library.isSaved(clip), action: save)
                     PlayerCacheButton(clip: clip, action: cacheVideo)
@@ -849,8 +865,8 @@ private struct PlayerExitButton: View {
                 LocalizedText("Exit").font(.glam(.caption, weight: .semibold))
                     .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
             }
-            .padding(.horizontal, 14).frame(height: 32)
-            .background(PlayerPalette.overlay.opacity(0.88), in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .glamoGlass(in: Capsule(), tint: PlayerPalette.overlay, interactive: true, mediaBackdrop: true)
             .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
         }.buttonStyle(PressStyle()).accessibilityLabel(LocalizedStringKey("Exit"))
             .accessibilityIdentifier("player.exit")
@@ -871,17 +887,18 @@ private struct PlayerCacheButton: View {
                 else { LocalizedText("Download") }
             }
         }.buttonStyle(PressStyle())
-            .accessibilityLabel(LocalizedStringKey(cached ? "Available offline" : "Download for offline"))
+            .accessibilityLabel(LocalizedStringKey(cached ? "Available offline" : "Download lesson"))
             .accessibilityIdentifier("player.cacheVideo")
     }
 }
 
-private struct PlayerProgressControl: View {
+struct PlayerProgressControl: View {
     @ObservedObject var playback: PlaybackController
     @ObservedObject var timeline: PlaybackTimeline
     let enabled: Bool
     let canResume: Bool
     @Binding var scrubbing: Bool
+    var tint: Color = .white
     @State private var scrubPosition: Double = 0
     @State private var resumeAfterScrub = false
     var body: some View {
@@ -893,7 +910,7 @@ private struct PlayerProgressControl: View {
                     if !scrubbing { playback.seek($0) }
                 }
             ), range: 0...max(1, timeline.duration), label: "Playback position",
-                         tint: .white, trackTint: .white.opacity(0.3), trackHeight: scrubbing ? 5 : 2,
+                         tint: tint, trackTint: tint.opacity(0.3), trackHeight: scrubbing ? 5 : 2,
                          onEditingChanged: { editing in
                 if editing {
                     scrubPosition = timeline.elapsed
@@ -914,7 +931,7 @@ private struct PlayerProgressControl: View {
                 if scrubbing {
                     Text(verbatim: "\(durationLabel(scrubPosition)) / \(durationLabel(timeline.duration))")
                         .environment(\.layoutDirection, .leftToRight)
-                        .font(.caption.monospacedDigit()).offset(y: -8)
+                        .font(.caption.monospacedDigit()).foregroundStyle(tint).offset(y: -8)
                         .allowsHitTesting(false)
                 }
             }

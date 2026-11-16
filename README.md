@@ -1,6 +1,6 @@
 # Glamo
 
-Party makeup video lessons in a native SwiftUI iPhone app. Look rehearsal by area and mirror check, with touch-up notes.
+Glamo is a native SwiftUI iPhone app for local video files. Import from Files or Photos, preview, trim, crop, change speed and manage the results under Files. Glamo Plus includes MP4 video and M4A audio export. The Lessons screen contains the online video catalog, saved lessons and makeup practice.
 
 Open `Glamo.xcodeproj` and select the shared `Glamo` scheme. The minimum deployment target is iOS 17. The Duo layout paths use the iOS 27.1 SDK, which is available in Xcode 27.1.
 
@@ -11,7 +11,7 @@ Open `Glamo.xcodeproj` and select the shared `Glamo` scheme. The minimum deploym
 - Google iOS demo App ID, app-open and rewarded units. Membership requests `coins_1.99` monthly (USD 9.99) and `conis_4.99` yearly (USD 99.99) in Apple Sandbox. The app displays the prices returned by StoreKit.
 - Website, terms and privacy point to HTTPS placeholders.
 
-For playback integration, enter the Clipo test short code from the Toolkit on Home. Verify that the search result opens in the full-screen player. Use a new or authorized test account when verifying Apple purchases and restores.
+For online playback integration, open Videos → Lessons → Open a lesson and enter the Clipo test short code from the Toolkit. The search result should open in the full-screen player. Use a new or authorized test account when verifying Apple purchases and restores.
 
 ## Production transition
 
@@ -19,4 +19,4 @@ After test acceptance, update the Bundle ID, API domain, AdMob configuration, of
 
 ## Verification
 
-Source, project settings and asset references were reviewed. Builds, live backend calls, playback, ad impressions, Apple transactions and iPhone Duo device behavior remain to be verified.
+Source, project settings and asset references were reviewed. Builds, local import and playback, live backend calls, ad impressions, Apple transactions and iPhone Duo device behavior remain to be verified.

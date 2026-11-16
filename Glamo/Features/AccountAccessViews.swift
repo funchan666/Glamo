@@ -32,7 +32,7 @@ struct AccountLoadingIndicator: View {
             LocalizedText(title).font(.glam(.subheadline, weight: .semibold)).multilineTextAlignment(.center)
         }.padding(22).frame(maxWidth: 250)
             .foregroundStyle(GlamoStyle.ink)
-            .background { GlamSurface(tone: .raised) }
+            .glamoCard(radius: 22, fill: GlamoStyle.paper)
             .accessibilityElement(children: .combine)
     }
 }
@@ -84,7 +84,7 @@ struct AccountDecisionDialog: View {
                         if let cancel { ActionButton(title: "Cancel", primary: false, action: cancel) }
                     }
                 }.padding(20).frame(maxWidth: 360)
-                    .background { GlamSurface(tone: .surface) }
+                    .glamoCard(radius: 26)
                     .padding(24).frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
         }.background(Color.black.opacity(0.68).ignoresSafeArea())
@@ -119,13 +119,13 @@ struct PolicyLinks: View {
     @ViewBuilder private var links: some View {
         if let url = api.configuration.termsURL {
             Button("Terms of Use") { document = PolicyDocument(title: "Terms of Use", url: url) }
-                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                .frame(minHeight: 44)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minWidth: 44, minHeight: 44)
         }
         if let url = api.configuration.privacyURL {
             Button("Privacy Policy") { document = PolicyDocument(title: "Privacy Policy", url: url) }
-                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                .frame(minHeight: 44)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minWidth: 44, minHeight: 44)
         }
     }
 }
@@ -153,7 +153,7 @@ struct PolicyBrowser: View {
             SheetHeading(title: document.title) { dismiss() }
             if webSearch {
                 HStack(spacing: 12) {
-                    IconButton(symbol: .back, label: "Back") { state.goBack() }
+                    IconButton(symbol: .back, label: "Back", glass: true) { state.goBack() }
                         .disabled(!state.canGoBack)
                     Text(verbatim: state.currentURL?.host ?? document.url.host ?? "")
                         .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
@@ -304,7 +304,7 @@ struct AccountSettingsSection: View {
             Button { languagePicker = true } label: {
                 AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system")
             }.buttonStyle(PressStyle())
-                .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 22))
+                .glamoCard()
                 .accessibilityIdentifier("account.language")
             VStack(alignment: .leading, spacing: 12) {
                 LocalizedText("Privacy & terms").font(.glam(.headline))
@@ -325,7 +325,7 @@ struct AccountSettingsSection: View {
                         Button {
                             websiteError = nil
                             openURL(website) { accepted in
-                                if !accepted { websiteError = "The browser could not open. Please try again." }
+                                if !accepted { websiteError = "Couldn’t open the Glamo website. Try again." }
                             }
                         } label: {
                             AccountMenuRow(title: "Official website")
@@ -334,10 +334,10 @@ struct AccountSettingsSection: View {
                     if ads.privacyOptionsRequired {
                         rowDivider
                         Button { Task { await ads.privacyOptions() } } label: {
-                            AccountMenuRow(title: "Advertising privacy")
+                            AccountMenuRow(title: "Ad privacy choices")
                         }
                     }
-                }.background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 22))
+                }.glamoCard()
                     .buttonStyle(PressStyle()).disabled(unavailable)
             }
             if let websiteError { ErrorNote(message: websiteError) }

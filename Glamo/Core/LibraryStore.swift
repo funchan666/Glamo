@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import Combine
 import CoreTransferable
 import UniformTypeIdentifiers
@@ -7,11 +8,20 @@ import UniformTypeIdentifiers
 final class LibraryStore: ObservableObject {
     @Published private(set) var snapshot = LessonLibrarySnapshot()
     @Published var error: String?
+    @Published private(set) var importingVideo = false
     @Published private(set) var downloadsRequest: UUID?
     func openDownloads() { downloadsRequest = UUID() }
     private let root: URL
     private let snapshotURL: URL
     private var readable = true
+
+    func beginVideoImport() -> Bool {
+        guard !importingVideo else { return false }
+        importingVideo = true
+        return true
+    }
+
+    func finishVideoImport() { importingVideo = false }
 
     init() {
         root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("GlamoMedia", isDirectory: true)
@@ -107,20 +117,36 @@ final class LibraryStore: ObservableObject {
         let id = UUID()
         let ext = source.pathExtension.lowercased().nilIfBlank ?? "mov"
         let item = PracticeRecording(id: id, filename: id.uuidString + "." + ext,
-                              title: title ?? source.deletingPathExtension().lastPathComponent,
-                              date: Date(), isExport: exported)
+                                     title: title ?? source.deletingPathExtension().lastPathComponent,
+                                     date: Date(), isExport: exported)
         let destination = url(for: item)
-        try await Task.detached(priority: .userInitiated) {
-            let access = source.startAccessingSecurityScopedResource()
-            defer { if access { source.stopAccessingSecurityScopedResource() } }
-            try FileManager.default.copyItem(at: source, to: destination)
-        }.value
-        var next = snapshot
-        next.movies.insert(item, at: 0)
-        do { try persist(next) }
-        catch { try? FileManager.default.removeItem(at: destination); throw error }
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                let access = source.startAccessingSecurityScopedResource()
+                defer { if access { source.stopAccessingSecurityScopedResource() } }
+                try FileManager.default.copyItem(at: source, to: destination)
+            }.value
+            try Task.checkCancellation()
+            if !exported {
+                let asset = AVURLAsset(url: destination)
+                let playable = try await asset.load(.isPlayable)
+                let duration = try await asset.load(.duration).seconds
+                let tracks = try await asset.loadTracks(withMediaType: .video)
+                guard playable, duration.isFinite, duration > 0.1, !tracks.isEmpty else {
+                    throw GlamoError.unsupportedMedia
+                }
+                try Task.checkCancellation()
+            }
+            var next = snapshot
+            next.movies.insert(item, at: 0)
+            try persist(next)
+        } catch {
+            try? FileManager.default.removeItem(at: destination)
+            throw error
+        }
         return item
     }
+
     func delete(_ movie: PracticeRecording) {
         // Commit index removal first; a failed file deletion leaves an orphan, not a broken library entry.
         var next = snapshot
@@ -131,15 +157,15 @@ final class LibraryStore: ObservableObject {
             if FileManager.default.fileExists(atPath: file.path) { try FileManager.default.removeItem(at: file) }
         } catch { self.error = error.localizedDescription }
     }
+
     private func save(_ next: LessonLibrarySnapshot) {
         do { try persist(next) } catch { self.error = error.localizedDescription }
     }
     private func persist(_ next: LessonLibrarySnapshot) throws {
         guard readable else { throw GlamoError.storage }
         let data = try JSONEncoder().encode(next)
+        // Atomic replacement is the commit point for both the index and its referenced files.
         try data.write(to: snapshotURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        let saved = try Data(contentsOf: snapshotURL)
-        guard saved == data else { throw GlamoError.storage }
         snapshot = next
     }
 }
@@ -150,8 +176,16 @@ struct ImportedMovie: Transferable {
         FileRepresentation(contentType: .movie) { movie in SentTransferredFile(movie.url) }
         importing: { received in
             let ext = received.file.pathExtension.nilIfBlank ?? "mov"
-            let copy = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
-            try FileManager.default.copyItem(at: received.file, to: copy)
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("GlamoImport-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let copy = directory.appendingPathComponent(received.file.deletingPathExtension().lastPathComponent)
+                .appendingPathExtension(ext)
+            do { try FileManager.default.copyItem(at: received.file, to: copy) }
+            catch {
+                try? FileManager.default.removeItem(at: directory)
+                throw error
+            }
             return ImportedMovie(url: copy)
         }
     }

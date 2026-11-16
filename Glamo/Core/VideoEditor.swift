@@ -43,6 +43,10 @@ final class VideoEditor: ObservableObject {
     private var previewURL: URL?
     private var previewRevision = UUID()
 
+    deinit {
+        if let previewURL { try? FileManager.default.removeItem(at: previewURL) }
+    }
+
     func open(_ url: URL) async {
         clearRenderedPreview()
         let requestID = UUID()

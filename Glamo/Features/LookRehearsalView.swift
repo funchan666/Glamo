@@ -1,24 +1,33 @@
 import SwiftUI
 
+private enum RehearsalSheet: Identifiable {
+    case csv(URL), recap(String), membership
+    var id: String {
+        switch self {
+        case .csv: "csv"
+        case .recap: "recap"
+        case .membership: "membership"
+        }
+    }
+}
+
 struct LookRehearsalEntry: View {
     let open: () -> Void
     var body: some View {
         Button(action: open) {
-            VStack(alignment: .leading, spacing: 0) {
-                GlamCover(kind: .rehearsal).aspectRatio(3.6, contentMode: .fit)
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        LocalizedText("Look rehearsal").font(.glam(.title3, weight: .semibold, editorial: true))
-                        LocalizedText("Try a look before the night. Mark each mirror check.").font(.glam(.subheadline))
-                            .foregroundStyle(GlamoStyle.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    Glyph(symbol: .back, size: 14, tint: GlamoStyle.accent).rotationEffect(.degrees(180))
-                }.padding(16)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    LocalizedText("Look rehearsal").font(.glam(.headline))
+                    LocalizedText("Time a look and track what needs a touch-up.").font(.glam(.subheadline))
+                        .foregroundStyle(GlamoStyle.secondary)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Glyph(symbol: .back, size: 14, tint: GlamoStyle.accent).rotationEffect(.degrees(180))
+                    .frame(width: 44, height: 44)
+                    .glamoGlass(in: Circle(), tint: GlamoStyle.paper)
             }
+            .padding(.vertical, 12)
             .foregroundStyle(GlamoStyle.ink)
-            .background(GlamoStyle.paper)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .contentShape(Rectangle())
         }.buttonStyle(PressStyle()).accessibilityIdentifier("rehearsal.open")
     }
@@ -27,6 +36,7 @@ struct LookRehearsalEntry: View {
 struct LookRehearsalView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
+    @EnvironmentObject private var commerce: CommerceStore
     @StateObject private var journal = LookRehearsalJournal()
     @State private var area = LookArea.base
     @State private var lookName = ""
@@ -34,7 +44,9 @@ struct LookRehearsalView: View {
     @State private var showingHistory = false
     @State private var selected: LookRehearsal?
     @State private var pendingRemoval: LookRehearsal?
-    @State private var sharedExport: SharedFile?
+    @State private var sheet: RehearsalSheet?
+    @State private var recapTask: Task<Void, Never>?
+    @State private var recapError: String?
     @FocusState private var nameFocused: Bool
 
     var body: some View {
@@ -42,13 +54,15 @@ struct LookRehearsalView: View {
             SheetHeading(title: "Look rehearsal") { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    GlamCover(kind: .rehearsal).aspectRatio(16 / 9, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    ChipFilter(values: ["Rehearse", "History"], selected: showingHistory ? "History" : "Rehearse") {
+                    ChipFilter(values: ["Practice", "History"], selected: showingHistory ? "History" : "Practice") {
                         nameFocused = false
                         showingHistory = $0 == "History"
                     }
                     if let message = journal.storageMessage { ErrorNote(message: message) }
+                    if !showingHistory, journal.active == nil {
+                        LocalizedText("Start the timer and record each mirror check as you go. The recap shows your results and total time.")
+                            .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                    }
                     if showingHistory { history } else { rehearse }
                 }.glamoPage()
             }.scrollDismissesKeyboard(.interactively)
@@ -60,7 +74,7 @@ struct LookRehearsalView: View {
         if let session = journal.active {
             lookTitle(session)
                 .font(.glam(.title2, editorial: true))
-            LocalizedText("Pick the area you just worked on, look in the mirror, then mark how it looks.")
+            LocalizedText("Pick an area and record what you see in the mirror.")
                 .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             ChipFilter(values: LookArea.allCases.map(\.label), selected: area.label) { label in
@@ -91,11 +105,6 @@ struct LookRehearsalView: View {
                 }
             }
         } else {
-            LocalizedText("Rehearse the look before the party.").font(.glam(.title2, editorial: true))
-                .fixedSize(horizontal: false, vertical: true)
-            LocalizedText("Name the look, start the timer, and mark each area as you check it in the mirror. You’ll see which steps need practice and how long the whole look takes.")
-                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
             TextField("Look name (optional)", text: $lookName,
                       prompt: Text("Look name (optional)").foregroundColor(GlamoStyle.secondary))
                 .textInputAutocapitalization(.sentences)
@@ -109,19 +118,27 @@ struct LookRehearsalView: View {
                 if journal.active != nil { lookName = ""; area = .base }
             }.disabled(!journal.available)
         }
-        LocalizedText("Records are kept on this device and come only from what you mark. Glamo does not analyse your face or video.")
+        LocalizedText("Glamo stores the checks you enter on this device. It does not analyze your face or video.")
             .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder private var history: some View {
         if journal.completed.isEmpty {
-            LocalizedText("No rehearsals yet.").font(.glam(.headline))
-            LocalizedText("Finished rehearsals appear here with their mirror checks and time taken.")
-                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+            if journal.available {
+                GlamoEmptyState(title: "No rehearsals yet",
+                                message: "Finish a rehearsal to see it here.") {
+                    ActionButton(title: journal.active == nil ? "Go to practice" : "Resume rehearsal") {
+                        showingHistory = false
+                    }
+                }
+            }
         } else {
             ForEach(journal.completed) { session in
-                Button { selected = session } label: {
+                Button {
+                    recapError = nil
+                    selected = session
+                } label: {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .firstTextBaseline) {
                             lookTitle(session)
@@ -132,7 +149,7 @@ struct LookRehearsalView: View {
                         }
                         summary(session)
                     }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-                        .background { GlamSurface(tone: .surface, radius: 20) }.contentShape(Rectangle())
+                        .glamoCard(radius: 20).contentShape(Rectangle())
                 }.buttonStyle(PressStyle())
             }
         }
@@ -157,8 +174,17 @@ struct LookRehearsalView: View {
                             }
                         }
                     }
+                    ActionButton(title: commerce.premium ? "Share rehearsal recap" : "Share recap with Plus",
+                                 busy: recapTask != nil) {
+                        guard recapTask == nil else { return }
+                        recapTask = Task {
+                            await prepareRecap(for: session)
+                            recapTask = nil
+                        }
+                    }.accessibilityIdentifier("rehearsal.shareRecap")
+                    if let recapError { ErrorNote(message: recapError) }
                     ActionButton(title: "Export rehearsal CSV", primary: false) {
-                        if let url = journal.export(session) { sharedExport = SharedFile(url: url) }
+                        if let url = journal.export(session) { sheet = .csv(url) }
                     }
                     if let message = journal.storageMessage { ErrorNote(message: message) }
                     Button { pendingRemoval = session } label: { LocalizedText("Delete rehearsal") }
@@ -166,9 +192,16 @@ struct LookRehearsalView: View {
                 }.glamoPage()
             }
         }.glamoScreenBackground()
-            .sheet(item: $sharedExport) { ShareSheet(items: [$0.url]) }
+            .onDisappear { recapTask?.cancel() }
+            .sheet(item: $sheet) { destination in
+                switch destination {
+                case .csv(let url): ShareSheet(items: [url])
+                case .recap(let text): ShareSheet(items: [text])
+                case .membership: MembershipView(requiredBenefit: .rehearsalRecap)
+                }
+            }
             .fullScreenCover(item: $pendingRemoval) { session in
-                AccountDecisionDialog(title: "Delete rehearsal?", message: "This removes the rehearsal and all of its mirror checks from this device.",
+                AccountDecisionDialog(title: "Delete rehearsal?", message: "This deletes the rehearsal, checks and notes from this device.",
                     confirmTitle: "Delete rehearsal", destructive: true,
                     cancel: { pendingRemoval = nil }) {
                         journal.remove(session.id)
@@ -176,6 +209,46 @@ struct LookRehearsalView: View {
                         if !journal.completed.contains(where: { $0.id == session.id }) { selected = nil }
                     }.presentationBackground(.clear)
             }
+    }
+
+    private func prepareRecap(for session: LookRehearsal) async {
+        guard !Task.isCancelled else { return }
+        recapError = nil
+        if !commerce.hasVerifiedRightsForCurrentAccount, commerce.api.session != nil {
+            await commerce.refresh()
+        }
+        guard selected?.id == session.id, sheet == nil, pendingRemoval == nil, !Task.isCancelled else { return }
+        if commerce.hasVerifiedMembership {
+            sheet = .recap(recap(for: session))
+        } else if !commerce.hasVerifiedRightsForCurrentAccount, commerce.api.session != nil {
+            recapError = "Connect to verify your Plus membership before sharing a recap."
+        } else {
+            sheet = .membership
+        }
+    }
+
+    private func recap(for session: LookRehearsal) -> String {
+        let language = AppLanguage.from(locale)
+        let date = session.startedAt.formatted(.dateTime.year().month().day().hour().minute().locale(locale))
+        var lines = [L10n.text("Rehearsal recap", language: language),
+                     session.lookName.nilIfBlank ?? L10n.text("Untitled look", language: language), date]
+        if let duration = session.duration {
+            lines.append("\(L10n.text("Time taken", language: language)) · \(durationText(duration))")
+        }
+        let count = session.checks.count.formatted(.number.locale(locale))
+        let ready = session.readyCount.formatted(.number.locale(locale))
+        lines.append("\(L10n.text("Party-ready", language: language)) · \(ready) / \(count)")
+        for area in LookArea.allCases {
+            let checks = session.checks.filter { $0.area == area }
+            guard !checks.isEmpty else { continue }
+            lines.append(contentsOf: ["", L10n.text(area.label, language: language)])
+            for check in checks {
+                let result = L10n.text(check.result.label, language: language)
+                let note = check.note.map { " — \($0)" } ?? ""
+                lines.append("• \(result)\(note)")
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     // User-entered names stay verbatim; only the default title is translated.
@@ -197,9 +270,13 @@ struct LookRehearsalView: View {
             $0.formatted(.percent.precision(.fractionLength(0)).locale(locale))
         } ?? "—")
         if let duration = session.duration {
-            metric("Time taken", value: Duration.seconds(duration)
-                .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(locale)))
+            metric("Time taken", value: durationText(duration))
         }
+    }
+
+    private func durationText(_ duration: TimeInterval) -> String {
+        Duration.seconds(duration)
+            .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated).locale(locale))
     }
 
     private func metric(_ title: String, value: String) -> some View {
@@ -224,7 +301,7 @@ struct LookRehearsalView: View {
                     }.font(.glam(.subheadline))
                 }
             }
-            LocalizedText("Party-ready checks / all checks for that area.")
+            LocalizedText("Ready checks out of all checks for each area.")
                 .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
         }
     }

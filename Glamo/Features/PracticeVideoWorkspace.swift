@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import AVFoundation
 
 enum VideoTool: String, Identifiable, CaseIterable {
     case audio, speed, frame, studio
@@ -9,16 +10,16 @@ enum VideoTool: String, Identifiable, CaseIterable {
         switch self {
         case .audio: return "Extract audio"
         case .speed: return "Change speed"
-        case .frame: return "Reframe video"
+        case .frame: return "Crop & rotate"
         case .studio: return "Full editor"
         }
     }
     var detail: String {
         switch self {
-        case .audio: return "Keep the sound as an M4A file."
-        case .speed: return "Slow down a tricky blending step."
-        case .frame: return "Zoom in on your eyes or lips."
-        case .studio: return "Trim, rotate and combine your changes."
+        case .audio: return "Save the audio as an M4A file."
+        case .speed: return "Slow down or speed up a video."
+        case .frame: return "Crop to portrait, square or landscape."
+        case .studio: return "Trim the clip, adjust its speed or change the frame."
         }
     }
     var editorTab: String {
@@ -41,71 +42,132 @@ enum VideoTool: String, Identifiable, CaseIterable {
 
 struct ToolsView: View {
     @State private var selectedTool: VideoTool?
-    @State private var showingGuide = false
-    @State private var showingRehearsal = false
-    @Environment(\.dynamicTypeSize) private var typeSize
-    private let tools: [VideoTool] = [.speed, .frame, .audio]
+    private let tools: [VideoTool] = [.studio, .frame, .speed, .audio]
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                reviewLook
-                LookRehearsalEntry { showingRehearsal = true }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: typeSize.isAccessibilitySize ? 250 : 146), spacing: 12)], spacing: 12) {
+            VStack(alignment: .leading, spacing: 18) {
+                LocalizedText("Video tools").font(.glam(.largeTitle, weight: .semibold))
+                    .accessibilityAddTraits(.isHeader)
+                VStack(spacing: 0) {
                     ForEach(tools) { tool in
+                        if tool != tools.first { Divider().overlay(GlamoStyle.line) }
                         Button { selectedTool = tool } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                GlamCover(kind: subject(tool)).aspectRatio(1.5, contentMode: .fit)
-                                    .clipShape(.rect(cornerRadius: 14))
-                                LocalizedText(tool.title).font(.glam(.headline))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }.padding(10).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                                .foregroundStyle(GlamoStyle.ink)
-                                .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 18))
-                                .contentShape(Rectangle())
-                        }.buttonStyle(PressStyle())
-                            .accessibilityIdentifier("tools.\(tool.rawValue)")
+                            HStack(spacing: 8) {
+                                FeatureRow(symbol: tool.glyph, title: tool.title, detail: tool.detail)
+                                Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary).rotationEffect(.degrees(180))
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PressStyle())
+                        .accessibilityIdentifier("tools.\(tool.rawValue)")
                     }
-                }
-                LookGuideEntry { showingGuide = true }
+                }.glamoCard(radius: 20)
             }.glamoPage()
         }.glamoScreenBackground()
             .sheet(item: $selectedTool) { EditorSheet(initialTool: $0) }
-            .sheet(isPresented: $showingGuide) { LookGuideView() }
-            .sheet(isPresented: $showingRehearsal) { LookRehearsalView() }
     }
-    private var reviewLook: some View {
-        Button { selectedTool = .studio } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                GlamCover(kind: .review).aspectRatio(2.2, contentMode: .fit)
-                HStack(spacing: 12) {
-                    LocalizedText("Review your try-on").font(.glam(.title3, weight: .semibold, editorial: true))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Glyph(symbol: .edit, size: 19, tint: GlamoStyle.ink)
-                }.padding(14).frame(minHeight: 54)
-            }.foregroundStyle(GlamoStyle.ink)
-                .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 22))
-                .clipShape(.rect(cornerRadius: 22))
-                .contentShape(Rectangle())
-        }.buttonStyle(PressStyle()).accessibilityIdentifier("tools.studio")
+}
+
+struct VideoImportControls: View {
+    @EnvironmentObject private var library: LibraryStore
+    @State private var showFiles = false
+    @State private var showPhotos = false
+    @State private var photo: PhotosPickerItem?
+    @State private var error: String?
+    let onImport: (PracticeRecording) -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { sources(fillsWidth: false) }
+                    .fixedSize(horizontal: true, vertical: false)
+                VStack(spacing: 8) { sources(fillsWidth: true) }
+            }
+            .disabled(library.importingVideo || showFiles || showPhotos)
+            if library.importingVideo { AccountLoadingIndicator(title: "Importing…") }
+            if let error { ErrorNote(message: error) }
+        }
+        .fileImporter(isPresented: $showFiles, allowedContentTypes: [.movie]) { result in
+            switch result {
+            case .success(let url): importVideo { try await library.importMovie(url) }
+            case .failure(let failure): report(failure)
+            }
+        }
+        .photosPicker(isPresented: $showPhotos, selection: $photo, matching: .videos, photoLibrary: .shared())
+        .onChange(of: photo) { _, item in
+            guard let item else { return }
+            photo = nil
+            importVideo {
+                guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
+                    throw GlamoError.unsupportedMedia
+                }
+                defer { try? FileManager.default.removeItem(at: movie.url.deletingLastPathComponent()) }
+                return try await library.importMovie(movie.url)
+            }
+        }
     }
-    private func subject(_ tool: VideoTool) -> GlamArt {
-        switch tool { case .speed: .speed; case .frame: .frame; case .audio: .audio; case .studio: .review }
+
+    @ViewBuilder private func sources(fillsWidth: Bool) -> some View {
+        Button { error = nil; showFiles = true } label: {
+            Label { LocalizedText("Import from Files") } icon: {
+                Glyph(symbol: .folder, size: 17, tint: GlamoStyle.onAccent)
+            }
+        }.buttonStyle(GlamoActionStyle(fillsWidth: fillsWidth))
+            .accessibilityIdentifier("video.importFiles")
+        Button { error = nil; showPhotos = true } label: {
+            Label { LocalizedText("Choose from Photos") } icon: {
+                Glyph(symbol: .feed, size: 17, tint: GlamoStyle.accent)
+            }
+        }.buttonStyle(GlamoActionStyle(primary: false, fillsWidth: fillsWidth))
+            .accessibilityIdentifier("video.importPhotos")
+    }
+
+    private func importVideo(_ load: @escaping () async throws -> PracticeRecording) {
+        guard library.beginVideoImport() else { return }
+        error = nil
+        Task {
+            defer { library.finishVideoImport() }
+            do {
+                let movie = try await load()
+                onImport(movie)
+            }
+            catch { report(error) }
+        }
+    }
+
+    private func report(_ failure: Error) {
+        let cocoa = failure as NSError
+        guard !(failure is CancellationError),
+              !(cocoa.domain == NSCocoaErrorDomain && cocoa.code == NSUserCancelledError),
+              !(cocoa.domain == NSURLErrorDomain && cocoa.code == NSURLErrorCancelled) else { return }
+        error = failure.localizedDescription
     }
 }
 
 struct EditorSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var library: LibraryStore
     var initialMovie: PracticeRecording? = nil
     var initialTool: VideoTool = .studio
     @StateObject private var departure = ExportDeparture()
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeading(title: initialTool.title) { departure.request { dismiss() } }
+            HStack {
+                LocalizedText(initialTool == .studio ? "Video editor" : initialTool.title)
+                    .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                IconButton(symbol: .close, label: "Close", glass: true) {
+                    departure.request { dismiss() }
+                }.disabled(library.importingVideo)
+            }
+            .pageHorizontalMargins().padding(.top, 8)
             EditorWorkspace(initialMovie: initialMovie, initialTool: initialTool)
         }.glamoScreenBackground()
             .environmentObject(departure)
-            .modifier(ExportDepartureProtection(departure: departure))
+            .modifier(ExportDepartureProtection(departure: departure, additionalDismissalLock: library.importingVideo))
     }
 }
 struct EditorWorkspace: View {
@@ -118,13 +180,12 @@ struct EditorWorkspace: View {
     var initialTool: VideoTool = .studio
     @StateObject private var editor = VideoEditor()
     @State private var selected: PracticeRecording?
-    @State private var picker: PhotosPickerItem?
-    @State private var filePicker = false
-    @State private var importing = false
     @State private var error: String?
     @State private var shareURL: SharedFile?
     @State private var tool = "Trim"
     @State private var exportTask: Task<Void, Never>?
+    @State private var openTask: Task<Void, Never>?
+    @State private var didOpenInitialMovie = false
     private let tools = ["Trim", "Frame", "Speed", "Audio", "Export"]
     init(initialMovie: PracticeRecording? = nil, initialTool: VideoTool = .studio) {
         self.initialMovie = initialMovie
@@ -134,17 +195,18 @@ struct EditorWorkspace: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if selected == nil {
-                    LocalizedText(initialTool.detail)
-                        .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                }
                 if let selected {
                     HStack {
-                        LocalizedText(selected.title).font(.glam(.subheadline)).lineLimit(1)
-                        Spacer()
+                        Text(verbatim: selected.title).font(.glam(.subheadline, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
                         if !departure.running, !editor.isExporting, !editor.isPreparingPreview {
-                            Button("Change") { self.selected = nil; editor.close() }
-                                .buttonStyle(CompactActionStyle())
+                            Button("Change video") {
+                                self.selected = nil
+                                openTask?.cancel()
+                                editor.close()
+                            }
+                                .buttonStyle(CompactActionStyle()).disabled(library.importingVideo)
                         }
                     }
                     VideoSurface(player: editor.preview.player, fill: false)
@@ -180,64 +242,25 @@ struct EditorWorkspace: View {
                             ActionButton(title: "Cancel export", primary: false) { departure.request() }
                         }
                     } else {
-                        ActionButton(title: initialTool == .audio ? "Export audio as M4A" : "Export video") {
+                        ActionButton(title: initialTool == .audio ? "Export M4A" : "Export video") {
                             export(audio: initialTool == .audio, title: selected.title)
-                        }
-                            .disabled(editor.isLoading || editor.isPreparingPreview || editor.duration <= 0)
+                        }.disabled(editor.isLoading || editor.isPreparingPreview || editor.duration <= 0)
                         ActionButton(title: "Preview changes", primary: false) { Task { await editor.applyPreview() } }
                             .disabled(editor.isLoading || editor.isPreparingPreview || editor.duration <= 0)
                     }
-                    LocalizedText("Your original stays untouched. Exports are saved to your local library.").font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+                    LocalizedText("Processed on your device. Finished files appear in Files under Exports.")
+                        .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
                 } else {
-                    VStack(alignment: .leading, spacing: 18) {
-                        GlamArtwork(kind: .lesson, height: 144)
-                        VStack(alignment: .leading, spacing: 10) {
-                            LocalizedText("Start with a video.").font(.glam(.headline))
-                            LocalizedText("Choose a clip from your device. We’ll keep your original untouched.")
-                                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary).lineSpacing(3)
-                        }
-                        VStack(spacing: 10) {
-                            PhotosPicker(selection: $picker, matching: .videos, photoLibrary: .shared()) {
-                                LocalizedText(importing ? "Importing…" : "Choose from Photos").font(.glam(.subheadline, weight: .semibold))
-                                    .lineLimit(1).minimumScaleFactor(0.75)
-                                    .padding(.horizontal, 16).padding(.vertical, 12)
-                                    .frame(maxWidth: .infinity, minHeight: 48).foregroundStyle(GlamoStyle.onAccent)
-                                    .background { GlamSurface(tone: .accent) }
-                                    .contentShape(Rectangle())
-                            }.disabled(importing).buttonStyle(PressStyle())
-                            ActionButton(title: "Browse Files", primary: false, busy: importing) { filePicker = true }
-                        }
-                    }.padding(20).background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 24))
-                    if initialTool == .studio {
-                        VStack(alignment: .leading, spacing: 18) {
-                            SectionLabel(title: "From raw to ready")
-                            FeatureRow(symbol: .edit, title: "Keep the best part", detail: "Trim the timing, crop the frame, change the pace.")
-                            HStack(spacing: 16) {
-                                GlamArtwork(kind: .pouch, height: 72).frame(width: 108)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    LocalizedText("Export your way").font(.glam(.subheadline, weight: .semibold))
-                                    LocalizedText("Save a video or extract an audio track.").font(.glam(.caption))
-                                        .foregroundStyle(GlamoStyle.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }.frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
+                    GlamoEmptyState(title: "Choose a video", message: initialTool.detail) {
+                        VideoImportControls(onImport: choose)
                     }
                     if let error { ErrorNote(message: error) }
-                    if !library.movies.filter({ !$0.isExport }).isEmpty {
-                        SectionLabel(title: "Recent imports")
-                        ForEach(library.movies.filter { !$0.isExport }) { movie in
-                            Button { choose(movie) } label: {
-                                HStack(spacing: 14) {
-                                    Glyph(symbol: .feed, size: 28)
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        Text(verbatim: movie.title).font(.glam(.headline)).lineLimit(1)
-                                        LocalizedDateText(date: movie.date).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                                    }
-                                    Spacer()
-                                    Glyph(symbol: .edit, size: 22)
-                                }.padding(.vertical, 8)
-                            }.buttonStyle(PressStyle())
+                    let availableVideos = library.movies.filter { !$0.isAudio }
+                    if !availableVideos.isEmpty {
+                        SectionLabel(title: "Video files")
+                        ForEach(availableVideos) { movie in
+                            Button { choose(movie) } label: { LocalMediaLabel(movie: movie) }
+                                .buttonStyle(PressStyle()).disabled(library.importingVideo)
                         }
                     }
                 }
@@ -246,43 +269,21 @@ struct EditorWorkspace: View {
             .onReceive(editor.preview.$error) { message in
                 if let message { editor.error = "Preview could not play. \(message)" }
             }
-            .fileImporter(isPresented: $filePicker, allowedContentTypes: [.movie], allowsMultipleSelection: false) { result in
-                do { if let url = try result.get().first { importURL(url) } }
-                catch { if !isCancelledImport(error) { self.error = error.localizedDescription } }
-            }
-            .onChange(of: picker) { _, item in
-                guard let item else { return }
-                importing = true
-                error = nil
-                Task {
-                    defer { importing = false; picker = nil }
-                    do {
-                        guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else { throw GlamoError.unsupportedMedia }
-                        defer { try? FileManager.default.removeItem(at: movie.url) }
-                        let saved = try await library.importMovie(movie.url, title: "Imported video")
-                        selected = saved
-                        await editor.open(library.url(for: saved))
-                    } catch { if !isCancelledImport(error) { self.error = error.localizedDescription } }
-                }
-            }
             .sheet(item: $shareURL) { ShareSheet(items: [$0.url]) }
-            .sheet(isPresented: $showingExportMembership) { MembershipView(exportRequired: true) }
-            .task { if let initialMovie, selected == nil { selected = initialMovie; await editor.open(library.url(for: initialMovie)) } }
+            .sheet(isPresented: $showingExportMembership) { MembershipView(requiredBenefit: .mediaExport) }
+            .task {
+                guard !didOpenInitialMovie, selected == nil, let initialMovie else { return }
+                didOpenInitialMovie = true
+                choose(initialMovie)
+            }
             .onChange(of: scenePhase) { _, phase in if phase != .active { editor.preview.pause() } }
-            .onDisappear { editor.close(); exportTask?.cancel() }
+            .onDisappear { editor.preview.pause() }
     }
-    private func isCancelledImport(_ error: Error) -> Bool {
-        let failure = error as NSError
-        return error is CancellationError
-            || (failure.domain == NSCocoaErrorDomain && failure.code == NSUserCancelledError)
-            || (failure.domain == NSURLErrorDomain && failure.code == NSURLErrorCancelled)
-    }
-
     @ViewBuilder private var controls: some View {
         VStack(alignment: .leading, spacing: 20) {
             switch tool {
             case "Trim":
-                LocalizedText("Keep the good part.").font(.glam(.title3, weight: .bold))
+                LocalizedText("Trim video").font(.glam(.title3, weight: .bold))
                 if !editor.thumbnails.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 2) {
@@ -298,40 +299,38 @@ struct EditorWorkspace: View {
                 GlamoScrubber(value: Binding(get: { editor.recipe.end }, set: { editor.recipe.end = max($0, editor.recipe.start + 0.1) }), range: 0...max(0.1, editor.duration), label: "Trim end")
                 LocalizedText("Final duration · \(durationLabel((editor.recipe.end - editor.recipe.start) / editor.recipe.speed))").font(.glam(.footnote)).foregroundStyle(GlamoStyle.accent)
             case "Frame":
-                LocalizedText("Find the frame.").font(.glam(.title3, weight: .bold))
+                LocalizedText("Crop & rotate").font(.glam(.title3, weight: .bold))
                 FlowChoices(values: VideoFrame.allCases.map(\.rawValue), selected: editor.recipe.frame.rawValue) { value in editor.recipe.frame = VideoFrame(rawValue: value) ?? .original }
                 ActionButton(title: "Rotate 90° · \((editor.recipe.quarterTurns % 4) * 90)°", primary: false) { editor.recipe.quarterTurns = (editor.recipe.quarterTurns + 1) % 4 }
                 ActionButton(title: editor.recipe.mirrored ? "Mirror: On" : "Mirror: Off", primary: false) { editor.recipe.mirrored.toggle() }
-                LocalizedText("Frames crop from the center. Use Preview changes to inspect the result.").font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+                LocalizedText("Crop starts at the center. Tap Preview changes to check the result.").font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
             case "Speed":
-                LocalizedText("Set the pace.").font(.glam(.title3, weight: .bold))
+                LocalizedText("Playback speed").font(.glam(.title3, weight: .bold))
                 FlowChoices(values: ["0.5×", "0.75×", "1×", "1.5×", "2×"], selected: String(format: "%g×", editor.recipe.speed)) { value in editor.recipe.speed = Double(value.replacingOccurrences(of: "×", with: "")) ?? 1 }
             case "Audio":
                 if initialTool == .audio {
-                    LocalizedText("Keep the soundtrack.").font(.glam(.title3, weight: .bold))
-                    LocalizedText("Extract the original audio track into an M4A file. Videos without an audio track cannot be converted.")
+                    LocalizedText("Choose a clip with sound to export its audio.")
                         .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
                 } else {
-                    LocalizedText("Let it speak. Or don’t.").font(.glam(.title3, weight: .bold))
+                    LocalizedText("Video sound").font(.glam(.title3, weight: .bold))
                     ActionButton(title: editor.recipe.muted ? "Audio: Muted" : "Audio: Original", primary: false) { editor.recipe.muted.toggle() }
-                    ActionButton(title: "Extract audio as M4A", primary: false) { export(audio: true, title: selected?.title ?? "Audio") }
+                    ActionButton(title: "Export M4A", primary: false) { export(audio: true, title: selected?.title ?? "Audio") }
                     LocalizedText("Audio extraction uses your trim and speed settings.").font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
                 }
             default:
-                LocalizedText("Ready for its next screen.").font(.glam(.title3, weight: .bold))
+                LocalizedText("Export quality").font(.glam(.title3, weight: .bold))
                 FlowChoices(values: ExportQuality.allCases.map(\.rawValue), selected: editor.recipe.quality.rawValue) { value in editor.recipe.quality = ExportQuality(rawValue: value) ?? .full }
                 LocalizedText("MP4 · Up to the selected resolution · 30 fps\nSmaller resolutions reduce export size. Source videos are never upscaled.").font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
             }
-        }.padding(22).background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 20))
+        }.padding(18).glamoCard(radius: 24)
     }
-    private func choose(_ movie: PracticeRecording) { selected = movie; error = nil; Task { await editor.open(library.url(for: movie)) } }
-    private func importURL(_ url: URL) {
-        importing = true
+    private func choose(_ movie: PracticeRecording) {
+        openTask?.cancel()
+        selected = movie
         error = nil
-        Task {
-            defer { importing = false }
-            do { let movie = try await library.importMovie(url); choose(movie) }
-            catch { self.error = error.localizedDescription }
+        openTask = Task {
+            guard !Task.isCancelled else { return }
+            await editor.open(library.url(for: movie))
         }
     }
     private func export(audio: Bool, title: String) {
@@ -345,20 +344,141 @@ struct EditorWorkspace: View {
             do {
                 defer { try? FileManager.default.removeItem(at: output) }
                 try commerce.requireMediaExport()
-                let saved = try await library.importMovie(output, exported: true, title: title + (audio ? " · Audio" : " · Edit"))
+                let suffix = L10n.text(audio ? "Audio" : "Edit")
+                let saved = try await library.importMovie(output, exported: true, title: "\(title) · \(suffix)")
                 let share = try await library.shareFile(for: saved, commerce: commerce)
                 if !Task.isCancelled { shareURL = SharedFile(url: share) }
             } catch is CancellationError { }
-            catch { self.error = "The export finished but could not be added to your library. \(error.localizedDescription)" }
+            catch { self.error = "Couldn’t save the export to your library. \(error.localizedDescription)" }
         }
         departure.begin { exportTask?.cancel(); editor.cancelExport() }
     }
 }
+
+struct LocalMediaLabel: View {
+    let movie: PracticeRecording
+
+    var body: some View {
+        HStack(spacing: 12) {
+            LocalMediaThumbnail(movie: movie)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(verbatim: movie.title).font(.glam(.subheadline, weight: .semibold))
+                    .lineLimit(2)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) { metadata }.fixedSize(horizontal: true, vertical: false)
+                    VStack(alignment: .leading, spacing: 3) { metadata }
+                }
+                .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                .accessibilityElement(children: .combine)
+            }.fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(GlamoStyle.ink)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder private var metadata: some View {
+        if !movie.fileExtension.isEmpty {
+            Text(verbatim: movie.fileExtension.uppercased()).monospaced()
+        }
+        LocalizedDateText(date: movie.date)
+    }
+}
+
+private struct LocalMediaThumbnail: View {
+    @EnvironmentObject private var library: LibraryStore
+    let movie: PracticeRecording
+    @State private var image: UIImage?
+
+    var body: some View {
+        GlamoStyle.raised.overlay {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Glyph(symbol: movie.isAudio ? .sound : .feed, size: 19, tint: GlamoStyle.secondary)
+            }
+        }
+        .frame(width: 68, height: 48)
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .accessibilityHidden(true)
+        .task(id: movie.id) {
+            image = nil
+            guard !movie.isAudio else { return }
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: library.url(for: movie)))
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: 208, height: 152)
+            if let result = try? await generator.image(at: .zero), !Task.isCancelled {
+                image = UIImage(cgImage: result.image)
+            }
+        }
+    }
+}
+
+struct LocalMediaPreview: View {
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var phase
+    @StateObject private var playback = PlaybackController()
+    @State private var scrubbing = false
+    @State private var editing = false
+    let movie: PracticeRecording
+
+    var body: some View {
+        VStack(spacing: 0) {
+            SheetHeading { dismiss() }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(verbatim: movie.title).font(.glam(.title2, weight: .semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    if movie.isAudio {
+                        Glyph(symbol: .sound, size: 34, tint: GlamoStyle.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 98)
+                            .background(GlamoStyle.raised, in: RoundedRectangle(cornerRadius: 16))
+                    } else {
+                        VideoSurface(player: playback.player, fill: false)
+                            .aspectRatio(16.0 / 10.0, contentMode: .fit)
+                            .background(.black, in: RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    if let error = playback.error {
+                        ErrorNote(message: error)
+                    } else if playback.isLoading {
+                        LocalizedText("Loading…").foregroundStyle(GlamoStyle.secondary)
+                    }
+                    HStack(spacing: 12) {
+                        IconButton(symbol: playback.isPlaying ? .pause : .play,
+                                   label: playback.isPlaying ? "Pause preview" : "Play preview", glass: true) {
+                            playback.toggle()
+                        }.disabled(playback.error != nil || playback.isLoading)
+                        PlayerProgressControl(playback: playback, timeline: playback.timeline,
+                                              enabled: !playback.isLoading, canResume: phase == .active && !editing,
+                                              scrubbing: $scrubbing, tint: GlamoStyle.ink)
+                    }
+                    if !movie.isAudio {
+                        ActionButton(title: "Edit") {
+                            playback.pause()
+                            editing = true
+                        }.disabled(playback.isLoading || playback.error != nil)
+                    }
+                }.glamoPage()
+            }
+        }
+        .glamoScreenBackground()
+        .task { playback.load(library.url(for: movie), autoplay: false) }
+        .onChange(of: phase) { _, phase in
+            if phase != .active { playback.pause() }
+        }
+        .onDisappear { playback.release() }
+        .sheet(isPresented: $editing) { EditorSheet(initialMovie: movie) }
+    }
+}
+
 struct PreviewButton: View {
     @ObservedObject var playback: PlaybackController
     var body: some View {
-        IconButton(symbol: playback.isPlaying ? .pause : .play, label: playback.isPlaying ? "Pause preview" : "Play preview") { playback.toggle() }
-            .background { GlamSurface(tone: .raised) }
+        IconButton(symbol: playback.isPlaying ? .pause : .play,
+                   label: playback.isPlaying ? "Pause preview" : "Play preview", glass: true) { playback.toggle() }
     }
 }
 struct FlowChoices: View {

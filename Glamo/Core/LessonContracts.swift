@@ -155,6 +155,8 @@ struct PracticeRecording: Codable, Identifiable, Hashable {
     var title: String
     let date: Date
     let isExport: Bool
+    var fileExtension: String { (filename as NSString).pathExtension.lowercased() }
+    var isAudio: Bool { fileExtension == "m4a" }
 }
 struct LessonLibrarySnapshot: Codable {
     var favorites: [LessonClip] = []

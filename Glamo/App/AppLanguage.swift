@@ -51,18 +51,13 @@ enum L10n {
         "Error: %@",
         "Downloading · %@%",
         "%@ downloads left today",
-        "%@ short reads · Available offline",
-        "Access through %@.",
         "Continue with %@",
         "%@, %@ per %@",
         "per %@",
         "%@ views · %@ saves left today",
         "Version %@",
-        "ID · %@",
         "%@ videos",
         "%@ views left today",
-        "%@ item · On this device",
-        "%@ items · On this device",
         "Exporting · %@%",
         "Final duration · %@",
         "Rotate 90° · %@°",
@@ -78,7 +73,7 @@ enum L10n {
         "%@ more views and %@ more saves have been added. Your ad progress stays the same.",
         "%@ more saves have been added. Your unlimited viewing stays active.",
         "Preview could not play. %@",
-        "The export finished but could not be added to your library. %@",
+        "Couldn’t save the export to your library. %@",
 
     ].compactMap { key -> (String, NSRegularExpression)? in
         let pattern = "\\A" + key.components(separatedBy: "%@")
@@ -179,7 +174,7 @@ struct LanguagePicker: View {
                                 .accessibilityIdentifier("language.\(language.rawValue)")
                             if language != AppLanguage.allCases.last { Divider().overlay(GlamoStyle.line) }
                         }
-                    }.background(GlamoStyle.surface).clipShape(RoundedRectangle(cornerRadius: 22))
+                    }.clipShape(RoundedRectangle(cornerRadius: 22)).glamoCard()
                 }.glamoPage()
             }
         }.glamoScreenBackground()
