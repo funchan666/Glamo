@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "Kuota harian tidak dapat dibaca. Coba lagi nanti.";
 "Daily allowance resets at 5 AM" = "Kuota harian direset pukul 05.00";
 "Delete local copy" = "Hapus salinan lokal";
+"Delete" = "Hapus";
+"Delete folder" = "Hapus folder";
+"After deletion" = "Setelah dihapus";
+"Folder contains items" = "Folder berisi item";
+"The empty folder will be removed from Glamo." = "Folder kosong ini akan dihapus dari Glamo.";
 "Dismiss message" = "Tutup pesan";
 "Edit" = "Edit";
 "Edit a local video" = "Edit video lokal";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "Ekspor dibatalkan. Video asli tidak berubah.";
 "Export could not finish. Your original video is unchanged." = "Ekspor tidak dapat diselesaikan. Video asli tidak berubah.";
 "Export video" = "Ekspor video";
+"Export complete" = "Ekspor selesai";
+"Export cancelled" = "Ekspor dibatalkan";
+"Sharing cancelled" = "Berbagi dibatalkan";
+"Your original video is still in your library." = "Video asli masih tersimpan di pustaka Anda.";
+"Export %@ again" = "Ekspor ulang %@";
+"Export failed" = "Ekspor gagal";
 "Export your way" = "Ekspor sesuai keinginan";
 "Exporting · %@%" = "Mengekspor · %@%";
 "Exports" = "Hasil ekspor";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "Geser ke atas atau ke bawah untuk mengganti video";
 
 "Preparing export…" = "Menyiapkan ekspor…";
+"Exporting" = "Mengekspor";
+"Finishing export…" = "Menyelesaikan ekspor…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "Format video ini tidak dapat diekspor. Gunakan berkas MP4 atau MOV.";
 
@@ -574,6 +587,17 @@
 "Video editor" = "Editor video";
 "Slow down or speed up a video." = "Perlambat atau percepat video.";
 "Share file" = "Bagikan file";
+"Format" = "Format";
+"File size" = "Ukuran file";
+"Unavailable" = "Tidak tersedia";
+"Preparing to share…" = "Menyiapkan file untuk dibagikan…";
+"Share preparation failed" = "Gagal menyiapkan file untuk dibagikan";
+"Share complete" = "File berhasil dibagikan";
+"Share cancelled" = "Berbagi dibatalkan";
+"Share failed" = "Gagal membagikan file";
+"Share again" = "Bagikan lagi";
+"Retry sharing" = "Coba bagikan lagi";
+"Your exported file is still in your library." = "File yang diekspor masih tersimpan di pustaka Anda.";
 "Paste a shared video URL on the Files page." = "Tempel URL video yang dibagikan di File.";
 "MP4 and M4A export" = "Ekspor MP4 dan M4A";
 "Processed on your device. Finished files appear in Files under Exports." = "Diproses di perangkat Anda. Hasilnya ada di File, di bagian Ekspor.";
@@ -584,12 +608,16 @@
 "Settings" = "Pengaturan";
 "Grid view" = "Tampilan kisi";
 "List view" = "Tampilan daftar";
+"List" = "Daftar";
+"Grid" = "Kisi";
+"Sort by" = "Urutkan menurut";
 "Add" = "Tambah";
 "View import results" = "Lihat hasil impor";
 "Search" = "Cari";
 "Search files and folders" = "Cari file dan folder";
 "Search results" = "Hasil pencarian";
 "New folder" = "Folder baru";
+"This folder is empty" = "Folder ini kosong";
 "Parent folder" = "Folder induk";
 "Import videos" = "Impor video";
 "Clear search" = "Hapus pencarian";
@@ -618,8 +646,18 @@
 "Latest export" = "Ekspor terbaru";
 "Rename" = "Ganti nama";
 "Move to folder" = "Pindahkan ke folder";
+"Current location" = "Lokasi saat ini";
+"Destination folder" = "Folder tujuan";
+"Move here" = "Pindahkan ke sini";
 "Edit video" = "Edit video";
 "Name" = "Nama";
+"Current name" = "Nama saat ini";
+"New name" = "Nama baru";
+"Enter a new name." = "Masukkan nama baru.";
+"Folder name" = "Nama folder";
+"Create folder" = "Buat folder";
+"Select one or more videos." = "Pilih satu atau beberapa video.";
+"Pick a video to open in the editor." = "Pilih video untuk dibuka di editor.";
 "Only empty folders can be deleted." = "Hanya folder kosong yang dapat dihapus.";
 "Minimize player" = "Perkecil pemutar";
 "On this device" = "Di perangkat ini";

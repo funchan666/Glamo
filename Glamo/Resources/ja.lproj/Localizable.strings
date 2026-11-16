@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "本日の利用枠を取得できません。後ほど再試行してください。";
 "Daily allowance resets at 5 AM" = "利用枠は毎日午前5時にリセットされます";
 "Delete local copy" = "端末内のコピーを削除";
+"Delete" = "削除";
+"Delete folder" = "フォルダを削除";
+"After deletion" = "削除後";
+"Folder contains items" = "フォルダに項目があります";
+"The empty folder will be removed from Glamo." = "この空のフォルダはGlamoから削除されます。";
 "Dismiss message" = "メッセージを閉じる";
 "Edit" = "編集";
 "Edit a local video" = "端末内の動画を編集";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "書き出しをキャンセルしました。元の動画は変更されていません。";
 "Export could not finish. Your original video is unchanged." = "書き出しを完了できませんでした。元の動画は変更されていません。";
 "Export video" = "動画を書き出す";
+"Export complete" = "書き出し完了";
+"Export cancelled" = "書き出しをキャンセルしました";
+"Sharing cancelled" = "共有をキャンセルしました";
+"Your original video is still in your library." = "元の動画はライブラリに残っています。";
+"Export %@ again" = "%@で再度書き出す";
+"Export failed" = "書き出しに失敗しました";
 "Export your way" = "好きな形式で書き出す";
 "Exporting · %@%" = "書き出し中 · %@%";
 "Exports" = "書き出し済み";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "上下にスワイプして動画を切り替え";
 
 "Preparing export…" = "書き出しを準備中…";
+"Exporting" = "書き出し中";
+"Finishing export…" = "書き出しの最終処理中…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "この動画形式は書き出せません。MP4またはMOVファイルを使用してください。";
 
@@ -574,6 +587,17 @@
 "Video editor" = "動画エディタ";
 "Slow down or speed up a video." = "動画の再生速度を調整します。";
 "Share file" = "ファイルを共有";
+"Format" = "形式";
+"File size" = "ファイルサイズ";
+"Unavailable" = "情報なし";
+"Preparing to share…" = "共有の準備中…";
+"Share preparation failed" = "共有の準備に失敗しました";
+"Share complete" = "共有が完了しました";
+"Share cancelled" = "共有をキャンセルしました";
+"Share failed" = "共有に失敗しました";
+"Share again" = "もう一度共有";
+"Retry sharing" = "共有を再試行";
+"Your exported file is still in your library." = "書き出したファイルはライブラリに残っています。";
 "Paste a shared video URL on the Files page." = "共有された動画のURLを「ファイル」に貼り付けてください。";
 "MP4 and M4A export" = "MP4・M4A 書き出し";
 "Processed on your device. Finished files appear in Files under Exports." = "端末上で処理します。書き出したファイルは「ファイル」の「書き出し」に表示されます。";
@@ -584,12 +608,16 @@
 "Settings" = "設定";
 "Grid view" = "グリッド表示";
 "List view" = "リスト表示";
+"List" = "リスト";
+"Grid" = "グリッド";
+"Sort by" = "並べ替え";
 "Add" = "追加";
 "View import results" = "取り込み結果を見る";
 "Search" = "検索";
 "Search files and folders" = "ファイルとフォルダを検索";
 "Search results" = "検索結果";
 "New folder" = "新規フォルダ";
+"This folder is empty" = "このフォルダは空です";
 "Parent folder" = "上のフォルダ";
 "Import videos" = "動画を取り込む";
 "Clear search" = "検索を消去";
@@ -618,8 +646,18 @@
 "Latest export" = "最新の書き出し";
 "Rename" = "名前を変更";
 "Move to folder" = "フォルダに移動";
+"Current location" = "現在の場所";
+"Destination folder" = "移動先フォルダ";
+"Move here" = "ここに移動";
 "Edit video" = "動画を編集";
 "Name" = "名前";
+"Current name" = "現在の名前";
+"New name" = "新しい名前";
+"Enter a new name." = "新しい名前を入力してください。";
+"Folder name" = "フォルダ名";
+"Create folder" = "フォルダを作成";
+"Select one or more videos." = "動画を1本以上選べます。";
+"Pick a video to open in the editor." = "選んだ動画をエディタで開きます。";
 "Only empty folders can be deleted." = "空のフォルダのみ削除できます。";
 "Minimize player" = "プレーヤーを最小化";
 "On this device" = "このデバイス上";

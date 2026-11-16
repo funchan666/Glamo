@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "No se pudo consultar el cupo diario. Inténtalo más tarde.";
 "Daily allowance resets at 5 AM" = "El cupo diario se restablece a las 5:00";
 "Delete local copy" = "Eliminar copia local";
+"Delete" = "Eliminar";
+"Delete folder" = "Eliminar carpeta";
+"After deletion" = "Después de eliminar";
+"Folder contains items" = "La carpeta contiene elementos";
+"The empty folder will be removed from Glamo." = "La carpeta vacía se eliminará de Glamo.";
 "Dismiss message" = "Cerrar mensaje";
 "Edit" = "Editar";
 "Edit a local video" = "Editar vídeo local";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "Exportación cancelada. El vídeo original no ha cambiado.";
 "Export could not finish. Your original video is unchanged." = "No se pudo completar la exportación. El vídeo original no ha cambiado.";
 "Export video" = "Exportar vídeo";
+"Export complete" = "Exportación completada";
+"Export cancelled" = "Exportación cancelada";
+"Sharing cancelled" = "Se canceló la preparación para compartir";
+"Your original video is still in your library." = "El video original sigue en tu biblioteca.";
+"Export %@ again" = "Volver a exportar en %@";
+"Export failed" = "Error al exportar";
 "Export your way" = "Exporta a tu manera";
 "Exporting · %@%" = "Exportando · %@%";
 "Exports" = "Exportaciones";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "Desliza arriba o abajo para cambiar de vídeo";
 
 "Preparing export…" = "Preparando exportación…";
+"Exporting" = "Exportando";
+"Finishing export…" = "Finalizando la exportación…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "Este formato de vídeo no se puede exportar. Usa un archivo MP4 o MOV.";
 
@@ -574,6 +587,17 @@
 "Video editor" = "Editor de vídeo";
 "Slow down or speed up a video." = "Reduce o aumenta la velocidad del vídeo.";
 "Share file" = "Compartir archivo";
+"Format" = "Formato";
+"File size" = "Tamaño del archivo";
+"Unavailable" = "No disponible";
+"Preparing to share…" = "Preparando el archivo para compartir…";
+"Share preparation failed" = "No se pudo preparar el archivo para compartir";
+"Share complete" = "Archivo compartido";
+"Share cancelled" = "Se canceló la acción de compartir";
+"Share failed" = "No se pudo compartir el archivo";
+"Share again" = "Volver a compartir";
+"Retry sharing" = "Volver a intentar compartir";
+"Your exported file is still in your library." = "El archivo exportado sigue en tu biblioteca.";
 "Paste a shared video URL on the Files page." = "Pega la URL de un vídeo compartido en Archivos.";
 "MP4 and M4A export" = "Exportación en MP4 y M4A";
 "Processed on your device. Finished files appear in Files under Exports." = "El procesamiento se hace en tu dispositivo. Encuentra los archivos en Archivos, en Exportaciones.";
@@ -584,12 +608,16 @@
 "Settings" = "Ajustes";
 "Grid view" = "Vista de cuadrícula";
 "List view" = "Vista de lista";
+"List" = "Lista";
+"Grid" = "Cuadrícula";
+"Sort by" = "Ordenar por";
 "Add" = "Añadir";
 "View import results" = "Ver resultados de importación";
 "Search" = "Buscar";
 "Search files and folders" = "Buscar archivos y carpetas";
 "Search results" = "Resultados de búsqueda";
 "New folder" = "Nueva carpeta";
+"This folder is empty" = "Esta carpeta está vacía";
 "Parent folder" = "Carpeta superior";
 "Import videos" = "Importar vídeos";
 "Clear search" = "Borrar búsqueda";
@@ -618,8 +646,18 @@
 "Latest export" = "Última exportación";
 "Rename" = "Cambiar nombre";
 "Move to folder" = "Mover a una carpeta";
+"Current location" = "Ubicación actual";
+"Destination folder" = "Carpeta de destino";
+"Move here" = "Mover aquí";
 "Edit video" = "Editar vídeo";
 "Name" = "Nombre";
+"Current name" = "Nombre actual";
+"New name" = "Nombre nuevo";
+"Enter a new name." = "Escribe un nombre nuevo.";
+"Folder name" = "Nombre de la carpeta";
+"Create folder" = "Crear carpeta";
+"Select one or more videos." = "Selecciona uno o varios vídeos.";
+"Pick a video to open in the editor." = "Elige un vídeo para abrirlo en el editor.";
 "Only empty folders can be deleted." = "Solo puedes eliminar carpetas vacías.";
 "Minimize player" = "Minimizar el reproductor";
 "On this device" = "En este dispositivo";

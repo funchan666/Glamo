@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "تعذرت قراءة الحصة اليومية. حاول لاحقًا.";
 "Daily allowance resets at 5 AM" = "تتجدد الحصة اليومية الساعة 5 صباحًا";
 "Delete local copy" = "حذف النسخة المحلية";
+"Delete" = "حذف";
+"Delete folder" = "حذف المجلد";
+"After deletion" = "بعد الحذف";
+"Folder contains items" = "يحتوي المجلد على عناصر";
+"The empty folder will be removed from Glamo." = "سيُحذف هذا المجلد الفارغ من Glamo.";
 "Dismiss message" = "إغلاق الرسالة";
 "Edit" = "تحرير";
 "Edit a local video" = "تحرير فيديو محلي";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "أُلغي التصدير. لم يتغير الفيديو الأصلي.";
 "Export could not finish. Your original video is unchanged." = "تعذر إكمال التصدير. لم يتغير الفيديو الأصلي.";
 "Export video" = "تصدير الفيديو";
+"Export complete" = "اكتمل التصدير";
+"Export cancelled" = "أُلغي التصدير";
+"Sharing cancelled" = "أُلغيت المشاركة";
+"Your original video is still in your library." = "لا يزال الفيديو الأصلي في مكتبتك.";
+"Export %@ again" = "إعادة التصدير بصيغة %@";
+"Export failed" = "تعذّر التصدير";
 "Export your way" = "صدّر بالطريقة التي تريدها";
 "Exporting · %@%" = "جارٍ التصدير · %@%";
 "Exports" = "الملفات المصدَّرة";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "اسحب لأعلى أو لأسفل لتبديل الفيديو";
 
 "Preparing export…" = "جارٍ تجهيز التصدير…";
+"Exporting" = "جارٍ التصدير";
+"Finishing export…" = "جارٍ إكمال التصدير…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "لا يمكن تصدير تنسيق الفيديو هذا. يُرجى استخدام ملف MP4 أو MOV.";
 
@@ -574,6 +587,17 @@
 "Video editor" = "محرر الفيديو";
 "Slow down or speed up a video." = "أبطئ الفيديو أو سرّعه.";
 "Share file" = "مشاركة الملف";
+"Format" = "التنسيق";
+"File size" = "حجم الملف";
+"Unavailable" = "غير متاح";
+"Preparing to share…" = "جارٍ تجهيز الملف للمشاركة…";
+"Share preparation failed" = "تعذّر تجهيز الملف للمشاركة";
+"Share complete" = "اكتملت المشاركة";
+"Share cancelled" = "أُلغيت المشاركة";
+"Share failed" = "تعذّرت المشاركة";
+"Share again" = "المشاركة مرة أخرى";
+"Retry sharing" = "إعادة محاولة المشاركة";
+"Your exported file is still in your library." = "لا يزال الملف الذي صدّرته في مكتبتك.";
 "Paste a shared video URL on the Files page." = "الصق عنوان URL لفيديو تمت مشاركته في «الملفات».";
 "MP4 and M4A export" = "تصدير بصيغة MP4 وM4A";
 "Processed on your device. Finished files appear in Files under Exports." = "تتم المعالجة على جهازك. ستجد الملفات الجاهزة في الملفات ضمن الصادرات.";
@@ -584,12 +608,16 @@
 "Settings" = "الإعدادات";
 "Grid view" = "عرض الشبكة";
 "List view" = "عرض القائمة";
+"List" = "قائمة";
+"Grid" = "شبكة";
+"Sort by" = "الترتيب حسب";
 "Add" = "إضافة";
 "View import results" = "عرض نتائج الاستيراد";
 "Search" = "بحث";
 "Search files and folders" = "البحث عن الملفات والمجلدات";
 "Search results" = "نتائج البحث";
 "New folder" = "مجلد جديد";
+"This folder is empty" = "هذا المجلد فارغ";
 "Parent folder" = "المجلد الأصل";
 "Import videos" = "استيراد فيديوهات";
 "Clear search" = "مسح البحث";
@@ -618,8 +646,18 @@
 "Latest export" = "آخر تصدير";
 "Rename" = "إعادة التسمية";
 "Move to folder" = "نقل إلى مجلد";
+"Current location" = "الموقع الحالي";
+"Destination folder" = "مجلد الوجهة";
+"Move here" = "نقل إلى هنا";
 "Edit video" = "تحرير الفيديو";
 "Name" = "الاسم";
+"Current name" = "الاسم الحالي";
+"New name" = "الاسم الجديد";
+"Enter a new name." = "أدخل اسمًا جديدًا.";
+"Folder name" = "اسم المجلد";
+"Create folder" = "إنشاء مجلد";
+"Select one or more videos." = "حدد فيديو واحدًا أو عدة فيديوهات.";
+"Pick a video to open in the editor." = "اختر فيديو لفتحه في محرر الفيديو.";
 "Only empty folders can be deleted." = "يمكن حذف المجلدات الفارغة فقط.";
 "Minimize player" = "تصغير المشغّل";
 "On this device" = "على هذا الجهاز";

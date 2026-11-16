@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "Daily allowance could not be read. Please try again later.";
 "Daily allowance resets at 5 AM" = "Daily allowance resets at 5 AM";
 "Delete local copy" = "Delete local copy";
+"Delete" = "Delete";
+"Delete folder" = "Delete folder";
+"After deletion" = "After deletion";
+"Folder contains items" = "Folder contains items";
+"The empty folder will be removed from Glamo." = "The empty folder will be removed from Glamo.";
 "Dismiss message" = "Dismiss message";
 "Edit" = "Edit";
 "Edit a local video" = "Edit a local video";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "Export cancelled. Your original video is unchanged.";
 "Export could not finish. Your original video is unchanged." = "Export could not finish. Your original video is unchanged.";
 "Export video" = "Export video";
+"Export complete" = "Export complete";
+"Export cancelled" = "Export cancelled";
+"Sharing cancelled" = "Sharing cancelled";
+"Your original video is still in your library." = "Your original video is still in your library.";
+"Export %@ again" = "Export %@ again";
+"Export failed" = "Export failed";
 "Export your way" = "Export your way";
 "Exporting · %@%" = "Exporting · %@%";
 "Exports" = "Exports";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "Swipe up or down to change videos";
 
 "Preparing export…" = "Preparing export…";
+"Exporting" = "Exporting";
+"Finishing export…" = "Finishing export…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "This video format cannot be exported. Please use an MP4 or MOV file.";
 
@@ -574,6 +587,17 @@
 "Video editor" = "Video editor";
 "Slow down or speed up a video." = "Slow down or speed up a video.";
 "Share file" = "Share file";
+"Format" = "Format";
+"File size" = "File size";
+"Unavailable" = "Unavailable";
+"Preparing to share…" = "Preparing to share…";
+"Share preparation failed" = "Share preparation failed";
+"Share complete" = "Share complete";
+"Share cancelled" = "Share cancelled";
+"Share failed" = "Share failed";
+"Share again" = "Share again";
+"Retry sharing" = "Retry sharing";
+"Your exported file is still in your library." = "Your exported file is still in your library.";
 "Paste a shared video URL on the Files page." = "Paste a shared video URL on the Files page.";
 "MP4 and M4A export" = "MP4 and M4A export";
 "Processed on your device. Finished files appear in Files under Exports." = "Processed on your device. Finished files appear in Files under Exports.";
@@ -584,12 +608,16 @@
 "Settings" = "Settings";
 "Grid view" = "Grid view";
 "List view" = "List view";
+"List" = "List";
+"Grid" = "Grid";
+"Sort by" = "Sort by";
 "Add" = "Add";
 "View import results" = "View import results";
 "Search" = "Search";
 "Search files and folders" = "Search files and folders";
 "Search results" = "Search results";
 "New folder" = "New folder";
+"This folder is empty" = "This folder is empty";
 "Parent folder" = "Parent folder";
 "Import videos" = "Import videos";
 "Clear search" = "Clear search";
@@ -618,8 +646,18 @@
 "Latest export" = "Latest export";
 "Rename" = "Rename";
 "Move to folder" = "Move to folder";
+"Current location" = "Current location";
+"Destination folder" = "Destination folder";
+"Move here" = "Move here";
 "Edit video" = "Edit video";
 "Name" = "Name";
+"Current name" = "Current name";
+"New name" = "New name";
+"Enter a new name." = "Enter a new name.";
+"Folder name" = "Folder name";
+"Create folder" = "Create folder";
+"Select one or more videos." = "Select one or more videos.";
+"Pick a video to open in the editor." = "Pick a video to open in the editor.";
 "Only empty folders can be deleted." = "Only empty folders can be deleted.";
 "Minimize player" = "Minimize player";
 "On this device" = "On this device";

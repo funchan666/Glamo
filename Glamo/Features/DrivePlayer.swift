@@ -111,15 +111,19 @@ struct DrivePlayerView: View {
             let pane = drivePaneMargins(in: container)
             let width = container.size.width - pane.leading - pane.trailing
             let wide = width >= 780 && !typeSize.isAccessibilitySize && !driveHasReservedRegion(container)
+            let headerSpacing: CGFloat = 12
+            let topPadding: CGFloat = 8
+            let bottomPadding: CGFloat = cinema ? 4 : 24
             let layout = wide && !cinema ? AnyLayout(HStackLayout(alignment: .top, spacing: 16))
                                          : AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+            let verticalGaps = headerSpacing + topPadding + bottomPadding
             let height = cinema
-                ? max(128, container.size.height - headerHeight - controlsHeight - 24)
+                ? max(128, container.size.height - headerHeight - controlsHeight - verticalGaps)
                 : max(128, min(container.size.height * 0.55, width * (wide ? 0.42 : 0.68)))
             let files = session.files(in: library)
             if let movie = library.movies.first(where: { $0.id == session.currentID }) {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: headerSpacing) {
                         playerHeader(movie)
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
                         layout {
@@ -130,7 +134,7 @@ struct DrivePlayerView: View {
                         }
                     }
                     .pageHorizontalMargins()
-                    .padding(.top, 8).padding(.bottom, cinema ? 4 : 24)
+                    .padding(.top, topPadding).padding(.bottom, bottomPadding)
                     .frame(maxWidth: cinema ? .infinity : 1100).frame(maxWidth: .infinity)
                 }
                 .scrollBounceBehavior(.basedOnSize)
@@ -290,7 +294,7 @@ private struct DriveTransport: View {
                 }
             }
         }
-        .padding(.horizontal, 14).padding(.top, 4).padding(.bottom, 12)
+        .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 12)
     }
 
     private var transport: some View {
@@ -332,15 +336,9 @@ private struct DriveTransport: View {
     }
 
     private var displayControls: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                DriveSpeedButton(playback: playback, compact: false)
-                fullScreenButton
-            }.fixedSize(horizontal: true, vertical: false)
-            VStack(spacing: 6) {
-                DriveSpeedButton(playback: playback, compact: false)
-                fullScreenButton
-            }
+        HStack(spacing: 8) {
+            DriveSpeedButton(playback: playback, compact: false)
+            fullScreenButton
         }
     }
 
@@ -385,6 +383,7 @@ private struct DrivePlayButton: View {
 
 private struct DriveSpeedButton: View {
     @ObservedObject var playback: PlaybackController
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showingRates = false
     let compact: Bool
     private let rates: [Float] = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -412,17 +411,23 @@ private struct DriveSpeedButton: View {
         .accessibilityValue(Text(verbatim: rateText(playback.speed)))
         .popover(isPresented: $showingRates) {
             speedPicker
-                .presentationCompactAdaptation(horizontal: .popover, vertical: .sheet)
+                .presentationCompactAdaptation(horizontal: typeSize.isAccessibilitySize ? .sheet : .popover,
+                                               vertical: .sheet)
                 .presentationBackground(GlamoStyle.surface)
         }
     }
 
     private var speedPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            LocalizedText("Playback speed")
-                .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 62), spacing: 6)], spacing: 6) {
+            HStack(spacing: 8) {
+                LocalizedText("Playback speed")
+                    .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 0)
+                IconButton(symbol: .close, label: "Close", tint: GlamoStyle.secondary) { showingRates = false }
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: typeSize.isAccessibilitySize ? 105 : 62), spacing: 6)],
+                      spacing: 6) {
                 ForEach(rates, id: \.self) { speed in
                     let selected = speed == playback.speed
                     Button {
@@ -443,7 +448,7 @@ private struct DriveSpeedButton: View {
             }
         }
         .padding(14)
-        .frame(idealWidth: 238, maxWidth: 306)
+        .frame(idealWidth: typeSize.isAccessibilitySize ? 272 : 238, maxWidth: 306)
         .foregroundStyle(GlamoStyle.ink)
     }
 
@@ -479,28 +484,26 @@ private struct DrivePlayerTimes: View {
 struct DriveMiniPlayer: View {
     @ObservedObject var playback: PlaybackController
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .footnote) private var inlineWidth: CGFloat = 330
+    @State private var width: CGFloat = 560
     let movie: PracticeRecording
     let expand: () -> Void
     let close: () -> Void
 
     var body: some View {
-        VStack(spacing: 3) {
-            ViewThatFits(in: .horizontal) {
-                if !typeSize.isAccessibilitySize {
-                    HStack(spacing: 6) {
-                        expandButton.frame(minWidth: 156, idealWidth: 156, maxWidth: .infinity)
-                        controls
-                    }
-                }
-                VStack(alignment: .trailing, spacing: 4) {
-                    expandButton
-                    controls
-                }
+        let inline = width >= inlineWidth && !typeSize.isAccessibilitySize
+        let layout = inline ? AnyLayout(HStackLayout(spacing: 6))
+                            : AnyLayout(VStackLayout(alignment: .trailing, spacing: 4))
+        return VStack(spacing: 3) {
+            layout {
+                expandButton
+                controls
             }
             DriveMiniProgress(timeline: playback.timeline)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .frame(maxWidth: 560)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.paper, mediaBackdrop: true)
     }
 

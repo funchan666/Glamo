@@ -83,6 +83,11 @@
 "Daily allowance could not be read. Please try again later." = "Não foi possível consultar a cota diária. Tente mais tarde.";
 "Daily allowance resets at 5 AM" = "A cota diária é renovada às 5h";
 "Delete local copy" = "Excluir cópia local";
+"Delete" = "Apagar";
+"Delete folder" = "Apagar pasta";
+"After deletion" = "Depois de apagar";
+"Folder contains items" = "A pasta contém itens";
+"The empty folder will be removed from Glamo." = "A pasta vazia será apagada do Glamo.";
 "Dismiss message" = "Fechar mensagem";
 "Edit" = "Editar";
 "Edit a local video" = "Editar vídeo local";
@@ -94,6 +99,12 @@
 "Export cancelled. Your original video is unchanged." = "Exportação cancelada. O vídeo original não foi alterado.";
 "Export could not finish. Your original video is unchanged." = "Não foi possível concluir a exportação. O vídeo original não foi alterado.";
 "Export video" = "Exportar vídeo";
+"Export complete" = "Exportação concluída";
+"Export cancelled" = "Exportação cancelada";
+"Sharing cancelled" = "Partilha cancelada";
+"Your original video is still in your library." = "O vídeo original continua na biblioteca.";
+"Export %@ again" = "Exportar novamente em %@";
+"Export failed" = "Falha na exportação";
 "Export your way" = "Exporte do seu jeito";
 "Exporting · %@%" = "Exportando · %@%";
 "Exports" = "Exportações";
@@ -430,6 +441,8 @@
 "Swipe up or down to change videos" = "Deslize para cima ou para baixo para trocar de vídeo";
 
 "Preparing export…" = "Preparando exportação…";
+"Exporting" = "Exportando";
+"Finishing export…" = "Finalizando a exportação…";
 
 "This video format cannot be exported. Please use an MP4 or MOV file." = "Este formato de vídeo não pode ser exportado. Utilize um ficheiro MP4 ou MOV.";
 
@@ -574,6 +587,17 @@
 "Video editor" = "Editor de vídeo";
 "Slow down or speed up a video." = "Abrande ou acelere o vídeo.";
 "Share file" = "Partilhar ficheiro";
+"Format" = "Formato";
+"File size" = "Tamanho do ficheiro";
+"Unavailable" = "Indisponível";
+"Preparing to share…" = "A preparar o ficheiro para partilhar…";
+"Share preparation failed" = "Não foi possível preparar o ficheiro para partilhar";
+"Share complete" = "Partilha concluída";
+"Share cancelled" = "Partilha cancelada";
+"Share failed" = "Falha na partilha";
+"Share again" = "Partilhar novamente";
+"Retry sharing" = "Tentar partilhar novamente";
+"Your exported file is still in your library." = "O ficheiro exportado continua na biblioteca.";
 "Paste a shared video URL on the Files page." = "Cole o URL de um vídeo partilhado em Ficheiros.";
 "MP4 and M4A export" = "Exportação em MP4 e M4A";
 "Processed on your device. Finished files appear in Files under Exports." = "O processamento é feito no dispositivo. Os ficheiros finais aparecem em Ficheiros, na secção Exportações.";
@@ -584,12 +608,16 @@
 "Settings" = "Definições";
 "Grid view" = "Vista em grelha";
 "List view" = "Vista em lista";
+"List" = "Lista";
+"Grid" = "Grelha";
+"Sort by" = "Ordenar por";
 "Add" = "Adicionar";
 "View import results" = "Ver resultados da importação";
 "Search" = "Pesquisar";
 "Search files and folders" = "Pesquisar ficheiros e pastas";
 "Search results" = "Resultados da pesquisa";
 "New folder" = "Nova pasta";
+"This folder is empty" = "Esta pasta está vazia";
 "Parent folder" = "Pasta principal";
 "Import videos" = "Importar vídeos";
 "Clear search" = "Limpar pesquisa";
@@ -618,8 +646,18 @@
 "Latest export" = "Última exportação";
 "Rename" = "Mudar nome";
 "Move to folder" = "Mover para uma pasta";
+"Current location" = "Localização atual";
+"Destination folder" = "Pasta de destino";
+"Move here" = "Mover para aqui";
 "Edit video" = "Editar vídeo";
 "Name" = "Nome";
+"Current name" = "Nome atual";
+"New name" = "Novo nome";
+"Enter a new name." = "Introduza um novo nome.";
+"Folder name" = "Nome da pasta";
+"Create folder" = "Criar pasta";
+"Select one or more videos." = "Selecione um ou mais vídeos.";
+"Pick a video to open in the editor." = "Escolha um vídeo para abrir no editor.";
 "Only empty folders can be deleted." = "Só é possível apagar pastas vazias.";
 "Minimize player" = "Minimizar leitor";
 "On this device" = "Neste dispositivo";
