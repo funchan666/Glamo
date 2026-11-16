@@ -94,8 +94,6 @@ enum InstallationIdentity {
 final class APIClient: ObservableObject {
     private let diagnostics = Logger(subsystem: "com.glamo.video", category: "API")
     @Published private(set) var session: VisitorSession?
-    // Local ownership only: never use this as authentication or purchase entitlement.
-    @Published private(set) var offlineOwnerID: String?
     let configuration: GlamoConfiguration
     private let transport: URLSession
     private var loginTask: Task<VisitorSession, Error>?
@@ -110,11 +108,6 @@ final class APIClient: ObservableObject {
         transport = URLSession(configuration: config)
         do {
             try InstallationIdentity.prepare()
-            if let installation = try SecureStorage.read("installation"), !installation.isEmpty,
-               let data = try SecureStorage.read("visitor"),
-               let visitor = try? JSONDecoder().decode(VisitorSession.self, from: data) {
-                offlineOwnerID = visitor.userId.value.nilIfBlank
-            }
             // A persisted token is not a completed login for this process. Every cold
             // start authenticates again with the existing installation UUID. Keep the
             // stored credentials and purchase ledger intact for recovery ownership.
@@ -155,7 +148,6 @@ final class APIClient: ObservableObject {
             guard generation == sessionGeneration else { throw CancellationError() }
             try SecureStorage.write(JSONEncoder().encode(result), key: "visitor")
             session = result
-            offlineOwnerID = result.userId.value
             return result
         }
         loginTask = task
@@ -219,23 +211,6 @@ final class APIClient: ObservableObject {
             "lang": AppLanguage.current.rawValue, "userId": session.userId.value,
             "time": TimeZone.current.identifier, "input": UITextInputMode.activeInputModes.compactMap(\.primaryLanguage).joined(separator: ",")
         ], authenticated: false)
-    }
-    func channels(links: [String]) async throws -> [LandingInfo] {
-        let codes = links.compactMap { WebAddress.landingCode($0) }
-        guard !codes.isEmpty else { return [] }
-        let body = try JSONSerialization.data(withJSONObject: codes.map {
-            ["externalLinks": $0, "packageName": configuration.servicePackageName]
-        })
-        return try await perform("/app-api/flow/land-page/info_by_links_list", method: "POST", body: body, authenticated: false)
-    }
-    func resolve(_ link: String, password: String) async throws -> LandingInfo {
-        try await perform("/app-api/flow/land-page/info_by_links", query: [
-            "externalLinks": link, "password": password, "packageName": configuration.servicePackageName],
-            missingDataMessage: "No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later.")
-    }
-    func channelPage(link: String, page: Int) async throws -> ChannelPage {
-        try await perform("/app-api/flow/land-page/list_by_links_page", query: [
-            "externalLinks": link, "pageNo": String(max(1, page)), "pageSize": "20", "packageName": configuration.servicePackageName])
     }
     func feed(query: String, feedID: String?, cursor: String?) async throws -> LessonFeedPage {
         guard let session else { throw GlamoError.unauthorized }

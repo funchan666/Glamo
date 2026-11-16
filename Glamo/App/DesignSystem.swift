@@ -1,19 +1,19 @@
 import SwiftUI
 import UIKit
 
-// Neutral surfaces keep media visible. Berry identifies primary actions.
+// Limestone surfaces and an ink blue accent keep video frames distinct.
 enum GlamoStyle {
-    static let background = Color(red: 0.980, green: 0.973, blue: 0.976) // #FAF8F9
-    static let surface = Color(red: 1, green: 0.996, blue: 0.996)        // #FFFEFE
-    static let raised = Color(red: 0.937, green: 0.925, blue: 0.937)     // #EFECEF
-    static let accent = Color(red: 0.600, green: 0.161, blue: 0.282)     // #992948
-    static let onAccent = Color(red: 1, green: 0.984, blue: 0.988)       // #FFFBFC
-    static let ink = Color(red: 0.157, green: 0.133, blue: 0.157)        // #282228
-    static let secondary = Color(red: 0.396, green: 0.361, blue: 0.396)  // #655C65
-    static let paper = Color(red: 0.965, green: 0.949, blue: 0.961)      // #F6F2F5
-    static let paperMuted = Color(red: 0.941, green: 0.894, blue: 0.922) // #F0E4EB
-    static let line = Color(red: 0.890, green: 0.867, blue: 0.890)       // #E3DDE3
-    static let controlLine = Color(red: 0.553, green: 0.490, blue: 0.537) // #8D7D89
+    static let background = Color(red: 0.973, green: 0.969, blue: 0.949)
+    static let surface = Color(red: 1, green: 0.997, blue: 0.984)
+    static let raised = Color(red: 0.910, green: 0.921, blue: 0.933)
+    static let accent = Color(red: 0.153, green: 0.271, blue: 0.666)
+    static let onAccent = Color(red: 0.992, green: 0.985, blue: 0.961)
+    static let ink = Color(red: 0.098, green: 0.137, blue: 0.204)
+    static let secondary = Color(red: 0.302, green: 0.349, blue: 0.429)
+    static let paper = Color(red: 0.929, green: 0.941, blue: 0.965)
+    static let paperMuted = Color(red: 0.851, green: 0.896, blue: 0.977)
+    static let line = Color(red: 0.833, green: 0.863, blue: 0.903)
+    static let controlLine = Color(red: 0.424, green: 0.475, blue: 0.565)
     static let danger = Color(red: 0.647, green: 0.176, blue: 0.212)     // #A52D36
 }
 
@@ -21,62 +21,6 @@ enum GlamoStyle {
 // Every pictorial element is an original bitmap in Assets.xcassets.
 // Native code supplies layout, text and touch handling.
 // A missing asset shows a neutral placeholder or a text label, never substitute drawing.
-
-enum GlamArt: String, CaseIterable {
-    case plus = "PlusArtwork"
-    case vanity = "ArtVanity"
-    case lesson = "ArtLesson"
-    case pouch = "ArtPouch"
-    case notebook = "ArtNotebook"
-    case review = "ArtReview"
-    case speed = "ArtSpeed"
-    case frame = "ArtFrame"
-    case audio = "ArtAudio"
-    case base = "ArtBase"
-    case eyes = "ArtEyes"
-    case lips = "ArtLips"
-    case glow = "ArtGlow"
-    case care = "ArtCare"
-    case rehearsal = "ArtRehearsal"
-    var available: Bool { UIImage(named: rawValue) != nil }
-}
-
-/// Square, fitted illustration with a fixed side length.
-struct GlamArtwork: View {
-    let kind: GlamArt
-    var height: CGFloat = 160
-    var body: some View {
-        Group {
-            if kind.available {
-                Image(kind.rawValue).renderingMode(.original).resizable().interpolation(.high).scaledToFit()
-            } else {
-                RoundedRectangle(cornerRadius: 20, style: .continuous).fill(GlamoStyle.raised.opacity(0.6))
-            }
-        }
-        .frame(width: height, height: height)
-        .frame(maxWidth: .infinity)
-        .allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
-
-/// Illustration that fills whatever frame its parent gives it.
-struct GlamCover: View {
-    let kind: GlamArt
-    var alignment: Alignment = .center
-    var body: some View {
-        GlamoStyle.raised.overlay {
-            if kind.available {
-                GeometryReader { geometry in
-                    Image(kind.rawValue).renderingMode(.original).resizable().interpolation(.high).scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: alignment)
-                        .clipped()
-                }
-            }
-        }
-        .environment(\.layoutDirection, .leftToRight)
-        .clipped().allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
 
 /// Tinted single-colour artwork. Falls back to a short localized word while the
 /// original asset is missing, so controls stay identifiable during development.
@@ -99,19 +43,16 @@ struct AssetMask: View {
 }
 
 enum GlamoGlyph: String, CaseIterable {
-    case home, feed, edit, library, link, search, bookmark, download
-    case play, pause, close, back, sound, mute, folder, settings
+    case feed, edit, link, search
+    case play, pause, close, back, sound, mute, folder
+    case driveFolder, driveRecent, driveActivity, driveSettings, driveGrid, driveList, driveAdd, driveMore, driveExpand, driveShare
     var assetName: String { "Glyph" + rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
     var fallback: String {
         switch self {
-        case .home: "Home"
         case .feed: "Video"
         case .edit: "Edit"
-        case .library: "Library"
         case .link: "Link"
         case .search: "Search"
-        case .bookmark: "Save"
-        case .download: "Download"
         case .play: "Play"
         case .pause: "Pause"
         case .close: "Close"
@@ -119,7 +60,16 @@ enum GlamoGlyph: String, CaseIterable {
         case .sound: "Sound"
         case .mute: "Mute"
         case .folder: "Folder"
-        case .settings: "Settings"
+        case .driveFolder: "Files"
+        case .driveRecent: "Recent"
+        case .driveActivity: "Activity"
+        case .driveSettings: "Settings"
+        case .driveGrid: "Grid view"
+        case .driveList: "List view"
+        case .driveAdd: "Add"
+        case .driveMore: "More"
+        case .driveExpand: "Open player"
+        case .driveShare: "Share file"
         }
     }
 }
@@ -410,26 +360,6 @@ extension View {
         } else {
             padding(.horizontal, 20)
         }
-    }
-}
-struct MediaCover: View {
-    let url: URL?
-    var folder = false
-    var body: some View {
-        GlamoStyle.raised.overlay {
-            GeometryReader { geometry in
-                Group {
-                    if folder { Glyph(symbol: .folder, size: 28) }
-                    else if let url {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image { image.resizable().scaledToFill() }
-                            else { Glyph(symbol: .feed, size: 28) }
-                        }
-                    } else { Glyph(symbol: .feed, size: 28) }
-                }.frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-            }
-        }.clipped()
     }
 }
 struct SheetHeading: View {

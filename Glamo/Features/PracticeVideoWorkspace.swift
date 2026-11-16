@@ -97,13 +97,7 @@ struct VideoImportControls: View {
         .onChange(of: photo) { _, item in
             guard let item else { return }
             photo = nil
-            importVideo {
-                guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
-                    throw GlamoError.unsupportedMedia
-                }
-                defer { try? FileManager.default.removeItem(at: movie.url.deletingLastPathComponent()) }
-                return try await library.importMovie(movie.url)
-            }
+            importVideo { try await library.importPhoto(item) }
         }
     }
 
@@ -141,6 +135,16 @@ struct VideoImportControls: View {
               !(cocoa.domain == NSCocoaErrorDomain && cocoa.code == NSUserCancelledError),
               !(cocoa.domain == NSURLErrorDomain && cocoa.code == NSURLErrorCancelled) else { return }
         error = failure.localizedDescription
+    }
+}
+
+extension LibraryStore {
+    func importPhoto(_ item: PhotosPickerItem, folderID: UUID? = nil) async throws -> PracticeRecording {
+        guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
+            throw GlamoError.unsupportedMedia
+        }
+        defer { try? FileManager.default.removeItem(at: movie.url.deletingLastPathComponent()) }
+        return try await importMovie(movie.url, folderID: folderID)
     }
 }
 
@@ -243,7 +247,7 @@ struct EditorWorkspace: View {
                         ActionButton(title: "Preview changes", primary: false) { Task { await editor.applyPreview() } }
                             .disabled(editor.isLoading || editor.isPreparingPreview || editor.duration <= 0)
                     }
-                    LocalizedText("Processed on your device. Finished files appear in Files under Exports.")
+                    LocalizedText("Find finished files under Activity › Exports.")
                         .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
                 } else {
                     GlamoEmptyState(title: "Choose a video", message: initialTool.detail) {
@@ -331,6 +335,7 @@ struct EditorWorkspace: View {
     private func export(audio: Bool, title: String) {
         guard exportTask == nil else { return }
         guard commerce.canExportMedia else { showingExportMembership = true; return }
+        let folderID = selected?.folderID
         error = nil
         exportTask = Task {
             defer { exportTask = nil; departure.finish() }
@@ -340,7 +345,8 @@ struct EditorWorkspace: View {
                 defer { try? FileManager.default.removeItem(at: output) }
                 try commerce.requireMediaExport()
                 let suffix = L10n.text(audio ? "Audio" : "Edit")
-                let saved = try await library.importMovie(output, exported: true, title: "\(title) · \(suffix)")
+                let saved = try await library.importMovie(output, exported: true, title: "\(title) · \(suffix)",
+                                                          folderID: folderID)
                 let share = try await library.shareFile(for: saved, commerce: commerce)
                 if !Task.isCancelled { shareURL = SharedFile(url: share) }
             } catch is CancellationError { }
@@ -380,6 +386,15 @@ struct LocalMediaLabel: View {
     }
 }
 
+@MainActor
+func makeLocalThumbnail(_ url: URL, edge: CGFloat) async -> UIImage? {
+    let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+    generator.appliesPreferredTrackTransform = true
+    generator.maximumSize = CGSize(width: edge, height: edge)
+    guard let frame = try? await generator.image(at: .zero), !Task.isCancelled else { return nil }
+    return UIImage(cgImage: frame.image)
+}
+
 private struct LocalMediaThumbnail: View {
     @EnvironmentObject private var library: LibraryStore
     let movie: PracticeRecording
@@ -399,73 +414,8 @@ private struct LocalMediaThumbnail: View {
         .task(id: movie.id) {
             image = nil
             guard !movie.isAudio else { return }
-            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: library.url(for: movie)))
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: 208, height: 152)
-            if let result = try? await generator.image(at: .zero), !Task.isCancelled {
-                image = UIImage(cgImage: result.image)
-            }
+            image = await makeLocalThumbnail(library.url(for: movie), edge: 208)
         }
-    }
-}
-
-struct LocalMediaPreview: View {
-    @EnvironmentObject private var library: LibraryStore
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var phase
-    @StateObject private var playback = PlaybackController()
-    @State private var scrubbing = false
-    @State private var editing = false
-    let movie: PracticeRecording
-
-    var body: some View {
-        VStack(spacing: 0) {
-            SheetHeading { dismiss() }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(verbatim: movie.title).font(.glam(.title2, weight: .semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    if movie.isAudio {
-                        Glyph(symbol: .sound, size: 34, tint: GlamoStyle.secondary)
-                            .frame(maxWidth: .infinity, minHeight: 98)
-                            .background(GlamoStyle.raised, in: RoundedRectangle(cornerRadius: 16))
-                    } else {
-                        VideoSurface(player: playback.player, fill: false)
-                            .aspectRatio(16.0 / 10.0, contentMode: .fit)
-                            .background(.black, in: RoundedRectangle(cornerRadius: 16))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    if let error = playback.error {
-                        ErrorNote(message: error)
-                    } else if playback.isLoading {
-                        LocalizedText("Loading…").foregroundStyle(GlamoStyle.secondary)
-                    }
-                    HStack(spacing: 12) {
-                        IconButton(symbol: playback.isPlaying ? .pause : .play,
-                                   label: playback.isPlaying ? "Pause preview" : "Play preview", glass: true) {
-                            playback.toggle()
-                        }.disabled(playback.error != nil || playback.isLoading)
-                        PlayerProgressControl(playback: playback, timeline: playback.timeline,
-                                              enabled: !playback.isLoading, canResume: phase == .active && !editing,
-                                              scrubbing: $scrubbing, tint: GlamoStyle.ink)
-                    }
-                    if !movie.isAudio {
-                        ActionButton(title: "Edit") {
-                            playback.pause()
-                            editing = true
-                        }.disabled(playback.isLoading || playback.error != nil)
-                    }
-                }.glamoPage()
-            }
-        }
-        .glamoScreenBackground()
-        .task { playback.load(library.url(for: movie), autoplay: false) }
-        .onChange(of: phase) { _, phase in
-            if phase != .active { playback.pause() }
-        }
-        .onDisappear { playback.release() }
-        .sheet(isPresented: $editing) { EditorSheet(initialMovie: movie) }
     }
 }
 
@@ -489,4 +439,58 @@ struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController { UIActivityViewController(activityItems: items, applicationActivities: nil) }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// One owner for the close button, explicit cancel and interactive dismissal.
+@MainActor
+final class ExportDeparture: ObservableObject {
+    @Published private(set) var running = false
+    @Published var confirming = false
+    private var cancellation: (() -> Void)?
+    private var afterCancellation: (() -> Void)?
+    func begin(cancel: @escaping () -> Void) { running = true; cancellation = cancel }
+    func finish() {
+        running = false; cancellation = nil
+        confirming = false; afterCancellation = nil
+    }
+    func request(_ close: @escaping () -> Void = {}) {
+        guard running else { close(); return }
+        afterCancellation = close; confirming = true
+    }
+    func keepWorking() { confirming = false; afterCancellation = nil }
+    func stop() {
+        let close = afterCancellation
+        cancellation?()
+        confirming = false; afterCancellation = nil
+        close?()
+    }
+}
+
+struct ExportDepartureProtection: ViewModifier {
+    @ObservedObject var departure: ExportDeparture
+    var additionalDismissalLock = false
+    func body(content: Content) -> some View {
+        content.interactiveDismissDisabled(departure.running || additionalDismissalLock)
+            .accessibilityHidden(departure.confirming)
+            .overlay {
+                if departure.confirming {
+                    GeometryReader { container in
+                        ScrollView {
+                            VStack(spacing: 18) {
+                                LocalizedText("Stop this export?").font(.glam(.headline))
+                                LocalizedText("Stopping cancels this export. Your source video stays in the library.")
+                                    .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                ActionButton(title: "Keep exporting", action: departure.keepWorking)
+                                ActionButton(title: "Stop export", primary: false, action: departure.stop)
+                            }.padding(22).frame(maxWidth: 360)
+                                .foregroundStyle(GlamoStyle.ink)
+                                .glamoCard(radius: 24).padding(20)
+                                .frame(maxWidth: .infinity, minHeight: container.size.height)
+                        }.background(.black.opacity(0.7))
+                            .accessibilityAddTraits(.isModal)
+                    }
+                }
+            }
+    }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import OSLog
 
 @main
@@ -11,7 +12,6 @@ struct GlamoApp: App {
     @StateObject private var library: LibraryStore
     @StateObject private var quota: QuotaStore
     @StateObject private var commerce: CommerceStore
-    @StateObject private var offline: OfflineStore
     @StateObject private var ads: RewardedAds
     @StateObject private var accountAccess = AccountAccessFlow()
     init() {
@@ -22,13 +22,12 @@ struct GlamoApp: App {
         _quota = StateObject(wrappedValue: quota)
         let commerce = CommerceStore(api: api, quota: quota)
         _commerce = StateObject(wrappedValue: commerce)
-        _offline = StateObject(wrappedValue: OfflineStore(api: api, quota: quota, commerce: commerce))
         _ads = StateObject(wrappedValue: RewardedAds())
     }
     var body: some Scene {
         WindowGroup {
             GlamoStartupHost().environmentObject(api).environmentObject(library)
-                .environmentObject(quota).environmentObject(commerce).environmentObject(ads).environmentObject(offline)
+                .environmentObject(quota).environmentObject(commerce).environmentObject(ads)
                 .environmentObject(accountAccess)
                 .environment(\.locale, language.locale)
                 .environment(\.layoutDirection, language.direction)
@@ -113,92 +112,106 @@ struct GlamoStartupView: View {
 }
 
 enum GlamoTab: Int, CaseIterable, Hashable {
-    case home = 0, tools = 1, library = 2, account = 3
-    var name: String { ["Videos", "Tools", "Files", "Me"][rawValue] }
-    // Original artwork shared by the floating dock and the system tab bar.
-    var artwork: String { ["GlyphFeed", "TabDiscover", "GlyphFolder", "GlyphSettings"][rawValue] }
+    case files, recent, activity, settings
+
+    var name: String {
+        switch self {
+        case .files: "Files"
+        case .recent: "Recent"
+        case .activity: "Activity"
+        case .settings: "Settings"
+        }
+    }
+
+    var symbol: GlamoGlyph {
+        switch self {
+        case .files: .driveFolder
+        case .recent: .driveRecent
+        case .activity: .driveActivity
+        case .settings: .driveSettings
+        }
+    }
 }
 
-// Keep the selected tab and its content mounted when switching between bars.
 struct GlamoRootView: View {
     @EnvironmentObject private var api: APIClient
-    @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var quota: QuotaStore
-    @EnvironmentObject private var offline: OfflineStore
-    @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.scenePhase) private var phase
     @Environment(\.self) private var environment
-    @SceneStorage("root.tab") private var tab: GlamoTab = .home
-    @State private var editing: PracticeRecording?
-    @State private var previewing: PracticeRecording?
-    @SceneStorage("home.linkDraft") private var linkDraft = ""
-    @State private var libraryFilter = "All"
-    @State private var showingLessons = false
-    @State private var lessonsDownloadRequest: UUID?
+    @SceneStorage("drive.tab") private var tab: GlamoTab = .files
+    @StateObject private var player = DrivePlaybackSession()
+    @State private var searching = false
+
     var body: some View {
         GeometryReader { container in
             let floating = usesFloatingTabs(in: container)
             let visibility: Visibility = floating ? .hidden : .automatic
+            let pane = drivePaneMargins(in: container)
             TabView(selection: $tab) {
-                HomeView(edit: { if tab == .home { editing = $0 } }, preview: { previewing = $0 },
-                         showFiles: { libraryFilter = "All"; tab = .library }, showLessons: {
-                             lessonsDownloadRequest = nil
-                             showingLessons = true
-                         }, link: $linkDraft)
+                DriveBrowser(isSearching: $searching, play: open, pausePlayback: player.pause,
+                             showActivity: { tab = .activity })
                     .toolbar(visibility, for: .tabBar)
-                    .tabItem { tabLabel(.home) }.tag(GlamoTab.home)
-                ToolsView()
+                    .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
+                DriveRecentView(play: open, browse: { tab = .files })
+                    .padding(pane)
                     .toolbar(visibility, for: .tabBar)
-                    .tabItem { tabLabel(.tools) }.tag(GlamoTab.tools)
-                LibraryView(filter: $libraryFilter, edit: { if tab == .library { editing = $0 } },
-                            preview: { previewing = $0 }, openHome: { tab = .home })
+                    .tabItem { tabLabel(.recent) }.tag(GlamoTab.recent)
+                DriveActivityView(play: open, browse: { tab = .files })
+                    .padding(pane)
                     .toolbar(visibility, for: .tabBar)
-                    .tabItem { tabLabel(.library) }.tag(GlamoTab.library)
+                    .tabItem { tabLabel(.activity) }.tag(GlamoTab.activity)
                 AccountView()
+                    .padding(pane)
                     .toolbar(visibility, for: .tabBar)
-                    .tabItem { tabLabel(.account) }.tag(GlamoTab.account)
+                    .tabItem { tabLabel(.settings) }.tag(GlamoTab.settings)
             }
             .modifier(GlamoTabBarAppearance())
             .toolbarColorScheme(.light, for: .tabBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if floating {
-                    GlamoTabDock(selection: $tab)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 4)
+                if !searching || tab != .files {
+                    VStack(spacing: 5) {
+                        if !player.expanded, let movie = library.movies.first(where: { $0.id == player.currentID }) {
+                            DriveMiniPlayer(playback: player.playback, movie: movie,
+                                            expand: { player.expanded = true }, close: player.stop)
+                                .pageHorizontalMargins()
+                                .padding(pane)
+                        }
+                        if floating {
+                            GlamoTabDock(selection: $tab).padding(.horizontal, 16)
+                        }
+                    }.padding(.vertical, 4)
                 }
             }
         }
         .glamoScreenBackground(GlamoStyle.background)
         .foregroundStyle(GlamoStyle.ink)
-        .sheet(item: $editing) { EditorSheet(initialMovie: $0) }
-        .sheet(item: $previewing) { LocalMediaPreview(movie: $0) }
-        .sheet(isPresented: $showingLessons) {
-            LessonsView(downloadsRequest: lessonsDownloadRequest)
+        .fullScreenCover(isPresented: $player.expanded) { DrivePlayerView(session: player) }
+        .onReceive(player.playback.$isPlaying.removeDuplicates()) { playing in
+            if playing { player.markStarted() }
         }
-        .overlay(alignment: .top) {
-            if !showingLessons { DownloadCompletionNotice().padding(.top, 8) }
-        }
-        .task(id: library.downloadsRequest) {
-            guard let request = library.downloadsRequest else { return }
-            // The full-screen lesson player dismisses before revealing its downloads.
-            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
-            lessonsDownloadRequest = request
-            showingLessons = true
+        .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+            player.checkpoint()
         }
         .task(id: api.session?.userId.value) {
             guard api.session != nil else { return }
             if !commerce.rightsVerified || commerce.release == nil { await commerce.refresh() }
-            await offline.resumePending()
         }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { quota.resetIfNeeded() }
+        .onChange(of: phase) { _, value in
+            if value == .active { quota.resetIfNeeded() }
+            else { player.pause() }
+        }
+        .onChange(of: library.movies.map(\.id)) { _, ids in
+            if let current = player.currentID, !ids.contains(current) { player.stop() }
         }
         .overlay(alignment: .top) {
             if let message = library.error {
-                HStack {
-                    LocalizedText(message).font(.glam(.subheadline))
+                HStack(spacing: 8) {
+                    ErrorNote(message: message)
                     IconButton(symbol: .close, label: "Dismiss message") { library.error = nil }
-                }.padding(14).glamoCard(radius: 18).padding()
+                }.padding(.horizontal, 12).glamoCard(radius: 14)
+                    .pageHorizontalMargins().padding(.top, 8)
             }
         }
         .modifier(AccountBusyModifier())
@@ -210,11 +223,12 @@ struct GlamoRootView: View {
               !environment.dynamicTypeSize.isAccessibilitySize,
               container.size.width >= 300 else { return false }
         if #available(iOS 27.1, *) {
+            if environment.toolbarVerticalEdge != nil { return false }
             let bounds = CGRect(origin: .zero, size: container.size)
-            let divisions = container.reservedRegions(kind: .division)
-            if environment.toolbarVerticalEdge != nil ||
-                divisions.contains(where: { $0.isActive && bounds.intersects($0.frame) }) { return false }
-            let dockBand = CGRect(x: 0, y: max(0, bounds.height - 104), width: bounds.width, height: 104)
+            if container.reservedRegions(kind: .division).contains(where: { $0.isActive && bounds.intersects($0.frame) }) {
+                return false
+            }
+            let dockBand = CGRect(x: 0, y: max(0, bounds.height - 135), width: bounds.width, height: 135)
             if container.reservedRegions(kind: .occlusion).contains(where: { $0.isActive && dockBand.intersects($0.frame) }) {
                 return false
             }
@@ -222,10 +236,12 @@ struct GlamoRootView: View {
         return true
     }
 
-    // Title and original image together: the vertical bar shows the image,
-    // overflow menus show both. Text-only items would not move to the side.
+    private func open(_ file: PracticeRecording, _ files: [PracticeRecording]) {
+        player.open(file, among: files, library: library)
+    }
+
     private func tabLabel(_ item: GlamoTab) -> some View {
-        Label { LocalizedText(item.name) } icon: { Image(item.artwork).renderingMode(.template) }
+        Label { LocalizedText(item.name) } icon: { Image(item.symbol.assetName).renderingMode(.template) }
             .accessibilityIdentifier("tab.\(item.name.lowercased())")
     }
 }
@@ -241,7 +257,7 @@ private struct GlamoTabDock: View {
                 let selected = selection == item
                 Button { selection = item } label: {
                     VStack(spacing: 3) {
-                        Image(item.artwork).renderingMode(.template).resizable().scaledToFit()
+                        Image(item.symbol.assetName).renderingMode(.template).resizable().scaledToFit()
                             .frame(width: 24, height: 24)
                             .accessibilityHidden(true)
                         LocalizedText(item.name).font(.glam(.caption, weight: .semibold))
@@ -254,7 +270,7 @@ private struct GlamoTabDock: View {
                     .foregroundStyle(selected ? GlamoStyle.onAccent : GlamoStyle.ink)
                     .background {
                         if selected {
-                            Capsule().fill(GlamoStyle.accent)
+                            RoundedRectangle(cornerRadius: 14).fill(GlamoStyle.accent)
                                 .matchedGeometryEffect(id: "selected", in: indicator)
                         }
                     }
@@ -267,7 +283,7 @@ private struct GlamoTabDock: View {
         }
         .padding(5)
         .frame(maxWidth: 400)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 33), tint: GlamoStyle.surface)
+        .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.surface)
         .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selection)
     }

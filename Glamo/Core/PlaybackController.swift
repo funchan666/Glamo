@@ -19,6 +19,7 @@ final class PlaybackController: ObservableObject {
     @Published var speed: Float = 1
     private(set) var loadedURL: URL?
     var intendsPlayback: Bool { wantsPlayback }
+    var onEnd: (() -> Void)?
     private var status: NSKeyValueObservation?
     private var timeStatus: NSKeyValueObservation?
     private var playerStatus: NSKeyValueObservation?
@@ -83,14 +84,18 @@ final class PlaybackController: ObservableObject {
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == token else { return }
+                if self.onEnd != nil { self.pause() }
                 // Seek completion resumes only if this page still intends to play.
                 self.seek(0)
+                self.onEnd?()
             }
         }
         failureObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == token else { return }
-                self.fail("Playback was interrupted. Check your connection and try again.")
+                self.fail(self.loadedURL?.isFileURL == true
+                          ? "This clip could not be played."
+                          : "Playback was interrupted. Check your connection and try again.")
             }
         }
     }

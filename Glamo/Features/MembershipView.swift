@@ -2,14 +2,15 @@ import SwiftUI
 import StoreKit
 
 struct MembershipView: View {
-    enum RequiredBenefit {
-        case mediaExport, rehearsalRecap
+    enum RequiredBenefit: Equatable {
+        case mediaExport
     }
 
     var rewardKind: AllowanceKind? = nil
     var requiredBenefit: RequiredBenefit? = nil
     @Environment(\.locale) private var locale
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var quota: QuotaStore
@@ -39,34 +40,44 @@ struct MembershipView: View {
 
     var body: some View {
         GeometryReader { container in
-            let wide = container.size.width >= 740 && !typeSize.isAccessibilitySize && !hasReservedRegion(container)
+            let paneMargins = drivePaneMargins(in: container)
+            let paneWidth = container.size.width - paneMargins.leading - paneMargins.trailing
+            let wide = paneWidth >= 740 && !typeSize.isAccessibilitySize && !driveHasReservedRegion(container)
             let pageWidth: CGFloat = wide ? 880 : 540
-            let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 26))
+            let benefitsFirst = !commerce.premium && rewardKind != .watch
+            let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 24))
                               : AnyLayout(VStackLayout(alignment: .leading, spacing: 20))
             VStack(spacing: 0) {
-                HStack { Spacer(minLength: 0); closeButton }
-                    .pageHorizontalMargins().padding(.top, 8)
+                closeButton
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .pageHorizontalMargins().padding(.vertical, 8)
+                    .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
+                    .background(GlamoStyle.background, ignoresSafeAreaEdges: .top)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        membershipHeader
-                        layout {
-                            offerContent.frame(maxWidth: .infinity, alignment: .leading)
-                            benefits.frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        if requiredBenefit == nil, !commerce.premium, api.session != nil {
+                        membershipHeader(wide: wide, paneWidth: paneWidth)
+                        if rewardKind == .watch, !commerce.premium, api.session != nil {
                             rewardOption
+                        }
+                        layout {
+                            if benefitsFirst {
+                                benefits.frame(maxWidth: wide ? 300 : .infinity, alignment: .leading)
+                            }
+                            offerContent
+                            if !benefitsFirst {
+                                benefits.frame(maxWidth: wide ? 300 : .infinity, alignment: .leading)
+                            }
                         }
                     }
                     .pageHorizontalMargins().padding(.bottom, 24)
                     .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
                 }
-            }
+            }.padding(paneMargins)
         }
         .glamoScreenBackground()
-        .task {
-            async let rights: Void = commerce.refresh()
-            await commerce.loadPlans()
-            await rights
+        .task { await commerce.loadPlans() }
+        .task(id: api.session?.userId.value) {
+            if api.session != nil { await commerce.refresh() }
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in quota.resetIfNeeded() }
         .onDisappear {
@@ -92,13 +103,6 @@ struct MembershipView: View {
         }
     }
 
-    private func hasReservedRegion(_ container: GeometryProxy) -> Bool {
-        guard #available(iOS 27.1, *) else { return false }
-        let bounds = CGRect(origin: .zero, size: container.size)
-        let regions = container.reservedRegions(kind: .division) + container.reservedRegions(kind: .occlusion)
-        return regions.contains { $0.isActive && bounds.intersects($0.frame) }
-    }
-
     private var closeButton: some View {
         IconButton(symbol: .close, label: "Close", glass: true) {
             cancelRewardRequest()
@@ -106,53 +110,72 @@ struct MembershipView: View {
         }.disabled(purchasing || ads.isPresenting)
     }
 
-    private var membershipHeader: some View {
+    private func membershipHeader(wide: Bool, paneWidth: CGFloat) -> some View {
+        let inlineArtwork = paneWidth >= 360
+        let artworkHeight: CGFloat = verticalSizeClass == .compact ? 76 : (wide ? 126 : 104)
+        let layout = inlineArtwork ? AnyLayout(HStackLayout(spacing: 12))
+                                   : AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+        return layout {
+            heroCopy
+            if !typeSize.isAccessibilitySize {
+                plusArtwork
+                    .frame(width: wide ? 216 : 128, height: artworkHeight)
+                    .frame(maxWidth: inlineArtwork ? nil : .infinity, alignment: .trailing)
+            }
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .glamoGlass(in: RoundedRectangle(cornerRadius: 24), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
+    }
+
+    private var heroCopy: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(verbatim: "Glamo Plus")
-                .glamDisplay(42)
-                .foregroundStyle(GlamoStyle.accent)
+                .font(.glam(.title, weight: .semibold))
+                .foregroundStyle(GlamoStyle.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("Glamo Plus")
                 .accessibilityAddTraits(.isHeader)
-            LocalizedText(heroSubtitle)
+            LocalizedText(requiredBenefit == .mediaExport
+                          ? "Export is included with Plus."
+                          : "Export and share from your video library.")
                 .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 8)
-    }
-
-    private var heroSubtitle: String {
-        switch requiredBenefit {
-        case .mediaExport: "Export is included with Plus."
-        case .rehearsalRecap: "Share a recap with your time, mirror checks and notes."
-        case nil: "Export video up to 1080p or save the audio as M4A."
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var benefits: some View {
-        let column: GridItem.Size = typeSize.isAccessibilitySize ? .flexible() : .adaptive(minimum: 136)
-        return VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             LocalizedText("Member benefits")
-                .font(.glam(.headline, editorial: true)).accessibilityAddTraits(.isHeader)
-            LazyVGrid(columns: [GridItem(column, spacing: 10, alignment: .leading)], alignment: .leading, spacing: 8) {
-                benefit("MP4 export up to 1080p", symbol: .edit)
-                benefit("M4A audio export", symbol: .sound)
-                benefit("Skip launch ads", symbol: .home)
-                benefit("Unlimited video views", symbol: .play)
-                benefit("Unlimited downloads", symbol: .download)
-                benefit("Share rehearsal recaps", symbol: .library)
+                .font(.glam(.title3, weight: .semibold)).accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0) {
+                benefit("MP4 export up to 1080p", detail: "Save a separate MP4 copy of your edits.", symbol: .edit)
+                Divider().overlay(GlamoStyle.line)
+                benefit("M4A audio export", detail: "Keep just the soundtrack as an M4A file.", symbol: .sound)
+                Divider().overlay(GlamoStyle.line)
+                benefit("Share files", detail: "Send an original file or an export to another app.", symbol: .driveShare)
             }
-        }.padding(.horizontal, 4)
+            .padding(.horizontal, 12)
+            .glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
+        }
     }
 
-    private func benefit(_ title: String, symbol: GlamoGlyph) -> some View {
-        HStack(spacing: 8) {
-            Glyph(symbol: symbol, size: 13, tint: GlamoStyle.accent)
-                .frame(width: 28, height: 28)
-                .background(GlamoStyle.paper, in: Circle())
-            LocalizedText(title).font(.glam(.footnote, weight: .medium))
-                .fixedSize(horizontal: false, vertical: true)
-        }.frame(maxWidth: .infinity, alignment: .leading)
+    private func benefit(_ title: String, detail: String, symbol: GlamoGlyph) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Glyph(symbol: symbol, size: 18, tint: GlamoStyle.accent)
+                .frame(width: 30, height: 30)
+                .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 9))
+            VStack(alignment: .leading, spacing: 2) {
+                LocalizedText(title)
+                    .font(.glam(.subheadline, weight: .semibold))
+                LocalizedText(detail)
+                    .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 
     private var offerContent: some View {
@@ -161,8 +184,12 @@ struct MembershipView: View {
                 activeMembership
             } else {
                 LocalizedText("Choose your plan")
-                    .font(.glam(.title3, weight: .semibold, editorial: true))
+                    .font(.glam(.title3, weight: .semibold))
                     .accessibilityAddTraits(.isHeader)
+                if rewardKind == .watch {
+                    LocalizedText("Unlimited video views")
+                        .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                }
                 if api.session == nil { ConnectionPanel() }
                 if !plans.isEmpty { planPicker }
                 if let error = commerce.plansError {
@@ -171,8 +198,7 @@ struct MembershipView: View {
                         .buttonStyle(CompactActionStyle()).disabled(interactionLocked)
                 }
                 if !plans.isEmpty || commerce.loadingPlans || commerce.loadingProducts || purchasing {
-                    if !plans.isEmpty { renewalDisclosure }
-                    purchaseAction
+                    checkoutPanel
                 }
             }
             if attemptedPurchaseAction {
@@ -181,10 +207,11 @@ struct MembershipView: View {
                     LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.accent)
                 }
             }
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
                 restoreLink
                 PolicyLinks(compact: true)
             }
+            .padding(.top, 4)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -199,7 +226,7 @@ struct MembershipView: View {
     private var activeMembership: some View {
         VStack(alignment: .leading, spacing: 8) {
             LocalizedText("Plus is active")
-                .font(.glam(.title3, weight: .semibold, editorial: true))
+                .font(.glam(.title3, weight: .semibold))
                 .foregroundStyle(GlamoStyle.accent).accessibilityAddTraits(.isHeader)
             if let expiration = commerce.expiration {
                 let date = expiration.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale))
@@ -209,7 +236,8 @@ struct MembershipView: View {
             ActionButton(title: "Manage subscription", primary: false) { managingSubscriptions = true }
                 .disabled(interactionLocked)
                 .padding(.top, 4)
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+            .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted)
     }
 
     @ViewBuilder
@@ -234,25 +262,33 @@ struct MembershipView: View {
         let selected = selectedPlan?.productIdentifier == product.productIdentifier
         let price = commerce.price(product)
         let period = commerce.period(product, locale: locale)
+        let shape = RoundedRectangle(cornerRadius: 18)
         return Button { selectedID = product.productIdentifier } label: {
             VStack(alignment: .leading, spacing: 5) {
                 Text(verbatim: product.localizedTitle)
-                    .font(.glam(.footnote, weight: .semibold))
-                    .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.secondary)
+                    .font(.glam(.subheadline, weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: price).environment(\.layoutDirection, .leftToRight)
-                    .font(.glam(.title2, weight: .semibold, editorial: true))
+                    .font(.glam(.title, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.ink)
                     .fixedSize(horizontal: sideBySide, vertical: true)
-                LocalizedText("Billed every %@", period).font(.glam(.caption))
+                LocalizedText("Billed every %@", period).font(.glam(.footnote))
                     .foregroundStyle(GlamoStyle.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if sideBySide || selected { selectedLabel.opacity(selected ? 1 : 0) }
-            }.padding(11)
-                .frame(minWidth: sideBySide ? 120 : nil, maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                if sideBySide || selected {
+                    selectedLabel.opacity(selected ? 1 : 0)
+                }
+            }.padding(14)
+                .frame(minWidth: sideBySide ? 124 : nil, maxWidth: .infinity,
+                       minHeight: sideBySide ? 136 : 44, alignment: .topLeading)
                 .foregroundStyle(GlamoStyle.ink)
-                .glamoCard(radius: 15, fill: selected ? GlamoStyle.paper : GlamoStyle.background,
-                           border: selected ? GlamoStyle.accent : GlamoStyle.line)
-                .contentShape(RoundedRectangle(cornerRadius: 15))
+                .glamoGlass(in: shape, tint: selected ? GlamoStyle.paperMuted : GlamoStyle.surface,
+                            mediaBackdrop: selected)
+                .overlay {
+                    shape.strokeBorder(selected ? GlamoStyle.accent : GlamoStyle.line, lineWidth: selected ? 2 : 1)
+                        .allowsHitTesting(false)
+                }
+                .contentShape(shape)
         }.buttonStyle(PressStyle()).disabled(interactionLocked)
             .accessibilityAddTraits(selected ? .isSelected : [])
             .accessibilityIdentifier("membership.plan.\(product.productIdentifier)")
@@ -262,7 +298,7 @@ struct MembershipView: View {
         LocalizedText("Selected").font(.glam(.caption, weight: .semibold))
             .padding(.horizontal, 10).padding(.vertical, 4)
             .foregroundStyle(GlamoStyle.accent)
-            .background(GlamoStyle.paperMuted, in: Capsule())
+            .background(GlamoStyle.surface, in: Capsule())
             .accessibilityHidden(true)
     }
 
@@ -272,15 +308,60 @@ struct MembershipView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    private var checkoutPanel: some View {
+        let shape = RoundedRectangle(cornerRadius: 18)
+        return VStack(alignment: .leading, spacing: 0) {
+            if let plan = selectedPlan {
+                VStack(alignment: .leading, spacing: 6) {
+                    selectedPlanPrice(plan)
+                    renewalDisclosure
+                }
+                .padding(14)
+            }
+            purchaseAction
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(shape)
+        .glamoGlass(in: shape, tint: GlamoStyle.paper)
+    }
+
+    private func selectedPlanPrice(_ plan: SKProduct) -> some View {
+        let price = Text(verbatim: commerce.price(plan)).environment(\.layoutDirection, .leftToRight)
+            .font(.glam(.headline)).monospacedDigit()
+        let period = LocalizedText("Billed every %@", commerce.period(plan, locale: locale))
+            .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                price
+                period
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                price
+                period
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private var purchaseAction: some View {
         Button(action: subscribe) {
             HStack(spacing: 10) {
                 LocalizedText(purchaseButtonTitle)
+                    .font(.glam(.subheadline, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
                 if canSubscribe {
                     Glyph(symbol: .back, size: 12, tint: GlamoStyle.onAccent).rotationEffect(.degrees(180))
                 }
-            }.frame(minHeight: 28)
-        }.buttonStyle(GlamoActionStyle())
+            }
+            .foregroundStyle(canSubscribe ? GlamoStyle.onAccent : GlamoStyle.secondary)
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .frame(minHeight: 52)
+            .background(canSubscribe ? GlamoStyle.accent : GlamoStyle.raised)
+            .contentShape(Rectangle())
+        }.buttonStyle(PressStyle())
             .disabled(!canSubscribe)
             .accessibilityIdentifier("membership.subscribe")
     }
@@ -295,16 +376,14 @@ struct MembershipView: View {
     }
 
     private var rewardOption: some View {
-        let eligible = (rewardKind.map { [$0] } ?? AllowanceKind.allCases)
-            .filter { quota.canRequestReward(for: $0, premium: commerce.premium) }
+        let eligible = quota.canRequestReward(for: .watch, premium: commerce.premium)
         return VStack(alignment: .leading, spacing: 12) {
-            LocalizedText(eligible.isEmpty ? "Free plan" : "Earn more with ads").font(.glam(.headline))
-            ForEach(eligible) { kind in
-                LocalizedText(quota.rewardSummary(for: kind)).font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-                ActionButton(title: kind == .watch ? "Watch ad for views" : "Watch ad for downloads",
-                             primary: false) {
+            LocalizedText(eligible ? "Earn more with ads" : "Free plan").font(.glam(.headline))
+            if eligible {
+                LocalizedText(quota.rewardSummary(for: .watch)).font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+                ActionButton(title: "Watch ad for views", primary: false) {
                     requestedReward = true
-                    rewardTask = Task { await ads.watch(commerce: commerce, quota: quota, kind: kind) }
+                    rewardTask = Task { await ads.watch(commerce: commerce, quota: quota, kind: .watch) }
                 }.disabled(purchasing || ads.isPreparingAppOpen || ads.busy || ads.isPresenting)
             }
             if ads.busy {
@@ -323,10 +402,9 @@ struct MembershipView: View {
                 }
             }
             LocalizedText(quota.unlimited ? "Unlimited views today" : "\(quota.watchesLeft) views left today")
-            LocalizedText(quota.downloadsUnlimited ? "Unlimited downloads today" : "\(quota.downloadsLeft) downloads left today")
             AllowanceResetText()
-            if eligible.isEmpty {
-                LocalizedText("Ad rewards are available once you run out of views or downloads.")
+            if !eligible {
+                LocalizedText("Ad rewards are available once you run out of views.")
                     .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)
             }
             if let error = ads.error { ErrorNote(message: error) }
@@ -334,8 +412,8 @@ struct MembershipView: View {
             if let message = ads.message {
                 LocalizedText(message).font(.glam(.footnote)).foregroundStyle(GlamoStyle.accent)
             }
-        }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
-            .glamoCard()
+        }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+            .glamoCard(radius: 18, fill: GlamoStyle.surface)
     }
 
     private func cancelRewardRequest() {
@@ -365,108 +443,119 @@ struct MembershipView: View {
 struct PlusEntry: View {
     let isMember: Bool
     let open: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.layoutDirection) private var layoutDirection
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 24)
         Button(action: open) {
-            HStack(spacing: 12) {
-                Glyph(symbol: .download, size: 18, tint: GlamoStyle.accent)
-                    .frame(width: 42, height: 42)
-                    .background(GlamoStyle.paperMuted, in: Circle())
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: "Glamo Plus").font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
-                    LocalizedText(isMember ? "Manage membership" : "MP4 and M4A export")
-                        .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Glyph(symbol: .back, size: 12, tint: GlamoStyle.accent)
-                    .rotationEffect(.degrees(180))
+            VStack(alignment: .leading, spacing: 0) {
+                hero
+                actionBar
             }
-            .padding(13)
-            .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.surface, interactive: true)
-            .contentShape(Rectangle())
+            .foregroundStyle(GlamoStyle.ink)
+            .clipShape(shape)
+            .glamoGlass(in: shape, tint: GlamoStyle.paperMuted, interactive: true, mediaBackdrop: true)
+            .contentShape(shape)
         }.buttonStyle(PressStyle())
             .accessibilityElement(children: .combine)
     }
+
+    private var hero: some View {
+        let artworkHeight: CGFloat = verticalSizeClass == .compact ? 76 : 110
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(verbatim: "Glamo Plus").font(.glam(.title, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            if typeSize.isAccessibilitySize {
+                membershipDetail
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        membershipDetail.frame(width: 128, alignment: .leading)
+                        Spacer(minLength: 0)
+                        plusArtwork.frame(width: 156, height: artworkHeight)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        membershipDetail
+                        plusArtwork.frame(maxWidth: 184, maxHeight: artworkHeight)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+            }
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var membershipDetail: some View {
+        LocalizedText(isMember ? "Plus is active" : "MP4 and M4A export")
+            .font(.glam(.subheadline, weight: .semibold))
+            .foregroundStyle(isMember ? GlamoStyle.accent : GlamoStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var actionBar: some View {
+        HStack(spacing: 10) {
+            LocalizedText(isMember ? "Manage membership" : "View plans")
+                .font(.glam(.subheadline, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Glyph(symbol: .back, size: 12, tint: GlamoStyle.onAccent)
+                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
+        }
+        .foregroundStyle(GlamoStyle.onAccent)
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .frame(minHeight: 52)
+        .background(GlamoStyle.accent)
+    }
+}
+
+struct PlusShortcut: View {
+    let isMember: Bool
+    let open: () -> Void
+
+    var body: some View {
+        Button(action: open) {
+            Text(verbatim: "Plus")
+                .font(.glam(.footnote, weight: .semibold))
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(minWidth: 44, minHeight: 44)
+                .foregroundStyle(GlamoStyle.accent)
+                .glamoGlass(in: RoundedRectangle(cornerRadius: 12), tint: GlamoStyle.paperMuted,
+                            interactive: true, mediaBackdrop: true)
+                .contentShape(Rectangle())
+        }.buttonStyle(PressStyle())
+            .accessibilityLabel("Glamo Plus")
+            .accessibilityHint(LocalizedStringKey(isMember ? "Manage membership" : "View plans"))
+    }
+}
+
+private var plusArtwork: some View {
+    Image("DrivePlusArtwork").resizable().interpolation(.high).scaledToFit()
+        .environment(\.layoutDirection, .leftToRight)
+        .allowsHitTesting(false).accessibilityHidden(true)
 }
 
 struct AccountView: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
-    @EnvironmentObject private var quota: QuotaStore
-    @EnvironmentObject private var ads: RewardedAds
-    @EnvironmentObject private var accountAccess: AccountAccessFlow
+    @EnvironmentObject private var library: LibraryStore
     @State private var paywall = false
-    private var unavailable: Bool {
-        accountAccess.isBusy || commerce.busy || commerce.preparingPurchase || ads.busy || ads.isPresenting
-    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
+                DrivePageTitle(title: "Settings")
                 PlusEntry(isMember: commerce.premium) { paywall = true }
-                    .disabled(unavailable)
                     .accessibilityIdentifier("account.membership")
-                AccountSettingsSection()
-                if let session = api.session {
-                    accountIdentity(session.userId.value)
-                    allowance
-                } else {
-                    ConnectionPanel()
-                }
+                AccountSettingsSection(localItemCount: library.movies.count)
                 LocalizedText("Version \(api.configuration.version)")
                     .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                    .frame(maxWidth: .infinity).padding(.top, 4)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 2)
             }.glamoPage()
         }.glamoScreenBackground()
             .sheet(isPresented: $paywall) { MembershipView() }
-    }
-
-    private func accountIdentity(_ id: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            LocalizedText("Account ID").font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
-            Text(verbatim: id).font(.caption.monospaced()).foregroundStyle(GlamoStyle.secondary)
-                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var allowance: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                LocalizedText(commerce.premium ? "Plus active" : "Daily limits").font(.glam(.headline))
-                Spacer(minLength: 0)
-                if !commerce.premium {
-                    Button { paywall = true } label: {
-                        LocalizedText("View options")
-                    }.buttonStyle(CompactActionStyle()).disabled(unavailable)
-                        .accessibilityLabel("View options for more views and downloads")
-                }
-            }
-            let layout = typeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-                : AnyLayout(HStackLayout(alignment: .top, spacing: 20))
-            layout {
-                balances
-            }
-            if !commerce.premium { AllowanceResetText() }
-        }
-        .padding(16)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 25), tint: GlamoStyle.paper)
-    }
-
-    @ViewBuilder private var balances: some View {
-        balance(value: commerce.premium || quota.unlimited ? "Unlimited" : "\(quota.watchesLeft)", label: "Views left")
-        balance(value: commerce.premium || quota.downloadsUnlimited ? "Unlimited" : "\(quota.downloadsLeft)", label: "Downloads left")
-    }
-
-    private func balance(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            LocalizedText(value).font(value == "Unlimited" ? .headline : .title.weight(.semibold))
-                .monospacedDigit().foregroundStyle(GlamoStyle.ink)
-                .fixedSize(horizontal: false, vertical: true)
-            LocalizedText(label).font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-        }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -479,7 +568,7 @@ struct LuckyRewardView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 16) {
-                    GlamArtwork(kind: .pouch, height: 108)
+                    plusArtwork.frame(maxWidth: 144, maxHeight: 92)
                         .scaleEffect(appeared || reduceMotion ? 1 : 0.88)
                         .accessibilityHidden(true)
                     LocalizedText("Bonus added").font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)

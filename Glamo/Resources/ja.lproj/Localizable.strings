@@ -83,9 +83,6 @@
 "Daily allowance could not be read. Please try again later." = "本日の利用枠を取得できません。後ほど再試行してください。";
 "Daily allowance resets at 5 AM" = "利用枠は毎日午前5時にリセットされます";
 "Delete local copy" = "端末内のコピーを削除";
-"Delete local file" = "端末内のファイルを削除";
-"Delete this local copy?" = "この端末内のコピーを削除しますか？";
-"Discover" = "見つける";
 "Dismiss message" = "メッセージを閉じる";
 "Edit" = "編集";
 "Edit a local video" = "端末内の動画を編集";
@@ -119,7 +116,6 @@
 "From watching to playing" = "見るから、プレーへ";
 "From your link" = "リンクから";
 "Full editor" = "フルエディタ";
-"Further reading" = "参考リンク";
 "Games make sets" = "ゲームからセットへ";
 "Get Plus" = "Plusにアップグレード";
 "Get more" = "もっと獲得";
@@ -163,7 +159,6 @@
 "Let it speak. Or don’t." = "音声ありでも、なしでも。";
 "Let the ball meet your motion" = "動きに合うトスを";
 "Let’s reconnect." = "もう一度接続しましょう。";
-"Library" = "ライブラリ";
 "Load more" = "さらに読み込む";
 "Loading your lesson feed." = "レッスンフィードを読み込んでいます。";
 "Loading…" = "読み込み中…";
@@ -239,10 +234,8 @@
 "Ready for your next session." = "次の練習の準備は万全。";
 "Receipt refresh is already in progress. Please retry shortly." = "レシートを更新中です。少し待ってから再試行してください。";
 "Recent imports" = "最近読み込んだファイル";
-"Recently opened" = "最近開いた項目";
 "Reframe video" = "動画のフレームを調整";
 "Refresh" = "更新";
-"Remove history item" = "履歴を削除";
 "Remove saved video" = "保存済み動画を削除";
 "Restore canceled." = "復元をキャンセルしました。";
 "Restore purchases" = "購入を復元";
@@ -372,44 +365,20 @@
 "Backhand" = "バックハンド";
 "Serve" = "サーブ";
 "Scoring" = "スコア";
-"Downloads" = "ダウンロード";
-"Downloads left" = "残りのダウンロード回数";
-"Get more downloads" = "ダウンロード回数を追加";
-"Download for offline" = "オフライン用にダウンロード";
-"Cancel download" = "ダウンロードをキャンセル";
-"Remove download" = "ダウンロードを削除";
-"Available offline" = "オフラインで利用可能";
-"Downloading · %@%" = "ダウンロード中 · %@%";
-"%@ downloads left today" = "本日の残りダウンロード回数：%@";
-"Unlimited views. Unlimited downloads." = "視聴もダウンロードも無制限。";
 "Unlimited views until 05:00 UTC" = "UTC 05:00まで視聴無制限";
-"Unlimited downloads until 05:00 UTC" = "UTC 05:00までダウンロード無制限";
 "Daily allowance resets at 05:00 UTC" = "毎日の利用回数はUTC 05:00にリセットされます";
-"Get more daily views and downloads" = "毎日の視聴・ダウンロード回数を追加";
 "Ad rewards unlock when the corresponding allowance runs out." = "対象の利用回数を使い切ると広告報酬を利用できます。";
 "Finish this ad for unlimited views until 05:00 UTC." = "この広告を最後まで見るとUTC 05:00まで視聴無制限になります。";
-"Finish this ad for unlimited downloads until 05:00 UTC." = "この広告を最後まで見るとUTC 05:00までダウンロード無制限になります。";
 "Watch a full ad for more views." = "広告を最後まで見て視聴回数を増やしましょう。";
 "Watch a full ad for more downloads." = "広告を最後まで見てダウンロード回数を増やしましょう。";
 "More views added. Your ad progress stays the same." = "視聴回数が追加されました。広告の進行段階は変わりません。";
 "More downloads added. Your ad progress stays the same." = "ダウンロード回数が追加されました。広告の進行段階は変わりません。";
 "Your viewing allowance has been updated." = "視聴回数が更新されました。";
 "Your download allowance has been updated." = "ダウンロード回数が更新されました。";
-"Your download allowance is used up." = "ダウンロード回数を使い切りました。";
-"Download a lesson from its playback options to watch without a connection." = "再生オプションからレッスンをダウンロードすると、オフラインで視聴できます。";
-"Offline downloads could not be read. Existing files have been preserved." = "ダウンロード情報を読み込めませんでした。既存のファイルは保持されています。";
-"Download interrupted. Please try again." = "ダウンロードが中断されました。もう一度お試しください。";
-"Download could not start. Please check your connection." = "ダウンロードを開始できません。接続を確認してください。";
-"Download could not be saved." = "ダウンロードを保存できませんでした。";
-"Download failed. No download allowance was used." = "ダウンロードに失敗しました。利用回数は消費されていません。";
-"This video is not available for offline playback." = "この動画はオフラインで再生できません。";
-"Download is waiting to be saved. Tap Retry." = "ダウンロードの保存を待っています。「再試行」をタップしてください。";
-"This download is no longer on this device. Download it again." = "このダウンロードは端末にありません。もう一度ダウンロードしてください。";
 "Purchase status is waiting to sync. Please try again when connected." = "購入状況の同期を待っています。接続後にもう一度お試しください。";
 "No reward was received. Finish the ad to receive your reward." = "報酬は受け取れませんでした。広告を最後まで見て報酬を受け取りましょう。";
 "Serve practice" = "サーブ練習";
 "Pick a target. Track your placement." = "狙いを決めて、結果を記録。";
-"Practice" = "練習";
 "Sessions" = "練習記録";
 "Deuce court" = "デュースサイド";
 "Ad court" = "アドサイド";
@@ -440,23 +409,12 @@
 "Target hits / serves attempted. A target hit also counts as a serve in the service box." = "狙い成功数／サーブ数。狙い成功はボックス内にも含まれます。";
 "Practice records could not be opened. Existing records are preserved." = "練習記録を開けませんでした。既存の記録は保持されています。";
 "The practice export could not be created. Please try again." = "記録を書き出せませんでした。もう一度お試しください。";
-"This change could not be saved. Please try again." = "変更を保存できませんでした。もう一度お試しください。";
 
 "Follow system" = "システム設定に従う";
 
 "No more videos are available right now. Try again." = "現在、追加の動画はありません。もう一度お試しください。";
 
-"Another download is being prepared." = "別のダウンロードを準備中です。";
-
-"Another download is in progress." = "別のダウンロードが進行中です。";
-
-"Connect to your account before downloading." = "アカウントへの接続後にダウンロードしてください。";
-
 "This video is already stored on this device." = "この動画はすでにこのデバイスに保存されています。";
-
-"Preparing download…" = "ダウンロードを準備中…";
-
-"Restoring downloads…" = "ダウンロードを復元中…";
 
 "Renews automatically. Cancel in your Apple account at least 24 hours before renewal." = "自動更新されます。更新の24時間前までにApple Accountで解約してください。";
 
@@ -464,61 +422,36 @@
 
 "Exit" = "終了";
 
-"Cache" = "保存";
-
-"Cached" = "保存済み";
-
 "Swipe to change videos" = "スワイプして動画を切り替え";
-"Download location is unavailable. Please try again." = "ダウンロードの保存先を利用できません。もう一度お試しください。";
 "Not enough storage. Free up space and try again." = "空き容量が不足しています。容量を確保してもう一度お試しください。";
-"Download could not be saved. Please try again. (%@)" = "ダウンロードを保存できませんでした。もう一度お試しください。(%@)";
 "Loading ad…" = "広告を読み込み中…";
 "Exporting…" = "書き出し中…";
-"This stream can be watched offline in Glamo but cannot be exported." = "この動画はGlamoでオフライン視聴できますが、書き出しはできません。";
-
-"Finish downloading this video to export it." = "ダウンロードが完了すると、動画を書き出せます。";
 
 "Swipe up or down to change videos" = "上下にスワイプして動画を切り替え";
 
 "Preparing export…" = "書き出しを準備中…";
 
-"We download the video before exporting. Existing downloads are reused." = "動画をダウンロードしてから書き出します。ダウンロード済みの場合はその動画を使用します。";
-
-"The provider has not supplied a downloadable video file. You can still cache this video for offline viewing." = "配信元からダウンロード用の動画ファイルが提供されていません。アプリ内でオフライン視聴用に保存できます。";
-
 "This video format cannot be exported. Please use an MP4 or MOV file." = "この動画形式は書き出せません。MP4またはMOVファイルを使用してください。";
 
 "Video export failed. Please try again." = "動画の書き出しに失敗しました。もう一度お試しください。";
-
-"This stream format cannot be exported. Offline playback is still available." = "このストリーム形式は書き出せません。オフライン再生は引き続き利用できます。";
 
 "The video data is incomplete. Please try exporting again." = "動画データが不完全です。もう一度書き出してください。";
 
 "This video is too large to export on this device." = "この動画は大きすぎるため、このデバイスでは書き出せません。";
 
-"Video export could not download the stream. Please try again." = "書き出し用の動画をダウンロードできませんでした。もう一度お試しください。";
-
 "Clear link" = "リンクを消去";
 
 /* Playback and local library feedback */
-"Favorites" = "お気に入り";
 "Favorite" = "お気に入り";
 "Favorited" = "登録済み";
-"Offline videos" = "オフライン動画";
-"Offline" = "オフライン";
-"Download" = "ダウンロード";
 "View" = "見る";
-"Remove offline video?" = "オフライン動画を削除しますか？";
-"This removes only the offline copy. Your favorite stays saved." = "オフラインのコピーだけを削除します。お気に入りは残ります。";
 "Stop this export?" = "書き出しを中止しますか？";
 "The export is still in progress. Leaving now cancels it. Your video stays safe." = "書き出し中です。今閉じると中止されます。元の動画は残ります。";
 "Keep exporting" = "書き出しを続ける";
 "Stop export" = "書き出しを中止";
-"Downloaded. Watch offline in Library." = "ダウンロード完了。ライブラリでオフライン視聴できます。";
 "Favorites could not be updated. Please try again." = "お気に入りを更新できませんでした。もう一度お試しください。";
 "Resets %@ (local time)" = "%@にリセット（現地時間）";
 "Unlimited views today" = "今日の視聴は無制限";
-"Unlimited downloads today" = "今日のダウンロードは無制限";
 "Finish this ad for unlimited views today." = "広告を最後まで見ると、今日は無制限で視聴できます。";
 "Finish this ad for unlimited downloads today." = "広告を最後まで見ると、今日は無制限でダウンロードできます。";
 "Connect to refresh your allowance." = "利用回数を更新するには接続してください。";
@@ -536,7 +469,6 @@
 "The browser could not open. Please try again." = "ブラウザを開けませんでした。もう一度お試しください。";
 "Connect to verify your Plus membership before exporting." = "書き出す前にインターネットに接続してPlus会員資格を確認してください。";
 "Export is included with Plus." = "書き出しはPlusの会員特典です。";
-"Unlimited views, downloads and media exports." = "視聴、ダウンロード、メディアの書き出しが無制限。";
 "No matching lessons. Search the web with your original input." = "一致するレッスンはありません。入力した内容でウェブを検索できます。";
 
 "Official website" = "公式サイト";
@@ -557,53 +489,14 @@
 "Web search" = "ウェブ検索";
 "Opening page…" = "ページを開いています…";
 
-"My lookbook" = "マイルックブック";
-"The vanity pass" = "メイクパス";
-
-"Looks" = "メイク";
-"Party look notes" = "パーティーメイクノート";
-"Base" = "ベース";
-"Eyes" = "アイメイク";
-"Lips" = "リップ";
-"Look rehearsal" = "メイクの予行練習";
-"Open a makeup lesson" = "メイクレッスンを開く";
-"Watch looks" = "メイク動画を見る";
-"Review your try-on" = "試したメイクを見返す";
-"Look collections" = "メイクコレクション";
-
-/* Glamo Plus and rehearsal sharing */
-"Practice, save and share your looks." = "メイクを練習して、保存・共有。";
-"Share your mirror checks and notes with Plus." = "Plusで鏡チェックの結果とメモを共有できます。";
+/* Glamo Plus */
 "Member benefits" = "会員特典";
-"Unlimited viewing" = "視聴無制限";
-"Unlimited offline downloads" = "オフライン保存無制限";
-"No app-open ads" = "起動時の広告なし";
 "MP4 export up to 1080p" = "最大1080pのMP4書き出し";
 "M4A audio export" = "M4A音声の書き出し";
-"Share rehearsal recaps" = "メイク練習のまとめを共有";
 "Choose your plan" = "プランを選択";
 "Subscribe to Plus" = "Plusに登録";
-"Rehearsal recap" = "メイク練習のまとめ";
-"Share rehearsal recap" = "練習のまとめを共有";
-"Share recap with Plus" = "Plusでまとめを共有";
-"Connect to verify your Plus membership before sharing a recap." = "まとめを共有するには、接続してPlus会員資格を確認してください。";
-"Untitled look" = "名前のないメイク";
-"Time taken" = "所要時間";
-"Party-ready" = "パーティー準備OK";
-"Brows" = "眉";
-"Cheeks" = "頬";
-"Setting" = "仕上げ・キープ";
-"Needs blending" = "ぼかしが必要";
-"Sides uneven" = "左右差あり";
-"Wiped and redid" = "落としてやり直した";
-"History" = "履歴";
-"Rehearsal results" = "メイク練習の結果";
-"Export rehearsal CSV" = "練習記録をCSVで書き出す";
-"Mirror checks" = "鏡チェック";
-"By area" = "パーツ別";
-"Party-ready checks / all checks for that area." = "パーティー準備OKの回数／そのパーツの全チェック回数。";
 
-/* Glamo copy and makeup guides */
+/* App startup and video links */
 "Opening Glamo…" = "Glamoを起動中…";
 "Couldn’t connect to Glamo" = "Glamoに接続できませんでした";
 "Connecting to Glamo…" = "Glamoに接続中…";
@@ -614,7 +507,6 @@
 "Search the web" = "ウェブで検索";
 "Couldn’t load videos" = "動画を読み込めませんでした";
 "No videos available" = "利用できる動画はありません";
-"You can open a shared lesson link from the Looks tab." = "共有リンクは「メイク」タブから開けます。";
 "Load more videos" = "動画をさらに読み込む";
 "Loading videos…" = "動画を読み込み中…";
 "Swipe up or down for another video" = "上下にスワイプして別の動画へ";
@@ -622,49 +514,29 @@
 "Couldn’t play this video" = "動画を再生できませんでした";
 "Video quality adjusts to your connection on supported streams." = "対応する配信では、通信状況に合わせて画質が変わります。";
 "Open video editor" = "動画編集を開く";
-"Download video" = "動画をダウンロード";
 "Open video tools" = "動画ツールを開く";
 "Couldn’t open the URL" = "URLを開けませんでした";
-"Back to Looks" = "メイクに戻る";
-"Couldn’t load collections" = "コレクションを読み込めませんでした";
-"Makeup guides" = "メイクガイド";
 "How to open a video URL" = "動画URLの開き方";
 "Clear URL" = "URLを消去";
-"Clear history" = "履歴を消去";
-"No videos in this collection" = "このコレクションに動画はありません";
-"Go back to browse other collections." = "戻ってほかのコレクションをご覧ください。";
 "Copy the URL" = "URLをコピー";
 "Copy the video URL from the share menu or the address bar." = "共有メニューやアドレスバーから動画のURLをコピーします。";
 "Paste it here" = "ここに貼り付け";
-"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "「動画」ページにURLを貼り付けて「開く」をタップします。大文字と小文字も共有されたとおりに入力してください。";
+"Paste the URL on the Files page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "「ファイル」にURLを貼り付けて「開く」をタップします。大文字と小文字も共有されたとおりに入力してください。";
 "Once it opens, swipe up or down to browse videos." = "開いたら、上下にスワイプして動画を切り替えます。";
 "There’s no playable video here." = "再生できる動画がありません。";
 "Copy a video URL, then try pasting again." = "動画のURLをコピーして、もう一度貼り付けてください。";
 "Connect to Glamo, then try opening the URL again." = "Glamoに接続してから、URLを開き直してください。";
-"Remove this download?" = "このダウンロードを削除しますか？";
-"This removes the offline copy. Any bookmark stays in Favorites." = "オフライン用のコピーを削除します。お気に入りに登録した動画は残ります。";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "Glamo内のファイルを削除します。「写真」や「ファイル」にある元の動画は残ります。";
 "%@ item" = "%@件";
 "%@ items" = "%@件";
-"No favorites yet" = "お気に入りはまだありません";
-"Tap Save while watching to keep a video here." = "視聴中に「保存」をタップすると、ここに残せます。";
-"No downloads yet" = "ダウンロードはまだありません";
-"Tap Download while watching to keep a video offline." = "視聴中に「ダウンロード」をタップすると、オフラインで視聴できます。";
-"No exports yet" = "書き出したファイルはまだありません";
-"No imported videos yet" = "読み込んだ動画はまだありません";
 "Export a video or audio file from Tools to save it here." = "「ツール」で動画や音声を書き出すと、ここに保存されます。";
 "Open Tools to import a video from Photos or Files." = "「ツール」から「写真」や「ファイル」の動画を読み込めます。";
 "Stopping cancels this export. Your source video stays in the library." = "停止すると今回の書き出しを取り消します。元の動画はライブラリに残ります。";
-"Ready to watch offline" = "オフラインで視聴できます";
-"View downloads" = "ダウンロードを見る";
-"Glamo downloads this video before exporting." = "書き出す前に、Glamoがこの動画をダウンロードします。";
-"Connect to Glamo to see your downloads left." = "Glamoに接続すると残りのダウンロード回数を確認できます。";
 "Edit a practice video" = "練習動画を編集";
 "Crop & rotate" = "切り抜き・回転";
 "Trim the clip, adjust its speed or change the frame." = "動画の長さ、再生速度、画角を調整できます。";
 "Save the audio as an M4A file." = "音声をM4Aファイルとして保存します。";
 "Crop to portrait, square or landscape." = "縦長、正方形、横長に切り抜けます。";
-"Slow down a tricky blending step." = "難しいぼかしの手順をゆっくり確認できます。";
 "Change video" = "動画を変更";
 "Choose a video" = "動画を選ぶ";
 "Browse files" = "「ファイル」から選ぶ";
@@ -678,120 +550,101 @@
 "Export quality" = "書き出し画質";
 "Find your export in Library › Exports. Your original stays intact." = "書き出したファイルは「ライブラリ」の「書き出し済み」にあります。元の動画はそのまま残ります。";
 "Couldn’t save the export to your library. %@" = "書き出したファイルをライブラリに保存できませんでした。%@";
-"%@ guides · Read offline" = "%@本のガイド・オフラインで読めます";
-"Back to makeup guides" = "メイクガイドに戻る";
-"Base makeup for a night out" = "夜のお出かけに合うベースメイク";
-"Build coverage in thin layers and set where makeup moves." = "薄く重ねてカバーし、崩れやすい部分だけをセットします。";
-"Start with settled skin" = "スキンケアをなじませる";
-"Apply makeup to clean, moisturised skin and give skincare a few minutes to settle. Base products tend to sit more evenly on skin that is no longer damp." = "清潔な肌を保湿し、スキンケアがなじむまで数分待ちます。肌表面の湿り気がなくなると、ベースを均一にのせやすくなります。";
-"Build in thin layers" = "薄く重ねる";
-"Start with a small amount where you want the most coverage, then blend outwards. A second thin layer usually looks more natural than one heavy layer." = "カバーしたい部分に少量をのせ、外側へなじませます。厚く一度に塗るより、薄く重ねると自然に仕上がりやすくなります。";
-"Set only where you need it" = "必要な部分にだけパウダーを";
-"Powder helps where makeup tends to move, such as around the nose or across the forehead. Press it in with a puff or brush instead of dragging it across the skin." = "小鼻や額など、メイクが崩れやすい部分にパウダーをのせます。パフやブラシで肌をこすらず、軽く押さえるようにつけます。";
-"Check your base by a window or in daylight before you add colour." = "色を重ねる前に、窓際など自然光の下でベースを確認しましょう。";
-"Eye makeup for dim light" = "暗めの照明に映えるアイメイク";
-"Use shimmer on the lid and matte shadow in the crease." = "まぶたにきらめき、くぼみにマットなシャドウをのせます。";
-"Place shimmer with intent" = "きらめきをのせる位置を選ぶ";
-"Party lighting is often dim and warm. Shimmer or metallic shades on the centre of the lid or the inner corner catch the light, while deeper matte shades in the crease add shape." = "パーティーの照明は暖色で暗めのことが多いです。まぶたの中央や目頭にパールやメタリックをのせると光を拾います。くぼみに深めのマット色を入れると立体感が出ます。";
-"Soften every edge" = "色の境目をぼかす";
-"Where two shades meet, blend with a clean brush in small circles or short back-and-forth strokes. Soft edges look better in close-up photos." = "色の境目は、きれいなブラシで小さな円を描くか、短く往復させてぼかします。境目をなじませると接写でもきれいに見えます。";
-"Finish with liner and lashes" = "アイラインとまつ毛で仕上げる";
-"Apply liner and mascara after eyeshadow so you can clean up any fallout first. If you wear strip lashes, trim the band to fit your eye before applying." = "落ちたシャドウを先に取り除けるよう、アイラインとマスカラはシャドウの後に。帯状のつけまつ毛は、装着前に目の幅に合わせてカットします。";
-"Check your eyeshadow from arm’s length." = "腕一本分ほど離れてアイシャドウを確認しましょう。";
-"Lipstick that wears longer" = "長持ちさせるリップメイク";
-"Apply thin layers and keep your shade handy for a touch-up." = "薄く重ね塗りし、塗り直し用に同じ色を持ち歩きます。";
-"Line, then fill" = "輪郭を描いてから塗る";
-"A liner close to your lip colour defines the shape and can slow colour from moving. Lightly fill the lips with liner before adding lipstick." = "唇の色に近いライナーで輪郭を描くと、形が整い、にじみにくくなります。口紅の前にライナーで唇全体を薄く塗ります。";
-"Layer and blot" = "重ね塗りとティッシュオフ";
-"Apply a thin layer, blot with a tissue, then apply again. Two thin layers usually wear longer than one thick coat." = "薄く塗り、ティッシュで軽く押さえてからもう一度塗ります。厚く一度に塗るより、薄く二度塗るほうが長持ちしやすくなります。";
-"Pack for one touch-up" = "塗り直し用のリップを持つ";
-"Food and drinks wear colour away. Carry the lip product you’re wearing and check a mirror after you eat." = "食事や飲み物で色が落ちます。使ったリップを持ち歩き、食後に鏡で確認します。";
-"Use the same shade when you touch up after eating." = "食後に塗り直すときは同じ色を使いましょう。";
-"Glow" = "ツヤ";
-"Highlighter for flash photos" = "フラッシュ撮影に合うハイライト";
-"Add light to cheekbones and check how it looks on camera." = "頬骨にツヤを足し、カメラで見え方を確認します。";
-"Find the high points" = "光が当たる部分を見つける";
-"Highlighter usually goes where light naturally falls: the tops of the cheekbones, the bridge of the nose and the centre of the brow bone." = "ハイライトは、頬骨の高いところ、鼻筋、眉骨の中央など、自然に光が当たる部分にのせます。";
-"Start with less" = "少量から始める";
-"Apply a little, step back, then add more if you want it. Removing extra shine without disturbing your base is harder than adding it." = "少量をのせ、鏡から少し離れて見てから必要に応じて足します。ベースを崩さずに余分なツヤを取り除くのは、足すより難しくなります。";
-"Test with your camera" = "カメラで確認する";
-"Phone flash and party lights can make shimmer and some powders look different from your mirror. Take one flash photo before you leave." = "スマホのフラッシュや会場の照明では、きらめきや一部のパウダーが鏡とは違って見えることがあります。出かける前にフラッシュで1枚撮ってみます。";
-"Take a flash photo before you leave." = "出かける前にフラッシュで撮影しましょう。";
-"Care" = "衛生";
-"Makeup hygiene" = "メイクの衛生管理";
-"Keep eye makeup and applicators clean." = "アイメイク用品とアプリケーターを清潔に保ちます。";
-"Keep eye products to yourself" = "アイメイク用品は自分専用に";
-"Don’t share eye makeup. If you try a store tester, use a fresh single-use applicator such as a clean cotton swab." = "アイメイク用品は共用せず、店頭のテスターは清潔な綿棒など新品の使い捨てアプリケーターで試します。";
-"Replace and store with care" = "交換と保管に気を配る";
-"Replace mascara every few months. Throw away dried mascara. Keep water and saliva out of the tube and store makeup away from heat." = "マスカラは数か月ごとに交換し、乾いたものは捨てます。容器に水や唾液を入れず、メイク用品は高温を避けて保管します。";
-"Apply safely" = "安全に使う";
-"Wash your hands and clean your tools before working near your eyes, and don’t apply or remove eye makeup in a moving vehicle. Stop using a product that irritates, and contact a healthcare provider if you have a bad reaction." = "目元をメイクする前に手を洗い、道具を清潔にします。走行中の車内でアイメイクをつけたり落としたりしないでください。刺激を感じたら使用をやめ、異常があれば医療機関に相談してください。";
-"Follow the directions on each product label." = "各製品のラベルに記載された使用方法に従ってください。";
-"FDA · Eye cosmetic safety" = "FDA・目元用化粧品の安全性";
-"Before you head out" = "出かける前に";
-"Official source · Opens online" = "公式情報・オンラインで開きます";
-"Time a look and track what needs a touch-up." = "メイクにかかった時間と直したい部分を記録します。";
-"Pick an area and record what you see in the mirror." = "パーツを選び、鏡で確認した結果を記録します。";
-"Touch-up note (optional)" = "お直しメモ（任意）";
-"Mirror check" = "鏡チェック";
-"Undo last check" = "前回のチェックを取り消す";
-"Finish rehearsal" = "練習を終了";
-"Start the timer and record each mirror check as you go. The recap shows your results and total time." = "タイマーを開始し、鏡で確認するたびに記録します。まとめで結果と合計時間を確認できます。";
-"Look name (optional)" = "メイク名（任意）";
-"Start rehearsal" = "練習を開始";
-"Glamo stores the checks you enter on this device. It does not analyze your face or video." = "入力したチェックはこの端末に保存されます。顔や動画の解析は行いません。";
-"No rehearsals yet" = "練習記録はまだありません";
-"Finish a rehearsal to see it here." = "練習を終了すると、ここに記録が表示されます。";
-"Go to practice" = "練習へ";
-"Resume rehearsal" = "練習を再開";
-"Delete rehearsal" = "練習記録を削除";
-"Delete rehearsal?" = "練習記録を削除しますか？";
-"This deletes the rehearsal, checks and notes from this device." = "この端末から練習記録、チェック結果、メモを削除します。";
-"Ready checks out of all checks for each area." = "パーツごとの全チェック回数のうち、準備OKだった回数です。";
-"Rehearsal records could not be opened. Existing records are preserved." = "練習記録を開けませんでした。保存済みの記録は残っています。";
-"The rehearsal export could not be created. Please try again." = "練習記録を書き出せませんでした。もう一度お試しください。";
-"Watch lessons without daily limits. Save and export your practice." = "レッスンは毎日見放題。練習動画の保存と書き出しもできます。";
-"Share a recap with your time, mirror checks and notes." = "所要時間、鏡チェックの結果、メモをまとめて共有できます。";
 "Unlimited video views" = "動画見放題";
-"Unlimited downloads" = "ダウンロード無制限";
-"Skip launch ads" = "起動時の広告なし";
-"Unlimited lesson views and downloads. Export your practice clips." = "レッスンの視聴とダウンロードが無制限。練習動画も書き出せます。";
 "View plans" = "プランを見る";
 "Plus is active" = "Plus利用中";
 "Access through %@" = "利用期限：%@";
-"Daily limits" = "1日の利用上限";
 "View options" = "利用方法を見る";
-"Account ID" = "アカウントID";
 "Bonus added" = "ボーナスを追加しました";
 "Done" = "完了";
 "Earn more with ads" = "広告で利用回数を追加";
 "Watch ad for views" = "広告で視聴回数を追加";
-"Watch ad for downloads" = "広告でダウンロード回数を追加";
-"Ad rewards are available once you run out of views or downloads." = "視聴またはダウンロードの回数を使い切ると、広告で追加できます。";
+"Ad rewards are available once you run out of views." = "視聴回数を使い切ると、広告で視聴回数を追加できます。";
 "Loading prices…" = "料金を読み込み中…";
 "Preparing subscription…" = "登録を準備中…";
 "Waiting for Apple…" = "Appleの応答を待機中…";
 "Playback unavailable" = "再生できません";
-"View options for more views and downloads" = "視聴やダウンロードを追加する方法を見る";
-"Party makeup" = "パーティーメイク";
 
 /* Video workspace */
 "Videos" = "動画";
 "Video files" = "動画ファイル";
 "Files" = "ファイル";
-"Import a video" = "動画を取り込む";
 "Import from Files" = "ファイルから取り込む";
-"Trim, crop, change speed or extract audio." = "長さや画角、再生速度を調整したり、音声を抽出したりできます。";
-"Recent files" = "最近のファイル";
-"All files" = "すべてのファイル";
 "Video tools" = "動画ツール";
 "Video editor" = "動画エディタ";
 "Slow down or speed up a video." = "動画の再生速度を調整します。";
-"Export a video or audio file from the editor to find it here." = "エディタから書き出した動画や音声はここに表示されます。";
-"Your imported videos will appear here." = "取り込んだ動画がここに表示されます。";
-"Back to videos" = "動画に戻る";
 "Share file" = "ファイルを共有";
-"Paste a shared video URL on the Videos page." = "共有された動画のURLを「動画」ページに貼り付けてください。";
+"Paste a shared video URL on the Files page." = "共有された動画のURLを「ファイル」に貼り付けてください。";
 "MP4 and M4A export" = "MP4・M4A 書き出し";
-"Export video up to 1080p or save the audio as M4A." = "最大1080pで動画を書き出したり、音声をM4Aで保存したりできます。";
 "Processed on your device. Finished files appear in Files under Exports." = "端末上で処理します。書き出したファイルは「ファイル」の「書き出し」に表示されます。";
+
+/* Device video library */
+"Recent" = "最近";
+"Activity" = "アクティビティ";
+"Settings" = "設定";
+"Grid view" = "グリッド表示";
+"List view" = "リスト表示";
+"Add" = "追加";
+"View import results" = "取り込み結果を見る";
+"Search" = "検索";
+"Search files and folders" = "ファイルとフォルダを検索";
+"Search results" = "検索結果";
+"New folder" = "新規フォルダ";
+"Parent folder" = "上のフォルダ";
+"Import videos" = "動画を取り込む";
+"Clear search" = "検索を消去";
+"Name A–Z" = "名前順";
+"Newest first" = "新しい順";
+"Change file sort order" = "ファイルの並び順を変更";
+"Folders" = "フォルダ";
+"Folder options" = "フォルダの操作";
+"No videos here yet" = "動画はまだありません";
+"No matching files" = "一致するファイルがありません";
+"Import videos from Files or Photos." = "「ファイル」または「写真」から動画を取り込みます。";
+"Show all videos" = "すべての動画を表示";
+"Show fewer videos" = "表示する動画を減らす";
+"Try a different name or file extension." = "別の名前や拡張子で検索してください。";
+"File options" = "ファイルの操作";
+"Continue playing" = "続きから再生";
+"Last played" = "最後に再生したファイル";
+"Playback history" = "再生履歴";
+"No playback history" = "再生履歴はありません";
+"Play a file to find it here later." = "ファイルを再生すると、ここに表示されます。";
+"No files in this view" = "この表示にファイルはありません";
+"Imports and exports appear here." = "取り込みと書き出しの履歴がここに表示されます。";
+"Import results" = "取り込み結果";
+"%@ of %@ files imported" = "%@ / %@ 件を取り込みました";
+"%@ failed" = "%@件失敗";
+"Latest export" = "最新の書き出し";
+"Rename" = "名前を変更";
+"Move to folder" = "フォルダに移動";
+"Edit video" = "動画を編集";
+"Name" = "名前";
+"Only empty folders can be deleted." = "空のフォルダのみ削除できます。";
+"Minimize player" = "プレーヤーを最小化";
+"On this device" = "このデバイス上";
+"Play queue" = "再生キュー";
+"Expanded" = "展開中";
+"Collapsed" = "折りたたみ中";
+"Previous file" = "前のファイル";
+"Next file" = "次のファイル";
+"Back 10 seconds" = "10秒戻る";
+"Forward 10 seconds" = "10秒進む";
+"Open player" = "プレーヤーを開く";
+"Close player" = "プレーヤーを閉じる";
+"Move the files and folders out before deleting this folder." = "このフォルダを削除する前に、中のファイルとフォルダを移動してください。";
+"Choose a folder outside this folder." = "このフォルダの外にあるフォルダを選んでください。";
+"Enter a name of up to 120 characters, without slashes or colons." = "スラッシュやコロンを含めず、120文字以内で名前を入力してください。";
+"A folder with that name already exists here." = "同じ名前のフォルダがすでにあります。";
+"Full screen" = "全画面";
+"Exit full screen" = "全画面を終了";
+"Play" = "再生";
+"Pause" = "一時停止";
+"Find finished files under Activity › Exports." = "書き出したファイルは「アクティビティ › 書き出し」に表示されます。";
+
+/* File library membership */
+"Export and share from your video library." = "動画ライブラリから書き出して共有できます。";
+"Save a separate MP4 copy of your edits." = "編集した動画を別のMP4ファイルとして保存します。";
+"Keep just the soundtrack as an M4A file." = "音声トラックだけをM4Aファイルとして保存します。";
+"Share files" = "ファイルを共有";
+"Send an original file or an export to another app." = "元のファイルや書き出したファイルを別のアプリに送れます。";

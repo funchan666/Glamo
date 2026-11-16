@@ -83,9 +83,6 @@
 "Daily allowance could not be read. Please try again later." = "No se pudo consultar el cupo diario. Inténtalo más tarde.";
 "Daily allowance resets at 5 AM" = "El cupo diario se restablece a las 5:00";
 "Delete local copy" = "Eliminar copia local";
-"Delete local file" = "Eliminar archivo local";
-"Delete this local copy?" = "¿Eliminar esta copia local?";
-"Discover" = "Descubrir";
 "Dismiss message" = "Cerrar mensaje";
 "Edit" = "Editar";
 "Edit a local video" = "Editar vídeo local";
@@ -119,7 +116,6 @@
 "From watching to playing" = "De ver a jugar";
 "From your link" = "Desde tu enlace";
 "Full editor" = "Editor completo";
-"Further reading" = "Más información";
 "Games make sets" = "Los juegos forman sets";
 "Get Plus" = "Obtener Plus";
 "Get more" = "Obtener más";
@@ -163,7 +159,6 @@
 "Let it speak. Or don’t." = "Con sonido. O sin él.";
 "Let the ball meet your motion" = "Ajusta el lanzamiento al movimiento";
 "Let’s reconnect." = "Volvamos a conectar.";
-"Library" = "Biblioteca";
 "Load more" = "Cargar más";
 "Loading your lesson feed." = "Cargando tus lecciones.";
 "Loading…" = "Cargando…";
@@ -239,10 +234,8 @@
 "Ready for your next session." = "Listo para tu próximo entrenamiento.";
 "Receipt refresh is already in progress. Please retry shortly." = "El recibo se está actualizando. Reinténtalo en un momento.";
 "Recent imports" = "Importaciones recientes";
-"Recently opened" = "Abiertos recientemente";
 "Reframe video" = "Reencuadrar vídeo";
 "Refresh" = "Actualizar";
-"Remove history item" = "Eliminar del historial";
 "Remove saved video" = "Eliminar vídeo guardado";
 "Restore canceled." = "Restauración cancelada.";
 "Restore purchases" = "Restaurar compras";
@@ -372,44 +365,20 @@
 "Backhand" = "Revés";
 "Serve" = "Saque";
 "Scoring" = "Puntuación";
-"Downloads" = "Descargas";
-"Downloads left" = "Descargas restantes";
-"Get more downloads" = "Obtener más descargas";
-"Download for offline" = "Descargar para ver sin conexión";
-"Cancel download" = "Cancelar descarga";
-"Remove download" = "Eliminar descarga";
-"Available offline" = "Disponible sin conexión";
-"Downloading · %@%" = "Descargando · %@%";
-"%@ downloads left today" = "Quedan %@ descargas hoy";
-"Unlimited views. Unlimited downloads." = "Visualizaciones ilimitadas. Descargas ilimitadas.";
 "Unlimited views until 05:00 UTC" = "Visualizaciones ilimitadas hasta las 05:00 UTC";
-"Unlimited downloads until 05:00 UTC" = "Descargas ilimitadas hasta las 05:00 UTC";
 "Daily allowance resets at 05:00 UTC" = "El cupo diario se restablece a las 05:00 UTC";
-"Get more daily views and downloads" = "Obtener más visualizaciones y descargas diarias";
 "Ad rewards unlock when the corresponding allowance runs out." = "Las recompensas se habilitan al agotar el cupo correspondiente.";
 "Finish this ad for unlimited views until 05:00 UTC." = "Completa este anuncio para ver sin límites hasta las 05:00 UTC.";
-"Finish this ad for unlimited downloads until 05:00 UTC." = "Completa este anuncio para descargar sin límites hasta las 05:00 UTC.";
 "Watch a full ad for more views." = "Mira un anuncio completo para obtener más visualizaciones.";
 "Watch a full ad for more downloads." = "Mira un anuncio completo para obtener más descargas.";
 "More views added. Your ad progress stays the same." = "Se añadieron visualizaciones. La etapa de anuncios no cambia.";
 "More downloads added. Your ad progress stays the same." = "Se añadieron descargas. La etapa de anuncios no cambia.";
 "Your viewing allowance has been updated." = "Se actualizó tu cupo de visualizaciones.";
 "Your download allowance has been updated." = "Se actualizó tu cupo de descargas.";
-"Your download allowance is used up." = "Has agotado tu cupo de descargas.";
-"Download a lesson from its playback options to watch without a connection." = "Descarga una lección desde sus opciones de reproducción para verla sin conexión.";
-"Offline downloads could not be read. Existing files have been preserved." = "No se pudieron leer las descargas. Los archivos existentes se han conservado.";
-"Download interrupted. Please try again." = "Descarga interrumpida. Inténtalo de nuevo.";
-"Download could not start. Please check your connection." = "No se pudo iniciar la descarga. Comprueba tu conexión.";
-"Download could not be saved." = "No se pudo guardar la descarga.";
-"Download failed. No download allowance was used." = "La descarga falló. No se consumió cupo de descargas.";
-"This video is not available for offline playback." = "Este vídeo no está disponible para reproducir sin conexión.";
-"Download is waiting to be saved. Tap Retry." = "La descarga está pendiente de guardarse. Pulsa Reintentar.";
-"This download is no longer on this device. Download it again." = "Esta descarga ya no está en el dispositivo. Descárgala de nuevo.";
 "Purchase status is waiting to sync. Please try again when connected." = "El estado de la compra está pendiente de sincronización. Inténtalo cuando tengas conexión.";
 "No reward was received. Finish the ad to receive your reward." = "No se recibió ninguna recompensa. Completa el anuncio para obtenerla.";
 "Serve practice" = "Práctica de saque";
 "Pick a target. Track your placement." = "Elige un objetivo y registra tu precisión.";
-"Practice" = "Práctica";
 "Sessions" = "Sesiones";
 "Deuce court" = "Lado de iguales";
 "Ad court" = "Lado de ventaja";
@@ -440,23 +409,12 @@
 "Target hits / serves attempted. A target hit also counts as a serve in the service box." = "Aciertos al objetivo / intentos. Acertar el objetivo también cuenta como saque dentro del cuadro.";
 "Practice records could not be opened. Existing records are preserved." = "No se pudieron abrir los registros. Los existentes se han conservado.";
 "The practice export could not be created. Please try again." = "No se pudo crear la exportación. Inténtalo de nuevo.";
-"This change could not be saved. Please try again." = "No se pudo guardar el cambio. Inténtalo de nuevo.";
 
 "Follow system" = "Seguir el sistema";
 
 "No more videos are available right now. Try again." = "No hay más vídeos disponibles ahora. Inténtalo de nuevo.";
 
-"Another download is being prepared." = "Se está preparando otra descarga.";
-
-"Another download is in progress." = "Hay otra descarga en curso.";
-
-"Connect to your account before downloading." = "Conecta tu cuenta antes de descargar.";
-
 "This video is already stored on this device." = "Este vídeo ya está guardado en este dispositivo.";
-
-"Preparing download…" = "Preparando descarga…";
-
-"Restoring downloads…" = "Restaurando descargas…";
 
 "Renews automatically. Cancel in your Apple account at least 24 hours before renewal." = "Se renueva automáticamente. Cancela en tu cuenta de Apple al menos 24 horas antes de la renovación.";
 
@@ -464,61 +422,36 @@
 
 "Exit" = "Salir";
 
-"Cache" = "Descargar";
-
-"Cached" = "Guardado";
-
 "Swipe to change videos" = "Desliza para cambiar de vídeo";
-"Download location is unavailable. Please try again." = "La ubicación de descarga no está disponible. Inténtalo de nuevo.";
 "Not enough storage. Free up space and try again." = "No hay espacio suficiente. Libera espacio e inténtalo de nuevo.";
-"Download could not be saved. Please try again. (%@)" = "No se pudo guardar la descarga. Inténtalo de nuevo. (%@)";
 "Loading ad…" = "Cargando anuncio…";
 "Exporting…" = "Exportando…";
-"This stream can be watched offline in Glamo but cannot be exported." = "Este vídeo se puede ver sin conexión en Glamo, pero no se puede exportar.";
-
-"Finish downloading this video to export it." = "Termina de descargar este vídeo para exportarlo.";
 
 "Swipe up or down to change videos" = "Desliza arriba o abajo para cambiar de vídeo";
 
 "Preparing export…" = "Preparando exportación…";
 
-"We download the video before exporting. Existing downloads are reused." = "Descargamos el vídeo antes de exportarlo. Si ya está descargado, reutilizamos esa copia.";
-
-"The provider has not supplied a downloadable video file. You can still cache this video for offline viewing." = "El proveedor no ha facilitado un archivo de vídeo descargable. Puedes guardarlo en la aplicación para verlo sin conexión.";
-
 "This video format cannot be exported. Please use an MP4 or MOV file." = "Este formato de vídeo no se puede exportar. Usa un archivo MP4 o MOV.";
 
 "Video export failed. Please try again." = "No se pudo exportar el vídeo. Inténtalo de nuevo.";
-
-"This stream format cannot be exported. Offline playback is still available." = "Este formato de transmisión no se puede exportar. La reproducción sin conexión sigue disponible.";
 
 "The video data is incomplete. Please try exporting again." = "Los datos del vídeo están incompletos. Intenta exportarlo de nuevo.";
 
 "This video is too large to export on this device." = "Este vídeo es demasiado grande para exportarlo en este dispositivo.";
 
-"Video export could not download the stream. Please try again." = "No se pudo descargar el vídeo para exportarlo. Inténtalo de nuevo.";
-
 "Clear link" = "Borrar enlace";
 
 /* Playback and local library feedback */
-"Favorites" = "Favoritos";
 "Favorite" = "Favorito";
 "Favorited" = "Guardado";
-"Offline videos" = "Vídeos sin conexión";
-"Offline" = "Sin conexión";
-"Download" = "Descargar";
 "View" = "Ver";
-"Remove offline video?" = "¿Eliminar el vídeo sin conexión?";
-"This removes only the offline copy. Your favorite stays saved." = "Solo se eliminará la copia sin conexión. Se conservará en favoritos.";
 "Stop this export?" = "¿Detener esta exportación?";
 "The export is still in progress. Leaving now cancels it. Your video stays safe." = "La exportación sigue en curso. Si sales ahora, se cancelará. Tu vídeo se conservará.";
 "Keep exporting" = "Seguir exportando";
 "Stop export" = "Detener exportación";
-"Downloaded. Watch offline in Library." = "Descarga completada. Míralo sin conexión en la Biblioteca.";
 "Favorites could not be updated. Please try again." = "No se pudieron actualizar los favoritos. Inténtalo de nuevo.";
 "Resets %@ (local time)" = "Se restablece el %@ (hora local)";
 "Unlimited views today" = "Visualizaciones ilimitadas hoy";
-"Unlimited downloads today" = "Descargas ilimitadas hoy";
 "Finish this ad for unlimited views today." = "Completa este anuncio para ver sin límites hoy.";
 "Finish this ad for unlimited downloads today." = "Completa este anuncio para descargar sin límites hoy.";
 "Connect to refresh your allowance." = "Conéctate para actualizar tu cupo.";
@@ -536,7 +469,6 @@
 "The browser could not open. Please try again." = "No se pudo abrir el navegador. Inténtalo de nuevo.";
 "Connect to verify your Plus membership before exporting." = "Conéctate a internet para verificar tu membresía Plus antes de exportar.";
 "Export is included with Plus." = "La exportación está incluida en Plus.";
-"Unlimited views, downloads and media exports." = "Reproducciones, descargas y exportaciones de medios ilimitadas.";
 "No matching lessons. Search the web with your original input." = "No se encontraron lecciones. Busca en la web con el texto que has introducido.";
 
 "Official website" = "Sitio web oficial";
@@ -557,53 +489,14 @@
 "Web search" = "Búsqueda web";
 "Opening page…" = "Abriendo página…";
 
-"My lookbook" = "Mi álbum de looks";
-"The vanity pass" = "Pase de belleza";
-
-"Looks" = "Estilos";
-"Party look notes" = "Notas de maquillaje de fiesta";
-"Base" = "Base";
-"Eyes" = "Ojos";
-"Lips" = "Labios";
-"Look rehearsal" = "Prueba de maquillaje";
-"Open a makeup lesson" = "Abrir una clase de maquillaje";
-"Watch looks" = "Ver tutoriales";
-"Review your try-on" = "Revisar la prueba";
-"Look collections" = "Colecciones de maquillaje";
-
-/* Glamo Plus and rehearsal sharing */
-"Practice, save and share your looks." = "Practica, guarda y comparte tus looks.";
-"Share your mirror checks and notes with Plus." = "Comparte tus revisiones frente al espejo y tus notas con Plus.";
+/* Glamo Plus */
 "Member benefits" = "Ventajas de Plus";
-"Unlimited viewing" = "Visualización ilimitada";
-"Unlimited offline downloads" = "Descargas sin límite para ver sin conexión";
-"No app-open ads" = "Sin anuncios al abrir la app";
 "MP4 export up to 1080p" = "Exportación MP4 hasta 1080p";
 "M4A audio export" = "Exportación de audio M4A";
-"Share rehearsal recaps" = "Compartir resúmenes de práctica";
 "Choose your plan" = "Elige tu plan";
 "Subscribe to Plus" = "Suscribirme a Plus";
-"Rehearsal recap" = "Resumen de práctica";
-"Share rehearsal recap" = "Compartir resumen de práctica";
-"Share recap with Plus" = "Compartir resumen con Plus";
-"Connect to verify your Plus membership before sharing a recap." = "Conéctate para verificar tu suscripción a Plus y compartir el resumen.";
-"Untitled look" = "Look sin nombre";
-"Time taken" = "Tiempo empleado";
-"Party-ready" = "Listo para la fiesta";
-"Brows" = "Cejas";
-"Cheeks" = "Mejillas";
-"Setting" = "Fijación";
-"Needs blending" = "Hay que difuminar";
-"Sides uneven" = "Lados desiguales";
-"Wiped and redid" = "Retirado y rehecho";
-"History" = "Historial";
-"Rehearsal results" = "Resultados de práctica";
-"Export rehearsal CSV" = "Exportar práctica en CSV";
-"Mirror checks" = "Revisiones frente al espejo";
-"By area" = "Por zona";
-"Party-ready checks / all checks for that area." = "Revisiones listas para la fiesta / total de revisiones de la zona.";
 
-/* Glamo copy and makeup guides */
+/* App startup and video links */
 "Opening Glamo…" = "Abriendo Glamo…";
 "Couldn’t connect to Glamo" = "No se pudo conectar con Glamo";
 "Connecting to Glamo…" = "Conectando con Glamo…";
@@ -614,7 +507,6 @@
 "Search the web" = "Buscar en la web";
 "Couldn’t load videos" = "No se pudieron cargar los vídeos";
 "No videos available" = "No hay vídeos disponibles";
-"You can open a shared lesson link from the Looks tab." = "Puedes abrir un enlace compartido desde la pestaña Estilos.";
 "Load more videos" = "Cargar más vídeos";
 "Loading videos…" = "Cargando vídeos…";
 "Swipe up or down for another video" = "Desliza hacia arriba o abajo para ver otro video";
@@ -622,49 +514,29 @@
 "Couldn’t play this video" = "No se pudo reproducir el video";
 "Video quality adjusts to your connection on supported streams." = "La calidad del video se adapta a tu conexión cuando la transmisión lo permite.";
 "Open video editor" = "Abrir editor de video";
-"Download video" = "Descargar vídeo";
 "Open video tools" = "Abrir herramientas de video";
 "Couldn’t open the URL" = "No se pudo abrir la URL";
-"Back to Looks" = "Volver a Estilos";
-"Couldn’t load collections" = "No se pudieron cargar las colecciones";
-"Makeup guides" = "Guías de maquillaje";
 "How to open a video URL" = "Cómo abrir una URL de vídeo";
 "Clear URL" = "Borrar URL";
-"Clear history" = "Borrar historial";
-"No videos in this collection" = "Esta colección no tiene videos";
-"Go back to browse other collections." = "Vuelve atrás para ver otras colecciones.";
 "Copy the URL" = "Copia la URL";
 "Copy the video URL from the share menu or the address bar." = "Copia la URL del vídeo desde el menú Compartir o la barra de direcciones.";
 "Paste it here" = "Pégala aquí";
-"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "Pega la URL en la página Vídeos y toca Abrir. Escríbela tal como te la compartieron, respetando mayúsculas y minúsculas.";
+"Paste the URL on the Files page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "Pega la URL en Archivos y toca Abrir. Escríbela tal como te la compartieron, respetando mayúsculas y minúsculas.";
 "Once it opens, swipe up or down to browse videos." = "Cuando se abra, desliza hacia arriba o abajo para ver otros vídeos.";
 "There’s no playable video here." = "No hay un video que se pueda reproducir.";
 "Copy a video URL, then try pasting again." = "Copia la URL de un vídeo y vuelve a pegarla.";
 "Connect to Glamo, then try opening the URL again." = "Conéctate a Glamo y vuelve a abrir la URL.";
-"Remove this download?" = "¿Quitar esta descarga?";
-"This removes the offline copy. Any bookmark stays in Favorites." = "Se borra la copia sin conexión. Si guardaste el vídeo, seguirá en Favoritos.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "El archivo se borra de Glamo. El original en Fotos o Archivos se conserva.";
 "%@ item" = "%@ elemento";
 "%@ items" = "%@ elementos";
-"No favorites yet" = "Aún no hay favoritos";
-"Tap Save while watching to keep a video here." = "Toca Guardar mientras ves un vídeo para tenerlo aquí.";
-"No downloads yet" = "Aún no hay descargas";
-"Tap Download while watching to keep a video offline." = "Toca Descargar mientras ves un vídeo para verlo sin conexión.";
-"No exports yet" = "Aún no hay exportaciones";
-"No imported videos yet" = "Aún no hay videos importados";
 "Export a video or audio file from Tools to save it here." = "Exporta un video o audio desde Herramientas para guardarlo aquí.";
 "Open Tools to import a video from Photos or Files." = "Abre Herramientas para importar un video desde Fotos o Archivos.";
 "Stopping cancels this export. Your source video stays in the library." = "Si lo detienes, se cancela esta exportación. El video de origen sigue en la biblioteca.";
-"Ready to watch offline" = "Listo para ver sin conexión";
-"View downloads" = "Ver descargas";
-"Glamo downloads this video before exporting." = "Glamo descarga el video antes de exportarlo.";
-"Connect to Glamo to see your downloads left." = "Conéctate a Glamo para ver cuántas descargas te quedan.";
 "Edit a practice video" = "Editar un video de práctica";
 "Crop & rotate" = "Recortar y girar";
 "Trim the clip, adjust its speed or change the frame." = "Recorta la duración, ajusta la velocidad o cambia el encuadre.";
 "Save the audio as an M4A file." = "Guarda el audio en un archivo M4A.";
 "Crop to portrait, square or landscape." = "Recorta en formato vertical, cuadrado u horizontal.";
-"Slow down a tricky blending step." = "Mira los pasos de difuminado más despacio.";
 "Change video" = "Cambiar video";
 "Choose a video" = "Elige un video";
 "Browse files" = "Buscar en Archivos";
@@ -678,120 +550,101 @@
 "Export quality" = "Calidad de exportación";
 "Find your export in Library › Exports. Your original stays intact." = "Busca el archivo en Biblioteca › Exportaciones. El original se conserva.";
 "Couldn’t save the export to your library. %@" = "No se pudo guardar el archivo exportado en tu biblioteca. %@";
-"%@ guides · Read offline" = "%@ guías · Lectura sin conexión";
-"Back to makeup guides" = "Volver a las guías de maquillaje";
-"Base makeup for a night out" = "Maquillaje de base para salir";
-"Build coverage in thin layers and set where makeup moves." = "Aplica capas finas y fija donde suele moverse el maquillaje.";
-"Start with settled skin" = "Deja que se absorban los productos";
-"Apply makeup to clean, moisturised skin and give skincare a few minutes to settle. Base products tend to sit more evenly on skin that is no longer damp." = "Aplica el maquillaje sobre la piel limpia e hidratada. Espera unos minutos a que se absorban los productos de cuidado. La base suele quedar más uniforme cuando la piel ya no está húmeda.";
-"Build in thin layers" = "Aplica capas finas";
-"Start with a small amount where you want the most coverage, then blend outwards. A second thin layer usually looks more natural than one heavy layer." = "Aplica un poco en las zonas que necesitan más cobertura y difumina hacia fuera. Una segunda capa fina suele verse más natural que una sola capa gruesa.";
-"Set only where you need it" = "Fija donde haga falta";
-"Powder helps where makeup tends to move, such as around the nose or across the forehead. Press it in with a puff or brush instead of dragging it across the skin." = "El polvo ayuda a fijar el maquillaje donde suele moverse, por ejemplo en la nariz y la frente. Aplícalo a toques con una borla o brocha, sin arrastrarlo.";
-"Check your base by a window or in daylight before you add colour." = "Revisa la base junto a una ventana o con luz natural antes de añadir color.";
-"Eye makeup for dim light" = "Maquillaje de ojos para luz tenue";
-"Use shimmer on the lid and matte shadow in the crease." = "Aplica brillo en el párpado y sombra mate en el pliegue.";
-"Place shimmer with intent" = "Aplica brillo en puntos concretos";
-"Party lighting is often dim and warm. Shimmer or metallic shades on the centre of the lid or the inner corner catch the light, while deeper matte shades in the crease add shape." = "La luz de una fiesta suele ser tenue y cálida. Un tono brillante o metálico en el centro del párpado o en el lagrimal capta la luz. Un mate más oscuro en el pliegue da profundidad.";
-"Soften every edge" = "Difumina los bordes";
-"Where two shades meet, blend with a clean brush in small circles or short back-and-forth strokes. Soft edges look better in close-up photos." = "Donde se juntan dos tonos, difumina con una brocha limpia, en círculos pequeños o con pasadas cortas. Los bordes suaves se ven mejor en las fotos de cerca.";
-"Finish with liner and lashes" = "Termina con delineador y pestañas";
-"Apply liner and mascara after eyeshadow so you can clean up any fallout first. If you wear strip lashes, trim the band to fit your eye before applying." = "Aplica delineador y máscara después de la sombra, así puedes retirar antes el polvo que haya caído. Si usas pestañas postizas de tira, recórtalas al ancho de tu ojo antes de colocarlas.";
-"Check your eyeshadow from arm’s length." = "Revisa la sombra a la distancia de un brazo.";
-"Lipstick that wears longer" = "Labial que dura más";
-"Apply thin layers and keep your shade handy for a touch-up." = "Aplica capas finas y ten a mano tu tono para retocarlo.";
-"Line, then fill" = "Delinea y rellena";
-"A liner close to your lip colour defines the shape and can slow colour from moving. Lightly fill the lips with liner before adding lipstick." = "Un delineador parecido al color de tus labios define la forma y ayuda a que el color no se corra. Rellena suavemente con el delineador antes del labial.";
-"Layer and blot" = "Aplica capas y retira el exceso";
-"Apply a thin layer, blot with a tissue, then apply again. Two thin layers usually wear longer than one thick coat." = "Aplica una capa fina, presiona con un pañuelo y vuelve a aplicar. Dos capas finas suelen durar más que una gruesa.";
-"Pack for one touch-up" = "Lleva tu labial para retocarlo";
-"Food and drinks wear colour away. Carry the lip product you’re wearing and check a mirror after you eat." = "La comida y las bebidas desgastan el color. Lleva el labial que usaste y mírate al espejo después de comer.";
-"Use the same shade when you touch up after eating." = "Retoca con el mismo tono después de comer.";
-"Glow" = "Iluminación";
-"Highlighter for flash photos" = "Iluminador para fotos con flash";
-"Add light to cheekbones and check how it looks on camera." = "Ilumina los pómulos y revisa cómo se ven en cámara.";
-"Find the high points" = "Identifica los puntos altos";
-"Highlighter usually goes where light naturally falls: the tops of the cheekbones, the bridge of the nose and the centre of the brow bone." = "El iluminador suele ir donde incide la luz de forma natural, como la parte alta de los pómulos, el puente de la nariz y el centro del hueso de la ceja.";
-"Start with less" = "Empieza con poco";
-"Apply a little, step back, then add more if you want it. Removing extra shine without disturbing your base is harder than adding it." = "Aplica un poco, aléjate del espejo y añade más si hace falta. Quitar el exceso sin mover la base es más difícil que añadirlo.";
-"Test with your camera" = "Prueba con la cámara";
-"Phone flash and party lights can make shimmer and some powders look different from your mirror. Take one flash photo before you leave." = "El flash y las luces de fiesta pueden hacer que el brillo o algunos polvos se vean distintos que en el espejo. Toma una foto con flash antes de salir.";
-"Take a flash photo before you leave." = "Toma una foto con flash antes de salir.";
-"Care" = "Cuidado";
-"Makeup hygiene" = "Higiene del maquillaje";
-"Keep eye makeup and applicators clean." = "Mantén limpios el maquillaje de ojos y sus aplicadores.";
-"Keep eye products to yourself" = "Usa solo tus propios productos de ojos";
-"Don’t share eye makeup. If you try a store tester, use a fresh single-use applicator such as a clean cotton swab." = "No compartas el maquillaje de ojos. Para probar un producto en una tienda, usa un aplicador desechable nuevo, como un hisopo limpio.";
-"Replace and store with care" = "Renueva y guarda tus productos con cuidado";
-"Replace mascara every few months. Throw away dried mascara. Keep water and saliva out of the tube and store makeup away from heat." = "Cambia la máscara de pestañas cada pocos meses. Desecha la que se haya secado. Evita que entre agua o saliva en el tubo y guarda el maquillaje lejos del calor.";
-"Apply safely" = "Maquíllate con cuidado";
-"Wash your hands and clean your tools before working near your eyes, and don’t apply or remove eye makeup in a moving vehicle. Stop using a product that irritates, and contact a healthcare provider if you have a bad reaction." = "Lávate las manos y limpia los utensilios antes de maquillar la zona de los ojos. Evita maquillarte o desmaquillarte los ojos en un vehículo en movimiento. Deja de usar el producto si causa irritación y consulta a un profesional de salud si tienes una reacción adversa.";
-"Follow the directions on each product label." = "Sigue las instrucciones de la etiqueta de cada producto.";
-"FDA · Eye cosmetic safety" = "FDA · Uso seguro de cosméticos para los ojos";
-"Before you head out" = "Antes de salir";
-"Official source · Opens online" = "Fuente oficial · Se abre en línea";
-"Time a look and track what needs a touch-up." = "Cronometra tu maquillaje y anota qué necesita retoques.";
-"Pick an area and record what you see in the mirror." = "Elige una zona y anota lo que ves en el espejo.";
-"Touch-up note (optional)" = "Nota de retoque (opcional)";
-"Mirror check" = "Revisión en el espejo";
-"Undo last check" = "Deshacer última revisión";
-"Finish rehearsal" = "Terminar práctica";
-"Start the timer and record each mirror check as you go. The recap shows your results and total time." = "Inicia el cronómetro y anota lo que ves en el espejo. El resumen muestra tus resultados y el tiempo total.";
-"Look name (optional)" = "Nombre del look (opcional)";
-"Start rehearsal" = "Iniciar práctica";
-"Glamo stores the checks you enter on this device. It does not analyze your face or video." = "Glamo guarda en este dispositivo las revisiones que anotas. No analiza tu rostro ni tus videos.";
-"No rehearsals yet" = "Aún no hay prácticas";
-"Finish a rehearsal to see it here." = "Termina una práctica para verla aquí.";
-"Go to practice" = "Ir a práctica";
-"Resume rehearsal" = "Continuar práctica";
-"Delete rehearsal" = "Borrar práctica";
-"Delete rehearsal?" = "¿Borrar la práctica?";
-"This deletes the rehearsal, checks and notes from this device." = "Se borrarán de este dispositivo la práctica, las revisiones y las notas.";
-"Ready checks out of all checks for each area." = "Revisiones listas de todas las revisiones de cada zona.";
-"Rehearsal records could not be opened. Existing records are preserved." = "No se pudo abrir el historial. Tus prácticas siguen guardadas.";
-"The rehearsal export could not be created. Please try again." = "No se pudo exportar la práctica. Inténtalo de nuevo.";
-"Watch lessons without daily limits. Save and export your practice." = "Mira lecciones sin límite diario. Guarda y exporta tus videos de práctica.";
-"Share a recap with your time, mirror checks and notes." = "Comparte un resumen con el tiempo, las revisiones y las notas.";
 "Unlimited video views" = "Vídeos sin límite";
-"Unlimited downloads" = "Descargas ilimitadas";
-"Skip launch ads" = "Sin anuncios al abrir Glamo";
-"Unlimited lesson views and downloads. Export your practice clips." = "Mira y descarga lecciones sin límite. Exporta tus videos de práctica.";
 "View plans" = "Ver planes";
 "Plus is active" = "Plus está activo";
 "Access through %@" = "Acceso hasta el %@";
-"Daily limits" = "Límites diarios";
 "View options" = "Ver opciones";
-"Account ID" = "ID de cuenta";
 "Bonus added" = "Bonificación añadida";
 "Done" = "Listo";
 "Earn more with ads" = "Consigue más con anuncios";
 "Watch ad for views" = "Ver anuncio para seguir viendo";
-"Watch ad for downloads" = "Ver anuncio para descargar más";
-"Ad rewards are available once you run out of views or downloads." = "Puedes ver anuncios cuando se agoten tus visualizaciones o descargas.";
+"Ad rewards are available once you run out of views." = "Puedes ver un anuncio cuando se agoten tus visualizaciones.";
 "Loading prices…" = "Cargando precios…";
 "Preparing subscription…" = "Preparando suscripción…";
 "Waiting for Apple…" = "Esperando a Apple…";
 "Playback unavailable" = "Reproducción no disponible";
-"View options for more views and downloads" = "Ver opciones para ver y descargar más";
-"Party makeup" = "Maquillaje de fiesta";
 
 /* Video workspace */
 "Videos" = "Vídeos";
 "Video files" = "Archivos de vídeo";
 "Files" = "Archivos";
-"Import a video" = "Importar un vídeo";
 "Import from Files" = "Importar desde Archivos";
-"Trim, crop, change speed or extract audio." = "Recorta, encuadra, cambia la velocidad o extrae el audio.";
-"Recent files" = "Archivos recientes";
-"All files" = "Todos los archivos";
 "Video tools" = "Herramientas de vídeo";
 "Video editor" = "Editor de vídeo";
 "Slow down or speed up a video." = "Reduce o aumenta la velocidad del vídeo.";
-"Export a video or audio file from the editor to find it here." = "Los vídeos y audios que exportes desde el editor aparecerán aquí.";
-"Your imported videos will appear here." = "Los vídeos que importes aparecerán aquí.";
-"Back to videos" = "Volver a Vídeos";
 "Share file" = "Compartir archivo";
-"Paste a shared video URL on the Videos page." = "Pega la URL de un vídeo compartido en la página Vídeos.";
+"Paste a shared video URL on the Files page." = "Pega la URL de un vídeo compartido en Archivos.";
 "MP4 and M4A export" = "Exportación en MP4 y M4A";
-"Export video up to 1080p or save the audio as M4A." = "Exporta vídeos hasta 1080p o guarda el audio en M4A.";
 "Processed on your device. Finished files appear in Files under Exports." = "El procesamiento se hace en tu dispositivo. Encuentra los archivos en Archivos, en Exportaciones.";
+
+/* Device video library */
+"Recent" = "Recientes";
+"Activity" = "Actividad";
+"Settings" = "Ajustes";
+"Grid view" = "Vista de cuadrícula";
+"List view" = "Vista de lista";
+"Add" = "Añadir";
+"View import results" = "Ver resultados de importación";
+"Search" = "Buscar";
+"Search files and folders" = "Buscar archivos y carpetas";
+"Search results" = "Resultados de búsqueda";
+"New folder" = "Nueva carpeta";
+"Parent folder" = "Carpeta superior";
+"Import videos" = "Importar vídeos";
+"Clear search" = "Borrar búsqueda";
+"Name A–Z" = "Nombre A–Z";
+"Newest first" = "Más recientes primero";
+"Change file sort order" = "Cambiar el orden de los archivos";
+"Folders" = "Carpetas";
+"Folder options" = "Opciones de carpeta";
+"No videos here yet" = "Aún no hay vídeos aquí";
+"No matching files" = "No hay archivos que coincidan";
+"Import videos from Files or Photos." = "Importa vídeos desde Archivos o Fotos.";
+"Show all videos" = "Ver todos los vídeos";
+"Show fewer videos" = "Ver menos vídeos";
+"Try a different name or file extension." = "Prueba con otro nombre o extensión de archivo.";
+"File options" = "Opciones de archivo";
+"Continue playing" = "Seguir reproduciendo";
+"Last played" = "Última reproducción";
+"Playback history" = "Historial de reproducción";
+"No playback history" = "Sin historial de reproducción";
+"Play a file to find it here later." = "Reproduce un archivo para encontrarlo aquí más tarde.";
+"No files in this view" = "No hay archivos en esta vista";
+"Imports and exports appear here." = "Los archivos importados y exportados aparecen aquí.";
+"Import results" = "Resultados de importación";
+"%@ of %@ files imported" = "%@ de %@ archivos importados";
+"%@ failed" = "%@ con error";
+"Latest export" = "Última exportación";
+"Rename" = "Cambiar nombre";
+"Move to folder" = "Mover a una carpeta";
+"Edit video" = "Editar vídeo";
+"Name" = "Nombre";
+"Only empty folders can be deleted." = "Solo puedes eliminar carpetas vacías.";
+"Minimize player" = "Minimizar el reproductor";
+"On this device" = "En este dispositivo";
+"Play queue" = "Cola de reproducción";
+"Expanded" = "Expandida";
+"Collapsed" = "Contraída";
+"Previous file" = "Archivo anterior";
+"Next file" = "Archivo siguiente";
+"Back 10 seconds" = "Retroceder 10 segundos";
+"Forward 10 seconds" = "Avanzar 10 segundos";
+"Open player" = "Abrir reproductor";
+"Close player" = "Cerrar reproductor";
+"Move the files and folders out before deleting this folder." = "Mueve los archivos y las carpetas antes de eliminar esta carpeta.";
+"Choose a folder outside this folder." = "Elige una carpeta que esté fuera de esta.";
+"Enter a name of up to 120 characters, without slashes or colons." = "Escribe un nombre de hasta 120 caracteres, sin barras ni dos puntos.";
+"A folder with that name already exists here." = "Ya existe una carpeta con ese nombre aquí.";
+"Full screen" = "Pantalla completa";
+"Exit full screen" = "Salir de pantalla completa";
+"Play" = "Reproducir";
+"Pause" = "Pausar";
+"Find finished files under Activity › Exports." = "Encuentra los archivos terminados en Actividad › Exportaciones.";
+
+/* File library membership */
+"Export and share from your video library." = "Exporta y comparte desde tu biblioteca de vídeos.";
+"Save a separate MP4 copy of your edits." = "Guarda una copia de tu vídeo editado en MP4.";
+"Keep just the soundtrack as an M4A file." = "Guarda solo la pista de audio en un archivo M4A.";
+"Share files" = "Compartir archivos";
+"Send an original file or an export to another app." = "Envía un archivo original o una exportación a otra app.";

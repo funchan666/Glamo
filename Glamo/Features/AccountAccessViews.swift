@@ -288,7 +288,9 @@ struct PolicyWebView: UIViewRepresentable {
 }
 
 struct AccountSettingsSection: View {
+    let localItemCount: Int
     @Environment(\.openURL) private var openURL
+    @Environment(\.locale) private var locale
     @State private var websiteError: String?
     @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
     @State private var languagePicker = false
@@ -298,47 +300,56 @@ struct AccountSettingsSection: View {
     @EnvironmentObject private var accountAccess: AccountAccessFlow
     @State private var document: PolicyDocument?
     private var unavailable: Bool { accountAccess.isBusy || commerce.busy || commerce.preparingPurchase || ads.busy || ads.isPreparingAppOpen || ads.isPresenting }
+    private var hasPolicyLinks: Bool {
+        api.configuration.privacyURL != nil || api.configuration.termsURL != nil || api.configuration.websiteURL != nil
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Button { languagePicker = true } label: {
-                AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system")
-            }.buttonStyle(PressStyle())
-                .glamoCard()
-                .accessibilityIdentifier("account.language")
-            VStack(alignment: .leading, spacing: 12) {
-                LocalizedText("Privacy & terms").font(.glam(.headline))
-                VStack(spacing: 0) {
-                    if let url = api.configuration.privacyURL {
-                        Button { document = PolicyDocument(title: "Privacy Policy", url: url) } label: {
-                            AccountMenuRow(title: "Privacy Policy")
-                        }
-                    }
-                    if let url = api.configuration.termsURL {
-                        if api.configuration.privacyURL != nil { rowDivider }
-                        Button { document = PolicyDocument(title: "Terms of Use", url: url) } label: {
-                            AccountMenuRow(title: "Terms of Use")
-                        }
-                    }
-                    if let website = api.configuration.websiteURL {
-                        if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
-                        Button {
-                            websiteError = nil
-                            openURL(website) { accepted in
-                                if !accepted { websiteError = "Couldn’t open the Glamo website. Try again." }
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(spacing: 0) {
+                localLibrary
+                rowDivider
+                Button { languagePicker = true } label: {
+                    AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system")
+                }.buttonStyle(PressStyle())
+                    .accessibilityIdentifier("account.language")
+            }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
+            if hasPolicyLinks || ads.privacyOptionsRequired {
+                VStack(alignment: .leading, spacing: 8) {
+                    LocalizedText("Privacy & terms").font(.glam(.headline))
+                        .accessibilityAddTraits(.isHeader)
+                    VStack(spacing: 0) {
+                        if let url = api.configuration.privacyURL {
+                            Button { document = PolicyDocument(title: "Privacy Policy", url: url) } label: {
+                                AccountMenuRow(title: "Privacy Policy")
                             }
-                        } label: {
-                            AccountMenuRow(title: "Official website")
-                        }.accessibilityIdentifier("account.officialWebsite")
-                    }
-                    if ads.privacyOptionsRequired {
-                        rowDivider
-                        Button { Task { await ads.privacyOptions() } } label: {
-                            AccountMenuRow(title: "Ad privacy choices")
                         }
-                    }
-                }.glamoCard()
-                    .buttonStyle(PressStyle()).disabled(unavailable)
+                        if let url = api.configuration.termsURL {
+                            if api.configuration.privacyURL != nil { rowDivider }
+                            Button { document = PolicyDocument(title: "Terms of Use", url: url) } label: {
+                                AccountMenuRow(title: "Terms of Use")
+                            }
+                        }
+                        if let website = api.configuration.websiteURL {
+                            if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
+                            Button {
+                                websiteError = nil
+                                openURL(website) { accepted in
+                                    if !accepted { websiteError = "Couldn’t open the Glamo website. Try again." }
+                                }
+                            } label: {
+                                AccountMenuRow(title: "Official website")
+                            }.accessibilityIdentifier("account.officialWebsite")
+                        }
+                        if ads.privacyOptionsRequired {
+                            if hasPolicyLinks { rowDivider }
+                            Button { Task { await ads.privacyOptions() } } label: {
+                                AccountMenuRow(title: "Ad privacy choices")
+                            }
+                        }
+                    }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
+                        .buttonStyle(PressStyle()).disabled(unavailable)
+                }
             }
             if let websiteError { ErrorNote(message: websiteError) }
             if let error = ads.error { ErrorNote(message: error) }
@@ -347,10 +358,25 @@ struct AccountSettingsSection: View {
             .sheet(isPresented: $languagePicker) { LanguagePicker() }
     }
 
-    private var rowDivider: some View {
-        Divider().overlay(GlamoStyle.line).padding(.horizontal, 20)
+    private var localLibrary: some View {
+        HStack(spacing: 10) {
+            Glyph(symbol: .driveFolder, size: 22, tint: GlamoStyle.accent)
+            VStack(alignment: .leading, spacing: 3) {
+                LocalizedText("On this device").font(.glam(.subheadline, weight: .semibold))
+                LocalizedText(localItemCount == 1 ? "%@ item" : "%@ items",
+                              localItemCount.formatted(.number.locale(locale)))
+                    .font(.glam(.caption)).monospacedDigit()
+                    .foregroundStyle(GlamoStyle.secondary)
+            }.fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
+    private var rowDivider: some View {
+        Divider().overlay(GlamoStyle.line).padding(.horizontal, 16)
+    }
 }
 
 // Plain native rows with the original raster navigation glyph.
@@ -358,6 +384,7 @@ private struct AccountMenuRow: View {
     let title: String
     var detail: String? = nil
     var destructive = false
+    @Environment(\.layoutDirection) private var layoutDirection
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -369,9 +396,10 @@ private struct AccountMenuRow: View {
             }.fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
-                .rotationEffect(.degrees(180)).frame(width: 20, height: 24)
+                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
+                .frame(width: 20, height: 24)
                 .allowsHitTesting(false)
-        }.padding(.horizontal, 18).padding(.vertical, 12)
+        }.padding(.horizontal, 16).padding(.vertical, 11)
             .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
             .contentShape(.interaction, Rectangle())
     }

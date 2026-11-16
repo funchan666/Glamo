@@ -1,22 +1,19 @@
 # Glamo
 
-Glamo is a native SwiftUI iPhone app for local video files. Import from Files or Photos, preview, trim, crop, change speed and manage the results under Files. Glamo Plus includes MP4 video and M4A audio export. A video URL field at the top of Videos opens a shared video in the full-screen player. The Discover screen contains the online video catalog, saved videos, downloads and makeup practice. Screens do not show page titles.
+Glamo is a local video library for iPhone. Import videos from Files or Photos, organize them in folders, and browse by name or date in grid or list view. Files supports selecting multiple videos.
 
-Open `Glamo.xcodeproj` and select the shared `Glamo` scheme. The minimum deployment target is iOS 17. The Duo layout paths use the iOS 27.1 SDK, which is available in Xcode 27.1.
+Open a file to play it. The player shares its queue and position with the in-app mini player. Recent shows watched files and resumes unfinished playback. Activity shows local import results and files produced by the editor.
 
-## Test configuration
+The Files tab also has the original video URL field. Shared URLs and short codes open the existing online player through the guest session and viewing allowance. The former discovery catalog, makeup tools, and online downloads have been removed.
 
-- API host `devapi.io-jp.com` and `getV2.name` `Glamo`.
-- Bundle ID `im.seex.lobo` in `Config/Glamo.xcconfig`. The guest login source and business package name derive from the same setting. These test apps share a Bundle ID, so install them one at a time.
-- Google iOS demo App ID, app-open and rewarded units. Membership requests `coins_1.99` monthly (USD 9.99) and `conis_4.99` yearly (USD 99.99) in Apple Sandbox. The app displays the prices returned by StoreKit.
-- Website, terms and privacy point to HTTPS placeholders.
+Open `Glamo.xcodeproj` and select the shared `Glamo` scheme. The minimum deployment target is iOS 17. The Duo layout paths use the iOS 27.1 SDK. The app supports portrait and landscape.
 
-For online playback integration, enter the Clipo test short code from the Toolkit in the video URL field at the top of Videos. The search result should open in the full-screen player. Use a new or authorized test account when verifying Apple purchases and restores.
+## Storage and purchases
 
-## Production transition
-
-After test acceptance, update the Bundle ID, API domain, AdMob configuration, official links and registered membership mapping for this app. The release configuration name stays `Glamo`. Check backend registration, receipt routing and signing against the effective build settings.
+- Imported videos are copied into the app's local library. Existing files are read from the same index. Folders, file names, and viewing positions live in that index.
+- Glamo Plus provides MP4 export up to 1080p, M4A audio export, and file sharing. Access is verified by the existing membership service. Open Plus on the Files tab or in Settings to see plans and restore purchases.
+- Purchase configuration remains on the test environment. Product metadata and local prices are supplied by StoreKit.
 
 ## Verification
 
-Source, project settings and asset references were reviewed. Builds, local import and playback, live backend calls, ad impressions, Apple transactions and iPhone Duo device behavior remain to be verified.
+Source, project settings, asset references and localization tables were reviewed. Builds, import and playback on iPhone, rotation and folding behavior, and Apple Sandbox transactions remain to be verified.
