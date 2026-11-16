@@ -287,10 +287,18 @@ struct MessagePanel: View {
 struct GlamoEmptyState<Actions: View>: View {
     let title: String
     let message: String
+    /// Optional original illustration shown above the title. Hidden at accessibility sizes.
+    var art: String? = nil
     @ViewBuilder let actions: () -> Actions
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(spacing: 18) {
+            if let art, !typeSize.isAccessibilitySize, UIImage(named: art) != nil {
+                Image(art).resizable().scaledToFit()
+                    .frame(maxWidth: 168, maxHeight: 132)
+                    .accessibilityHidden(true)
+            }
             VStack(spacing: 7) {
                 LocalizedText(title).font(.glam(.title2, weight: .semibold))
                     .accessibilityAddTraits(.isHeader)

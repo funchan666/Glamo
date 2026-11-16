@@ -144,7 +144,7 @@ struct GlamoRootView: View {
                          showFiles: { libraryFilter = "All"; tab = .library }, showLessons: {
                              lessonsDownloadRequest = nil
                              showingLessons = true
-                         })
+                         }, link: $linkDraft)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.home) }.tag(GlamoTab.home)
                 ToolsView()
@@ -173,7 +173,7 @@ struct GlamoRootView: View {
         .sheet(item: $editing) { EditorSheet(initialMovie: $0) }
         .sheet(item: $previewing) { LocalMediaPreview(movie: $0) }
         .sheet(isPresented: $showingLessons) {
-            LessonsView(downloadsRequest: lessonsDownloadRequest, link: $linkDraft)
+            LessonsView(downloadsRequest: lessonsDownloadRequest)
         }
         .overlay(alignment: .top) {
             if !showingLessons { DownloadCompletionNotice().padding(.top, 8) }

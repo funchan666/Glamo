@@ -47,8 +47,6 @@ struct ToolsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                LocalizedText("Video tools").font(.glam(.largeTitle, weight: .semibold))
-                    .accessibilityAddTraits(.isHeader)
                 VStack(spacing: 0) {
                     ForEach(tools) { tool in
                         if tool != tools.first { Divider().overlay(GlamoStyle.line) }
@@ -155,9 +153,6 @@ struct EditorSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                LocalizedText(initialTool == .studio ? "Video editor" : initialTool.title)
-                    .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
                 Spacer()
                 IconButton(symbol: .close, label: "Close", glass: true) {
                     departure.request { dismiss() }

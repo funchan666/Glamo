@@ -23,8 +23,6 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                LocalizedText("Files").font(.glam(.largeTitle, weight: .semibold))
-                    .accessibilityAddTraits(.isHeader)
                 ChipFilter(values: categories, selected: filter) { filter = $0 }
                     .disabled(library.importingVideo || sharingMovieID != nil)
                 if !isExports {
@@ -36,7 +34,8 @@ struct LibraryView: View {
                 if entries.isEmpty {
                     GlamoEmptyState(title: isExports ? "No exports yet" : "No imported videos yet",
                                     message: isExports ? "Export a video or audio file from the editor to find it here."
-                                                       : "Your imported videos will appear here.") {
+                                                       : "Your imported videos will appear here.",
+                                    art: "ArtEmptyFilm") {
                         if isExports {
                             ActionButton(title: "Back to videos", primary: false, action: openHome)
                         }
@@ -118,6 +117,7 @@ struct SavedLessonsSection: View {
     @State private var removingDownload: OfflineVideo?
     let watchLessons: () -> Void
     let downloadsRequest: UUID?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -125,7 +125,7 @@ struct SavedLessonsSection: View {
             if filter == "Downloads" {
                 downloads
             } else if library.favorites.isEmpty {
-                emptyMessage("No favorites yet", detail: "Tap the bookmark while watching a lesson to save it here.")
+                emptyMessage("No favorites yet", detail: "Tap Save while watching to keep a video here.", art: "ArtEmptyLookbook")
             } else {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(library.favorites) { lesson in
@@ -180,18 +180,26 @@ struct SavedLessonsSection: View {
                     ForEach(offline.videos) { downloadRow($0) }
                 }
             } else if !offline.busy, offline.error == nil {
-                emptyMessage("No downloads yet", detail: "Tap Download on a lesson to watch it offline.")
+                emptyMessage("No downloads yet", detail: "Tap Download while watching to keep a video offline.", art: "ArtEmptyPouch")
             }
             DownloadAllowanceSummary()
         }
     }
 
-    private func emptyMessage(_ title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            LocalizedText(title).font(.glam(.headline))
-            LocalizedText(detail).font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-            Button(action: watchLessons) { LocalizedText("Watch lessons") }
-                .buttonStyle(CompactActionStyle())
+    private func emptyMessage(_ title: String, detail: String, art: String) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 7) {
+                LocalizedText(title).font(.glam(.headline))
+                LocalizedText(detail).font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: watchLessons) { LocalizedText("Browse videos") }
+                    .buttonStyle(CompactActionStyle())
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if !typeSize.isAccessibilitySize, UIImage(named: art) != nil {
+                Image(art).resizable().scaledToFit()
+                    .frame(width: 88, height: 88)
+                    .accessibilityHidden(true)
+            }
         }.padding(.vertical, 4)
     }
 
@@ -308,7 +316,7 @@ struct OfflineDownloadButton: View {
                 LocalizedText("Downloading · \(Int(offline.progress * 100))%").font(.glam(.caption))
                 ActionButton(title: "Cancel download", primary: false) { Task { await offline.cancel() } }
             } else {
-                ActionButton(title: "Download lesson", primary: false) {
+                ActionButton(title: "Download video", primary: false) {
                     if quota.mayDownload(clip.id, premium: commerce.premium) {
                         Task { await offline.download(clip) }
                     } else { downloadGate = true }
@@ -359,7 +367,7 @@ private struct OfflineExportSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                SheetHeading(title: "Export video", inset: false) { departure.request { dismiss() } }
+                SheetHeading(inset: false) { departure.request { dismiss() } }
                 Text(verbatim: clip.title).font(.glam(.subheadline)).lineLimit(2)
                 OfflineExportButton(clip: clip)
             }.glamoPage()

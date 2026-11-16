@@ -138,7 +138,7 @@ struct MembershipView: View {
                 benefit("MP4 export up to 1080p", symbol: .edit)
                 benefit("M4A audio export", symbol: .sound)
                 benefit("Skip launch ads", symbol: .home)
-                benefit("Unlimited lesson views", symbol: .play)
+                benefit("Unlimited video views", symbol: .play)
                 benefit("Unlimited downloads", symbol: .download)
                 benefit("Share rehearsal recaps", symbol: .library)
             }
@@ -405,8 +405,6 @@ struct AccountView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                LocalizedText("Me").font(.glam(.largeTitle, weight: .semibold))
-                    .accessibilityAddTraits(.isHeader)
                 PlusEntry(isMember: commerce.premium) { paywall = true }
                     .disabled(unavailable)
                     .accessibilityIdentifier("account.membership")

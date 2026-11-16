@@ -51,7 +51,7 @@ struct LookRehearsalView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeading(title: "Look rehearsal") { dismiss() }
+            SheetHeading { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     ChipFilter(values: ["Practice", "History"], selected: showingHistory ? "History" : "Practice") {
@@ -127,7 +127,7 @@ struct LookRehearsalView: View {
         if journal.completed.isEmpty {
             if journal.available {
                 GlamoEmptyState(title: "No rehearsals yet",
-                                message: "Finish a rehearsal to see it here.") {
+                                message: "Finish a rehearsal to see it here.", art: "ArtEmptyRehearsal") {
                     ActionButton(title: journal.active == nil ? "Go to practice" : "Resume rehearsal") {
                         showingHistory = false
                     }
@@ -157,7 +157,7 @@ struct LookRehearsalView: View {
 
     private func details(_ session: LookRehearsal) -> some View {
         VStack(spacing: 0) {
-            SheetHeading(title: "Rehearsal results") { selected = nil }
+            SheetHeading { selected = nil }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     lookTitle(session)

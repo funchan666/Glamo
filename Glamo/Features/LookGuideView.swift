@@ -126,7 +126,7 @@ struct LookGuideView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                SheetHeading(title: "Makeup guides") { dismiss() }
+                SheetHeading { dismiss() }
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ChipFilter(values: categories, selected: category) { category = $0 }

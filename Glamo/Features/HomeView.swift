@@ -4,17 +4,21 @@ struct HomeView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
     @State private var paywall = false
+    @FocusState private var linkFocused: Bool
     let edit: (PracticeRecording) -> Void
     let preview: (PracticeRecording) -> Void
     let showFiles: () -> Void
     let showLessons: () -> Void
+    @Binding var link: String
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                LocalizedText("Video files").font(.glam(.largeTitle, weight: .semibold))
-                    .accessibilityAddTraits(.isHeader)
+                // Opening a shared video URL is a first-class, visible feature
+                // on the first screen, next to local import.
+                VideoLinkComposer(link: $link, focused: $linkFocused)
+                    .disabled(library.importingVideo)
                 importPanel
                 if !library.movies.isEmpty { recentFiles }
                 PlusEntry(isMember: commerce.premium) { paywall = true }
@@ -23,13 +27,15 @@ struct HomeView: View {
                 Button(action: showLessons) {
                     HStack(spacing: 10) {
                         Glyph(symbol: .library, size: 19, tint: GlamoStyle.secondary)
-                        LocalizedText("Lessons").font(.glam(.subheadline, weight: .semibold))
+                        LocalizedText("Discover").font(.glam(.subheadline, weight: .semibold))
                         Spacer(minLength: 8)
                         Glyph(symbol: .back, size: 11, tint: GlamoStyle.secondary).rotationEffect(.degrees(180))
                     }.frame(minHeight: 44).contentShape(Rectangle())
                 }.buttonStyle(PressStyle()).disabled(library.importingVideo)
             }.glamoPage()
-        }.glamoScreenBackground()
+        }.scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnOutsideTap($linkFocused, scope: "home-link-input")
+            .glamoScreenBackground()
             .sheet(isPresented: $paywall) { MembershipView() }
     }
 
@@ -89,10 +95,8 @@ struct LessonsView: View {
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
-    @EnvironmentObject private var quota: QuotaStore
     @Environment(\.dismiss) private var dismiss
     let downloadsRequest: UUID?
-    @Binding var link: String
     @State private var error: String?
     @State private var linkFailure = ""
     @State private var showingLinkFailure = false
@@ -100,25 +104,21 @@ struct LessonsView: View {
     @State private var searchRequest: LessonSearch?
     @State private var channels: [LandingInfo] = []
     @State private var channelRetry = 0
-    @State private var showingLinkGuide = false
     @State private var showingLookGuide = false
     @State private var showingRehearsal = false
     @State private var showingDiscover = false
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var showingLink = false
-    @State private var pendingLinkSearch: LessonSearch?
-    @State private var composerError: String?
-    @FocusState private var focused: Bool
     var body: some View {
         let request = ChannelRequest(links: commerce.release?.lcList?["us"] ?? [], attempt: channelRetry)
         VStack(spacing: 0) {
-            SheetHeading(title: "Lessons") { dismiss() }
+            SheetHeading { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 8) { lessonActions }.fixedSize(horizontal: true, vertical: false)
-                        VStack(alignment: .leading, spacing: 8) { lessonActions }
-                    }
+                    Button { showingDiscover = true } label: {
+                        HStack(spacing: 8) {
+                            Glyph(symbol: .play, size: 13, tint: GlamoStyle.onAccent)
+                            LocalizedText("Browse videos")
+                        }
+                    }.buttonStyle(GlamoActionStyle(fillsWidth: false))
                     SavedLessonsSection(watchLessons: { showingDiscover = true }, downloadsRequest: downloadsRequest)
                     if let message = library.error {
                         HStack(spacing: 8) {
@@ -128,7 +128,7 @@ struct LessonsView: View {
                     }
                     if api.session == nil { ConnectionPanel() }
                     if let error {
-                        MessagePanel(title: "Couldn’t load lesson collections", message: error, actionTitle: "Try again") {
+                        MessagePanel(title: "Couldn’t load collections", message: error, actionTitle: "Try again") {
                             channelRetry += 1
                         }
                     }
@@ -141,24 +141,7 @@ struct LessonsView: View {
                     }
                 }.glamoPage()
             }
-        }.glamoScreenBackground().scrollDismissesKeyboard(.interactively)
-            .sheet(isPresented: $showingLink, onDismiss: openPendingLesson) {
-                VStack(spacing: 0) {
-                    SheetHeading {
-                        focused = false
-                        showingLink = false
-                    }
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            linkComposer
-                            if let composerError { ErrorNote(message: composerError) }
-                            if api.session == nil { ConnectionPanel() }
-                        }.glamoPage()
-                    }.scrollDismissesKeyboard(.interactively)
-                }.glamoScreenBackground()
-                    .dismissKeyboardOnOutsideTap($focused, scope: "home-link-input")
-                    .sheet(isPresented: $showingLinkGuide) { LinkGuideSheet() }
-            }
+        }.glamoScreenBackground()
             .sheet(item: $channel) { ChannelView(route: $0) }
             .fullScreenCover(isPresented: $showingDiscover) { DiscoverView(canDismiss: true) }
             .fullScreenCover(item: $searchRequest) { request in
@@ -167,7 +150,7 @@ struct LessonsView: View {
                 }
             }
             .fullScreenCover(isPresented: $showingLinkFailure) {
-                AccountDecisionDialog(title: "Couldn’t open the lesson", message: linkFailure,
+                AccountDecisionDialog(title: "Couldn’t open the URL", message: linkFailure,
                                       confirmTitle: "Back", confirm: { showingLinkFailure = false })
                     .presentationBackground(.clear)
             }
@@ -188,23 +171,6 @@ struct LessonsView: View {
                     if !Task.isCancelled { self.error = error.localizedDescription }
                 }
             }
-    }
-
-    @ViewBuilder private var lessonActions: some View {
-        Button { showingDiscover = true } label: {
-            HStack(spacing: 8) {
-                Glyph(symbol: .play, size: 13, tint: GlamoStyle.onAccent)
-                LocalizedText("Watch lessons")
-            }
-        }.buttonStyle(GlamoActionStyle(fillsWidth: false))
-        Button { showingLink = true } label: {
-            HStack(spacing: 8) {
-                Glyph(symbol: .link, size: 14, tint: GlamoStyle.accent)
-                LocalizedText("Open a lesson")
-            }
-        }.buttonStyle(GlamoActionStyle(primary: false, fillsWidth: false))
-            .accessibilityHint(Text(LocalizedStringKey("Lesson link or short code")))
-            .accessibilityIdentifier("home.showLink")
     }
 
     @ViewBuilder private var lookCollections: some View {
@@ -241,118 +207,18 @@ struct LessonsView: View {
         }
     }
 
-    private func openPendingLesson() {
-        composerError = nil
-        guard let request = pendingLinkSearch else { return }
-        pendingLinkSearch = nil
-        searchRequest = request
-    }
-
-    private var linkComposer: some View {
-        let headingLayout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(spacing: 10))
-        return VStack(alignment: .leading, spacing: 16) {
-            headingLayout {
-                LocalizedText("Open a lesson").font(.glam(.title3, editorial: true))
-                    .foregroundStyle(GlamoStyle.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                pasteButton
-            }
-            linkField
-            Button(action: resolve) {
-                LocalizedText("Open lesson")
-            }.buttonStyle(GlamoActionStyle()).disabled(!canOpenLink)
-                .accessibilityIdentifier("home.openLesson")
-            allowanceLabel
-            Button { showingLinkGuide = true } label: {
-                LocalizedText("Help with links and codes").font(.glam(.footnote, weight: .semibold))
-                    .underline().foregroundStyle(GlamoStyle.accent)
-                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-            }.buttonStyle(PressStyle()).accessibilityIdentifier("home.linkHelp")
-        }.padding(16).glamoCard(radius: 24, fill: GlamoStyle.paper)
-    }
-
-    private var linkField: some View {
-        HStack(spacing: 0) {
-            Glyph(symbol: .link, size: 18, tint: GlamoStyle.secondary)
-                .padding(.leading, 12)
-            TextField("Lesson link or short code", text: $link,
-                      prompt: Text("Lesson link or short code").foregroundColor(GlamoStyle.secondary), axis: .vertical)
-                .lineLimit(1...3).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-                .focused($focused).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.ink)
-                .tint(GlamoStyle.accent)
-                .padding(.leading, 10).padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel(LocalizedStringKey("Lesson link or short code"))
-                .accessibilityIdentifier("home.linkField")
-            if !link.isEmpty {
-                Button {
-                    link = ""
-                    composerError = nil
-                    focused = true
-                } label: {
-                    Glyph(symbol: .close, size: 14, tint: GlamoStyle.secondary)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }.buttonStyle(ComposerPressStyle())
-                    .accessibilityLabel(LocalizedStringKey("Clear link or code"))
-                    .accessibilityIdentifier("home.clearLink")
-            }
-        }
-            // Link input and its clear action stay together, including when
-            // the outside-tap handler decides whether to dismiss the keyboard.
-            .padding(.trailing, link.isEmpty ? 14 : 4)
-            .environment(\.layoutDirection, .leftToRight)
-            .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14).strokeBorder(focused ? GlamoStyle.accent : GlamoStyle.controlLine)
-                    .allowsHitTesting(false)
-            }
-            .keyboardInputRegion("home-link-input")
-    }
-
-    private var canOpenLink: Bool { searchRequest == nil && link.nilIfBlank != nil }
-    @ViewBuilder private var allowanceLabel: some View {
-        if api.session != nil {
-            LocalizedText(quota.usage == nil ? "Loading…" : commerce.premium || quota.unlimited ? "Unlimited viewing today" : "\(quota.watchesLeft) views left today")
-                .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-    private var pasteButton: some View {
-        Button(action: pasteCopiedLink) {
-            LocalizedText("Paste").font(.glam(.footnote, weight: .semibold))
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 18).padding(.vertical, 10)
-                .frame(minHeight: 44)
-                .foregroundStyle(GlamoStyle.ink)
-                .glamoGlass(in: Capsule(), tint: GlamoStyle.paperMuted, interactive: true)
-                .contentShape(Rectangle())
-        }.buttonStyle(ComposerPressStyle())
-            .accessibilityIdentifier("home.pasteLink")
-    }
-    private func pasteCopiedLink() {
-        guard let text = UIPasteboard.general.string, text.nilIfBlank != nil else {
-            showLinkFailure("Copy a lesson link or short code, then try pasting again.")
-            return
-        }
-        composerError = nil
-        link = text
-    }
     @ViewBuilder private var recentLinks: some View {
         if !library.history.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    LocalizedText("Recent lessons").font(.glam(.title3, editorial: true))
+                    LocalizedText("Recently opened").font(.glam(.title3, editorial: true))
                     Spacer()
                     Button("Clear history") { library.clearHistory() }
                         .buttonStyle(CompactActionStyle())
                 }
                 ForEach(library.history.prefix(5)) { visit in
                     HStack {
-                        Button { link = visit.link; resolve() } label: {
+                        Button { open(visit.link) } label: {
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(verbatim: visit.title).font(.glam(.headline)).lineLimit(1)
                                 Text(verbatim: visit.link).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary).lineLimit(1)
@@ -365,27 +231,163 @@ struct LessonsView: View {
             }
         }
     }
-    private func resolve() {
-        guard let text = link.nilIfBlank, searchRequest == nil else { return }
-        focused = false
-        guard api.session != nil else { showLinkFailure("Connect to Glamo, then try opening the lesson again."); return }
-        // Preserve exactly what was entered (trimmed at the ends only). Search owns
-        // loading, errors and cursor pagination.
-        let request = LessonSearch(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
-        if showingLink {
-            pendingLinkSearch = request
-            showingLink = false
-        } else {
-            searchRequest = request
-        }
-    }
-    private func showLinkFailure(_ message: String) {
-        if showingLink {
-            composerError = message
+    private func open(_ address: String) {
+        guard let text = address.nilIfBlank, searchRequest == nil else { return }
+        guard api.session != nil else {
+            linkFailure = "Connect to Glamo, then try opening the URL again."
+            showingLinkFailure = true
             return
         }
-        linkFailure = message
-        showingLinkFailure = true
+        // Preserve exactly what was entered (trimmed at the ends only). Search owns
+        // loading, errors and cursor pagination.
+        searchRequest = LessonSearch(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+}
+
+/// The video URL entry on the Videos page. Opens the full-screen results with
+/// exactly what was entered; history, quota and search stay in their stores.
+struct VideoLinkComposer: View {
+    @EnvironmentObject private var api: APIClient
+    @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var commerce: CommerceStore
+    @EnvironmentObject private var quota: QuotaStore
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Binding var link: String
+    let focused: FocusState<Bool>.Binding
+    @State private var searchRequest: LessonSearch?
+    @State private var composerError: String?
+    @State private var needsConnection = false
+    @State private var showingLinkGuide = false
+
+    var body: some View {
+        let headingLayout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 10))
+        VStack(alignment: .leading, spacing: 14) {
+            headingLayout {
+                LocalizedText("Open a video URL").font(.glam(.title3, weight: .semibold))
+                    .foregroundStyle(GlamoStyle.ink)
+                    .accessibilityAddTraits(.isHeader)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                pasteButton
+            }
+            linkField
+            Button(action: resolve) {
+                LocalizedText("Open")
+            }.buttonStyle(GlamoActionStyle()).disabled(!canOpenLink)
+                .accessibilityIdentifier("home.openLesson")
+            if let composerError { ErrorNote(message: composerError) }
+            if needsConnection, api.session == nil { ConnectionPanel() }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { allowanceLabel; Spacer(minLength: 8); helpButton }
+                VStack(alignment: .leading, spacing: 2) { allowanceLabel; helpButton }
+            }
+        }.padding(16)
+            .glamoGlass(in: RoundedRectangle(cornerRadius: 22), tint: GlamoStyle.surface)
+            .onChange(of: link) { _, _ in composerError = nil }
+            .onChange(of: api.session == nil) { _, missing in
+                if !missing { needsConnection = false; composerError = nil }
+            }
+            .fullScreenCover(item: $searchRequest) { request in
+                DiscoverView(initialSearch: request.query, canDismiss: true) { query, clip in
+                    library.record(link: query, title: clip.title)
+                }
+            }
+            .sheet(isPresented: $showingLinkGuide) { LinkGuideSheet() }
+    }
+
+    private var linkField: some View {
+        HStack(spacing: 0) {
+            Glyph(symbol: .link, size: 18, tint: GlamoStyle.secondary)
+                .padding(.leading, 12)
+            TextField("Video URL", text: $link,
+                      prompt: Text("Paste or enter a video URL").foregroundColor(GlamoStyle.secondary), axis: .vertical)
+                .lineLimit(1...3).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                .focused(focused).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.ink)
+                .tint(GlamoStyle.accent)
+                .padding(.leading, 10).padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel(LocalizedStringKey("Video URL"))
+                .accessibilityIdentifier("home.linkField")
+            if !link.isEmpty {
+                Button {
+                    link = ""
+                    focused.wrappedValue = true
+                } label: {
+                    Glyph(symbol: .close, size: 14, tint: GlamoStyle.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }.buttonStyle(ComposerPressStyle())
+                    .accessibilityLabel(LocalizedStringKey("Clear URL"))
+                    .accessibilityIdentifier("home.clearLink")
+            }
+        }
+            // Input and its clear action stay together, including when the
+            // outside-tap handler decides whether to dismiss the keyboard.
+            .padding(.trailing, link.isEmpty ? 14 : 4)
+            .environment(\.layoutDirection, .leftToRight)
+            .background(GlamoStyle.background, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(focused.wrappedValue ? GlamoStyle.accent : GlamoStyle.controlLine)
+                    .allowsHitTesting(false)
+            }
+            .keyboardInputRegion("home-link-input")
+    }
+
+    private var canOpenLink: Bool { searchRequest == nil && link.nilIfBlank != nil }
+
+    @ViewBuilder private var allowanceLabel: some View {
+        if api.session != nil {
+            LocalizedText(quota.usage == nil ? "Loading…" : commerce.premium || quota.unlimited ? "Unlimited viewing today" : "\(quota.watchesLeft) views left today")
+                .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var helpButton: some View {
+        Button { showingLinkGuide = true } label: {
+            LocalizedText("How to open a video URL").font(.glam(.footnote, weight: .semibold))
+                .underline().foregroundStyle(GlamoStyle.accent)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+        }.buttonStyle(PressStyle()).accessibilityIdentifier("home.linkHelp")
+    }
+
+    private var pasteButton: some View {
+        Button(action: pasteCopiedLink) {
+            LocalizedText("Paste").font(.glam(.footnote, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18).padding(.vertical, 10)
+                .frame(minHeight: 44)
+                .foregroundStyle(GlamoStyle.ink)
+                .glamoGlass(in: Capsule(), tint: GlamoStyle.paperMuted, interactive: true)
+                .contentShape(Rectangle())
+        }.buttonStyle(ComposerPressStyle())
+            .accessibilityIdentifier("home.pasteLink")
+    }
+
+    private func pasteCopiedLink() {
+        guard let text = UIPasteboard.general.string, text.nilIfBlank != nil else {
+            composerError = "Copy a video URL, then try pasting again."
+            return
+        }
+        link = text
+    }
+
+    private func resolve() {
+        guard let text = link.nilIfBlank, searchRequest == nil else { return }
+        focused.wrappedValue = false
+        guard api.session != nil else {
+            needsConnection = true
+            composerError = "Connect to Glamo, then try opening the URL again."
+            return
+        }
+        composerError = nil
+        // Preserve exactly what was entered (trimmed at the ends only). Search owns
+        // loading, errors and cursor pagination.
+        searchRequest = LessonSearch(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
 
@@ -429,13 +431,13 @@ struct ChannelView: View {
                             GlamoEmptyState(title: "No videos in this collection",
                                             message: "Go back to browse other collections.") {
                                 if hasMore {
-                                    ActionButton(title: "Load more lessons") { Task { await load() } }
+                                    ActionButton(title: "Load more videos") { Task { await load() } }
                                 } else {
                                     ActionButton(title: "Back") { dismiss() }
                                 }
                             }
                         } else {
-                            AccountLoadingIndicator(title: "Loading lessons…").frame(maxWidth: .infinity)
+                            AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
                         }
                     }
                     ForEach(items, id: \.stableID) { item in
@@ -491,11 +493,12 @@ struct LinkGuideSheet: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeading(title: "Lesson links and codes") { dismiss() }
+            SheetHeading { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    FeatureRow(symbol: .link, title: "Enter the link or code", detail: "Paste the lesson link or type the short code. Match uppercase and lowercase letters.")
-                    FeatureRow(symbol: .play, title: "Open lesson", detail: "Swipe up or down to browse videos once the lesson opens.")
+                    FeatureRow(symbol: .link, title: "Copy the URL", detail: "Copy the video URL from the share menu or the address bar.")
+                    FeatureRow(symbol: .edit, title: "Paste it here", detail: "Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters.")
+                    FeatureRow(symbol: .play, title: "Browse videos", detail: "Once it opens, swipe up or down to browse videos.")
                     ActionButton(title: "Got it") { dismiss() }
                 }.glamoPage()
             }

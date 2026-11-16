@@ -157,7 +157,8 @@
 "Know the game.\nEnjoy every point." = "افهم اللعبة.\nواستمتع بكل نقطة.";
 "Leave room for contact" = "اترك مساحة لضرب الكرة";
 "Lesson collections" = "مجموعات الدروس";
-"Lesson link or short code" = "رابط درس أو رمز مختصر";
+"Video URL" = "عنوان URL للفيديو";
+"Paste or enter a video URL" = "ألصقي عنوان URL للفيديو أو اكتبيه";
 "Lesson or collection link" = "رابط درس أو مجموعة";
 "Let it speak. Or don’t." = "مع الصوت. أو بدونه.";
 "Let the ball meet your motion" = "اجعل الكرة تناسب حركتك";
@@ -181,7 +182,7 @@
 "More court time." = "وقت أطول في الملعب.";
 "Mute" = "كتم الصوت";
 "No ad is available right now. %@" = "لا يتوفر إعلان الآن. %@";
-"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "لم يُرجع الرابط أي محتوى. تحقق من الأحرف الكبيرة والصغيرة في الرمز، أو حاول لاحقًا.";
+"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "لم يُرجع عنوان URL أي محتوى. تحقّقي من الأحرف الكبيرة والصغيرة، أو حاولي لاحقًا.";
 "No lessons are available here yet. Try another search or open a shared lesson link on Home." = "لا توجد دروس هنا بعد. جرّب بحثًا آخر أو افتح رابط درس من الرئيسية.";
 "No reward was received. Finish a rewarded ad to get more views." = "لم تُستلم مكافأة. أكمل الإعلان بمكافأة للحصول على مشاهدات إضافية.";
 "Nothing here yet" = "لا يوجد شيء هنا بعد";
@@ -194,8 +195,8 @@
 "One month of Plus" = "شهر من Plus";
 "Online streams stay online. Import a video you own to make an edit." = "البث عبر الإنترنت يبقى عبر الإنترنت. استورد فيديو تملكه لتحريره.";
 "Open Me and account settings" = "فتح حسابي وإعدادات الحساب";
-"Open a lesson" = "فتح درس";
-"Open link" = "فتح الرابط";
+"Open a video URL" = "فتح عنوان URL لفيديو";
+"Open" = "فتح";
 "Open your next lesson" = "افتح درسك القادم";
 "Opening document…" = "جارٍ فتح المستند…";
 "Opening link…" = "جارٍ فتح الرابط…";
@@ -338,7 +339,7 @@
 "Watch a full ad for %@ more views and %@ more saves." = "شاهد إعلانًا كاملًا لإضافة %@ مشاهدة و%@ عملية حفظ.";
 "Watch a full ad for unlimited viewing until 5 AM and %@ more saves." = "شاهد إعلانًا كاملًا لمشاهدة بلا حدود حتى 5 صباحًا وإضافة %@ عملية حفظ.";
 "Watch an ad" = "مشاهدة إعلان";
-"Watch lessons" = "مشاهدة الدروس";
+"Browse videos" = "تصفّح الفيديوهات";
 "Watch. Practise. Repeat." = "شاهد. تدرّب. كرّر.";
 "What happens at 40–40?" = "ماذا يحدث عند 40–40؟";
 "When reviewing your footage, pause at contact: is there space between the ball and your body?" = "أوقف الفيديو عند ضرب الكرة: هل توجد مساحة بين الكرة وجسمك؟";
@@ -443,7 +444,7 @@
 
 "Follow system" = "اتباع لغة النظام";
 
-"No more lessons are available right now. Try again." = "لا توجد دروس إضافية حاليًا. حاول مرة أخرى.";
+"No more videos are available right now. Try again." = "لا توجد فيديوهات إضافية حاليًا. حاول مرة أخرى.";
 
 "Another download is being prepared." = "يجري تجهيز تنزيل آخر.";
 
@@ -525,7 +526,6 @@
 // Glamo lesson link entry.
 "Glamo link or lesson code" = "رابط Glamo أو رمز الدرس";
 "Paste" = "لصق";
-"Open lesson" = "فتح الدرس";
 "Use a lesson link or code shared through Glamo." = "استخدم رابط درس أو رمزًا تمت مشاركته عبر Glamo.";
 "Copy a Glamo link or lesson code first, then tap Paste." = "انسخ رابط Glamo أو رمز الدرس أولًا، ثم اضغط على لصق.";
 "1. Copy a Glamo link" = "1. انسخ رابط Glamo";
@@ -609,48 +609,47 @@
 "Connecting to Glamo…" = "جارٍ الاتصال بـ Glamo…";
 "Ad privacy choices" = "خيارات خصوصية الإعلانات";
 "Couldn’t open the Glamo website. Try again." = "تعذّر فتح موقع Glamo. حاولي مرة أخرى.";
-"Lesson not found" = "لم يُعثر على الدرس";
-"Check the link or code with the person who shared it." = "راجعي الرابط أو الرمز مع من أرسله.";
+"No match found" = "لم يُعثر على نتائج مطابقة";
+"Check the URL with the person who shared it." = "تحقّقي من عنوان URL مع الشخص الذي شاركه.";
 "Search the web" = "البحث على الويب";
-"Couldn’t load lessons" = "تعذّر تحميل الدروس";
-"No lessons available" = "لا توجد دروس متاحة";
+"Couldn’t load videos" = "تعذّر تحميل الفيديوهات";
+"No videos available" = "لا توجد فيديوهات متاحة";
 "You can open a shared lesson link from the Looks tab." = "يمكنك فتح رابط درس مشترك من تبويب الإطلالات.";
-"Load more lessons" = "تحميل مزيد من الدروس";
-"Loading lessons…" = "جارٍ تحميل الدروس…";
-"Looking up lesson…" = "جارٍ البحث عن الدرس…";
+"Load more videos" = "تحميل مزيد من الفيديوهات";
+"Loading videos…" = "جارٍ تحميل الفيديوهات…";
 "Swipe up or down for another video" = "مرّري للأعلى أو للأسفل لمشاهدة فيديو آخر";
 "Daily viewing limit reached" = "بلغتِ حد المشاهدة اليومي";
 "Couldn’t play this video" = "تعذّر تشغيل هذا الفيديو";
 "Video quality adjusts to your connection on supported streams." = "تتكيّف جودة الفيديو مع اتصالك في عمليات البث المدعومة.";
 "Open video editor" = "فتح محرّر الفيديو";
-"Download lesson" = "تنزيل الدرس";
+"Download video" = "تنزيل الفيديو";
 "Open video tools" = "فتح أدوات الفيديو";
-"Couldn’t open the lesson" = "تعذّر فتح الدرس";
+"Couldn’t open the URL" = "تعذّر فتح عنوان URL";
 "Back to Looks" = "العودة إلى الإطلالات";
-"Couldn’t load lesson collections" = "تعذّر تحميل مجموعات الدروس";
+"Couldn’t load collections" = "تعذّر تحميل المجموعات";
 "Makeup guides" = "أدلة المكياج";
-"Help with links and codes" = "مساعدة بشأن الروابط والرموز";
-"Clear link or code" = "مسح الرابط أو الرمز";
-"Recent lessons" = "الدروس الأخيرة";
+"How to open a video URL" = "طريقة فتح عنوان URL لفيديو";
+"Clear URL" = "مسح عنوان URL";
 "Clear history" = "مسح السجل";
 "No videos in this collection" = "لا توجد فيديوهات في هذه المجموعة";
 "Go back to browse other collections." = "عودي لاستعراض المجموعات الأخرى.";
-"Lesson links and codes" = "روابط الدروس ورموزها";
-"Enter the link or code" = "إدخال الرابط أو الرمز";
-"Paste the lesson link or type the short code. Match uppercase and lowercase letters." = "ألصقي رابط الدرس أو اكتبي الرمز المختصر مع مراعاة الأحرف الكبيرة والصغيرة.";
-"Swipe up or down to browse videos once the lesson opens." = "بعد فتح الدرس، مرّري للأعلى أو للأسفل لتصفّح الفيديوهات.";
+"Copy the URL" = "انسخي عنوان URL";
+"Copy the video URL from the share menu or the address bar." = "انسخي عنوان URL للفيديو من قائمة المشاركة أو شريط العنوان.";
+"Paste it here" = "ألصقيه هنا";
+"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "ألصقي عنوان URL في صفحة «مقاطع الفيديو»، ثم اضغطي على «فتح». اكتبيه تمامًا كما تمت مشاركته، مع مراعاة الأحرف الكبيرة والصغيرة.";
+"Once it opens, swipe up or down to browse videos." = "بعد الفتح، مرّري للأعلى أو للأسفل لتصفّح الفيديوهات.";
 "There’s no playable video here." = "لا يوجد فيديو يمكن تشغيله هنا.";
-"Copy a lesson link or short code, then try pasting again." = "انسخي رابط درس أو رمزًا مختصرًا، ثم أعيدي المحاولة.";
-"Connect to Glamo, then try opening the lesson again." = "اتصلي بـ Glamo، ثم حاولي فتح الدرس مرة أخرى.";
+"Copy a video URL, then try pasting again." = "انسخي عنوان URL لفيديو، ثم أعيدي محاولة اللصق.";
+"Connect to Glamo, then try opening the URL again." = "اتصلي بـ Glamo، ثم حاولي فتح عنوان URL مرة أخرى.";
 "Remove this download?" = "إزالة هذا التنزيل؟";
-"This removes the offline copy. Any bookmark stays in Favorites." = "ستُحذف النسخة المتاحة دون اتصال. إن كان الدرس في المفضلة، فسيبقى فيها.";
+"This removes the offline copy. Any bookmark stays in Favorites." = "ستُحذف النسخة المتاحة دون اتصال. إن كان الفيديو في المفضلة، فسيبقى فيها.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "سيُحذف الملف من Glamo. وتبقى النسخة الأصلية في «الصور» أو «الملفات».";
 "%@ item" = "%@ عنصر";
 "%@ items" = "العناصر (%@)";
 "No favorites yet" = "لا توجد مفضلات بعد";
-"Tap the bookmark while watching a lesson to save it here." = "اضغطي على رمز الحفظ أثناء مشاهدة الدرس ليظهر هنا.";
+"Tap Save while watching to keep a video here." = "اضغطي على «حفظ» أثناء المشاهدة ليظهر الفيديو هنا.";
 "No downloads yet" = "لا توجد تنزيلات بعد";
-"Tap Download on a lesson to watch it offline." = "اضغطي على «تنزيل» في الدرس لمشاهدته دون اتصال.";
+"Tap Download while watching to keep a video offline." = "اضغطي على «تنزيل» أثناء المشاهدة لمشاهدة الفيديو دون اتصال.";
 "No exports yet" = "لا توجد ملفات مصدَّرة بعد";
 "No imported videos yet" = "لا توجد فيديوهات مستوردة بعد";
 "Export a video or audio file from Tools to save it here." = "صدّري فيديو أو ملفًا صوتيًا من «الأدوات» لحفظه هنا.";
@@ -753,7 +752,7 @@
 "The rehearsal export could not be created. Please try again." = "تعذّر تصدير تجربة المكياج. حاولي مرة أخرى.";
 "Watch lessons without daily limits. Save and export your practice." = "شاهدي الدروس بلا حد يومي واحفظي فيديوهات التدريب وصدّريها.";
 "Share a recap with your time, mirror checks and notes." = "شاركي ملخصًا يتضمّن الوقت وفحوص المرآة والملاحظات.";
-"Unlimited lesson views" = "مشاهدة الدروس بلا حدود";
+"Unlimited video views" = "مشاهدة الفيديوهات بلا حدود";
 "Unlimited downloads" = "تنزيلات بلا حدود";
 "Skip launch ads" = "تخطّي إعلانات بدء التشغيل";
 "Unlimited lesson views and downloads. Export your practice clips." = "شاهدي الدروس ونزّليها بلا حدود وصدّري فيديوهات التدريب.";
@@ -785,7 +784,6 @@
 "Trim, crop, change speed or extract audio." = "قصّ الفيديو أو اقتصاصه أو غيّر سرعته أو استخرج الصوت.";
 "Recent files" = "الملفات الأخيرة";
 "All files" = "كل الملفات";
-"Lessons" = "الدروس";
 "Video tools" = "أدوات الفيديو";
 "Video editor" = "محرر الفيديو";
 "Slow down or speed up a video." = "أبطئ الفيديو أو سرّعه.";
@@ -793,7 +791,7 @@
 "Your imported videos will appear here." = "ستظهر مقاطع الفيديو المستوردة هنا.";
 "Back to videos" = "العودة إلى مقاطع الفيديو";
 "Share file" = "مشاركة الملف";
-"Open a shared link or code from Lessons." = "افتح رابطًا أو رمزًا تمت مشاركته معك من الدروس.";
+"Paste a shared video URL on the Videos page." = "ألصقي عنوان URL لفيديو تمت مشاركته في صفحة «مقاطع الفيديو».";
 "MP4 and M4A export" = "تصدير بصيغة MP4 وM4A";
 "Export video up to 1080p or save the audio as M4A." = "صدّر الفيديو بدقة تصل إلى 1080p أو احفظ الصوت بصيغة M4A.";
 "Processed on your device. Finished files appear in Files under Exports." = "تتم المعالجة على جهازك. ستجد الملفات الجاهزة في الملفات ضمن الصادرات.";

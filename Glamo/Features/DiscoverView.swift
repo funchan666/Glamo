@@ -87,7 +87,7 @@ final class FeedStore: ObservableObject {
             if entries.isEmpty, requestQuery.nilIfBlank != nil {
                 emptySearch = BrowserLessonSearch(query: requestQuery)
             }
-            if !entries.isEmpty { error = "No more lessons are available right now. Try again." }
+            if !entries.isEmpty { error = "No more videos are available right now. Try again." }
         } catch is CancellationError {
             // Leaving a screen/search is not a service failure.
         } catch {
@@ -165,7 +165,7 @@ struct DiscoverView: View {
                                 if !feed.entries.isEmpty {
                                     VStack(spacing: 16) {
                                         if let error = feed.error { LocalizedText(error).foregroundStyle(.white) }
-                                        ActionButton(title: feed.loading ? "Loading lessons…" : feed.error == nil ? "Load more lessons" : "Try again",
+                                        ActionButton(title: feed.loading ? "Loading videos…" : feed.error == nil ? "Load more videos" : "Try again",
                                                      primary: false) { Task { await feed.load(api: api) } }
                                             .disabled(feed.loading)
                                     }.padding(28).padding(container.safeAreaInsets)
@@ -228,20 +228,20 @@ struct DiscoverView: View {
     }
     @ViewBuilder private var feedStatus: some View {
         if !finishedInitialLoad || feed.loading {
-            AccountLoadingIndicator(title: search.isEmpty ? "Loading lessons…" : "Looking up lesson…")
+            AccountLoadingIndicator(title: search.isEmpty ? "Loading videos…" : "Opening link…")
                 .frame(maxWidth: .infinity)
         } else if let request = feed.emptySearch {
-            GlamoEmptyState(title: "Lesson not found",
-                            message: "Check the link or code with the person who shared it.") {
+            GlamoEmptyState(title: "No match found",
+                            message: "Check the URL with the person who shared it.", art: "ArtEmptyFilm") {
                 ActionButton(title: "Search the web") { openBrowserSearch(request) }
             }
         } else if let error = feed.error {
-            MessagePanel(title: "Couldn’t load lessons", message: error, actionTitle: "Try again") {
+            MessagePanel(title: "Couldn’t load videos", message: error, actionTitle: "Try again") {
                 Task { await feed.load(api: api, search: search) }
             }
         } else {
-            GlamoEmptyState(title: "No lessons available",
-                            message: "Open a shared link or code from Lessons.") {
+            GlamoEmptyState(title: "No videos available",
+                            message: "Paste a shared video URL on the Videos page.", art: "ArtEmptyFilm") {
                 ActionButton(title: "Try again") { Task { await feed.load(api: api, search: search) } }
             }
         }
@@ -316,7 +316,7 @@ struct PlayerScreen: View {
                         if route.continuesRecommendations {
                             VStack(spacing: 16) {
                                 if let error = feed.error { LocalizedText(error).foregroundStyle(.white) }
-                                ActionButton(title: feed.loading ? "Loading lessons…" : feed.error == nil ? "Load more lessons" : "Try again",
+                                ActionButton(title: feed.loading ? "Loading videos…" : feed.error == nil ? "Load more videos" : "Try again",
                                              primary: false) {
                                     Task { await feed.load(api: api) }
                                 }.disabled(feed.loading)
@@ -656,7 +656,7 @@ struct ClipPage: View {
             .sheet(isPresented: $options, onDismiss: resumeAfterControls) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        SheetHeading(title: "Playback", inset: false) { options = false }
+                        SheetHeading(inset: false) { options = false }
                         VideoExportEntry(clip: clip)
                         LocalizedText("Speed").font(.glam(.headline))
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -687,7 +687,7 @@ struct ClipPage: View {
             .sheet(isPresented: $downloadPanel, onDismiss: resumeAfterControls) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        SheetHeading(title: "Downloads", inset: false) { downloadPanel = false }
+                        SheetHeading(inset: false) { downloadPanel = false }
                         Text(verbatim: clip.title).font(.glam(.subheadline)).lineLimit(2)
                         OfflineDownloadButton(clip: clip, starting: downloadStarting)
                     }.glamoPage()
@@ -887,7 +887,7 @@ private struct PlayerCacheButton: View {
                 else { LocalizedText("Download") }
             }
         }.buttonStyle(PressStyle())
-            .accessibilityLabel(LocalizedStringKey(cached ? "Available offline" : "Download lesson"))
+            .accessibilityLabel(LocalizedStringKey(cached ? "Available offline" : "Download video"))
             .accessibilityIdentifier("player.cacheVideo")
     }
 }

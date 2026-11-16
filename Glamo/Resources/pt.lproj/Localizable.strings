@@ -157,7 +157,8 @@
 "Know the game.\nEnjoy every point." = "Conheça o jogo.\nCurta cada ponto.";
 "Leave room for contact" = "Dê espaço ao contato";
 "Lesson collections" = "Coleções de aulas";
-"Lesson link or short code" = "Link de aula ou código curto";
+"Video URL" = "URL do vídeo";
+"Paste or enter a video URL" = "Cole ou digite a URL do vídeo";
 "Lesson or collection link" = "Link de aula ou coleção";
 "Let it speak. Or don’t." = "Com som. Ou sem.";
 "Let the ball meet your motion" = "Faça o lançamento acompanhar o movimento";
@@ -181,7 +182,7 @@
 "More court time." = "Mais tempo em quadra.";
 "Mute" = "Silenciar";
 "No ad is available right now. %@" = "Nenhum anúncio disponível agora. %@";
-"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "O link não retornou conteúdo. Confira as letras maiúsculas e minúsculas do código ou tente mais tarde.";
+"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "A URL não retornou conteúdo. Confira as letras maiúsculas e minúsculas ou tente mais tarde.";
 "No lessons are available here yet. Try another search or open a shared lesson link on Home." = "Ainda não há aulas. Tente outra busca ou abra um link de aula no Início.";
 "No reward was received. Finish a rewarded ad to get more views." = "Nenhuma recompensa recebida. Assista ao anúncio completo para obter mais visualizações.";
 "Nothing here yet" = "Ainda não há nada aqui";
@@ -194,8 +195,8 @@
 "One month of Plus" = "Um mês de Plus";
 "Online streams stay online. Import a video you own to make an edit." = "Vídeos online permanecem online. Importe um vídeo seu para editar.";
 "Open Me and account settings" = "Abrir Minha conta e configurações";
-"Open a lesson" = "Abrir aula";
-"Open link" = "Abrir link";
+"Open a video URL" = "Abrir URL de vídeo";
+"Open" = "Abrir";
 "Open your next lesson" = "Abra sua próxima aula";
 "Opening document…" = "Abrindo documento…";
 "Opening link…" = "Abrindo link…";
@@ -338,7 +339,7 @@
 "Watch a full ad for %@ more views and %@ more saves." = "Assista a um anúncio completo para mais %@ visualizações e %@ salvamentos.";
 "Watch a full ad for unlimited viewing until 5 AM and %@ more saves." = "Assista a um anúncio completo para visualizações ilimitadas até as 5h e mais %@ salvamentos.";
 "Watch an ad" = "Assistir a anúncio";
-"Watch lessons" = "Assistir a aulas";
+"Browse videos" = "Ver vídeos";
 "Watch. Practise. Repeat." = "Assista. Pratique. Repita.";
 "What happens at 40–40?" = "O que acontece em 40–40?";
 "When reviewing your footage, pause at contact: is there space between the ball and your body?" = "Ao rever o vídeo, pause no contato: há espaço entre a bola e seu corpo?";
@@ -443,7 +444,7 @@
 
 "Follow system" = "Seguir o sistema";
 
-"No more lessons are available right now. Try again." = "Não há mais aulas disponíveis agora. Tente novamente.";
+"No more videos are available right now. Try again." = "Não há mais vídeos disponíveis agora. Tente novamente.";
 
 "Another download is being prepared." = "Outro download está sendo preparado.";
 
@@ -525,7 +526,6 @@
 // Glamo lesson link entry.
 "Glamo link or lesson code" = "Link do Glamo ou código da aula";
 "Paste" = "Colar";
-"Open lesson" = "Abrir aula";
 "Use a lesson link or code shared through Glamo." = "Use um link ou código de aula compartilhado pelo Glamo.";
 "Copy a Glamo link or lesson code first, then tap Paste." = "Copie um link do Glamo ou código de aula e toque em Colar.";
 "1. Copy a Glamo link" = "1. Copie um link do Glamo";
@@ -609,48 +609,47 @@
 "Connecting to Glamo…" = "Conectando ao Glamo…";
 "Ad privacy choices" = "Privacidade dos anúncios";
 "Couldn’t open the Glamo website. Try again." = "Não foi possível abrir o site do Glamo. Tente novamente.";
-"Lesson not found" = "Aula não encontrada";
-"Check the link or code with the person who shared it." = "Confirme o link ou o código com quem enviou.";
+"No match found" = "Nenhum resultado encontrado";
+"Check the URL with the person who shared it." = "Confira a URL com quem a compartilhou.";
 "Search the web" = "Buscar na web";
-"Couldn’t load lessons" = "Não foi possível carregar as aulas";
-"No lessons available" = "Nenhuma aula disponível";
+"Couldn’t load videos" = "Não foi possível carregar os vídeos";
+"No videos available" = "Nenhum vídeo disponível";
 "You can open a shared lesson link from the Looks tab." = "Você pode abrir um link de aula compartilhado na aba Looks.";
-"Load more lessons" = "Carregar mais aulas";
-"Loading lessons…" = "Carregando aulas…";
-"Looking up lesson…" = "Buscando a aula…";
+"Load more videos" = "Carregar mais vídeos";
+"Loading videos…" = "Carregando vídeos…";
 "Swipe up or down for another video" = "Deslize para cima ou para baixo para ver outro vídeo";
 "Daily viewing limit reached" = "Limite diário de visualizações atingido";
 "Couldn’t play this video" = "Não foi possível reproduzir o vídeo";
 "Video quality adjusts to your connection on supported streams." = "A qualidade do vídeo se adapta à conexão nas transmissões compatíveis.";
 "Open video editor" = "Abrir editor de vídeo";
-"Download lesson" = "Baixar aula";
+"Download video" = "Baixar vídeo";
 "Open video tools" = "Abrir ferramentas de vídeo";
-"Couldn’t open the lesson" = "Não foi possível abrir a aula";
+"Couldn’t open the URL" = "Não foi possível abrir a URL";
 "Back to Looks" = "Voltar para Looks";
-"Couldn’t load lesson collections" = "Não foi possível carregar as coleções de aulas";
+"Couldn’t load collections" = "Não foi possível carregar as coleções";
 "Makeup guides" = "Guias de maquiagem";
-"Help with links and codes" = "Ajuda com links e códigos";
-"Clear link or code" = "Limpar link ou código";
-"Recent lessons" = "Aulas recentes";
+"How to open a video URL" = "Como abrir uma URL de vídeo";
+"Clear URL" = "Limpar URL";
 "Clear history" = "Limpar histórico";
 "No videos in this collection" = "Esta coleção está sem vídeos";
 "Go back to browse other collections." = "Volte para ver outras coleções.";
-"Lesson links and codes" = "Links e códigos de aulas";
-"Enter the link or code" = "Insira o link ou o código";
-"Paste the lesson link or type the short code. Match uppercase and lowercase letters." = "Cole o link da aula ou digite o código curto. Respeite as maiúsculas e minúsculas.";
-"Swipe up or down to browse videos once the lesson opens." = "Ao abrir a aula, deslize para cima ou para baixo para ver outros vídeos.";
+"Copy the URL" = "Copie a URL";
+"Copy the video URL from the share menu or the address bar." = "Copie a URL do vídeo no menu de compartilhamento ou na barra de endereço.";
+"Paste it here" = "Cole aqui";
+"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "Cole a URL na página Vídeos e toque em Abrir. Digite exatamente como foi compartilhada, respeitando maiúsculas e minúsculas.";
+"Once it opens, swipe up or down to browse videos." = "Depois de abrir, deslize para cima ou para baixo para ver outros vídeos.";
 "There’s no playable video here." = "Não há vídeo disponível para reprodução.";
-"Copy a lesson link or short code, then try pasting again." = "Copie um link ou código de aula e tente colar novamente.";
-"Connect to Glamo, then try opening the lesson again." = "Conecte-se ao Glamo e tente abrir a aula novamente.";
+"Copy a video URL, then try pasting again." = "Copie a URL de um vídeo e tente colar novamente.";
+"Connect to Glamo, then try opening the URL again." = "Conecte-se ao Glamo e tente abrir a URL novamente.";
 "Remove this download?" = "Remover este download?";
-"This removes the offline copy. Any bookmark stays in Favorites." = "A cópia offline será apagada. Se a aula estiver nos Favoritos, ela continuará lá.";
+"This removes the offline copy. Any bookmark stays in Favorites." = "A cópia offline será apagada. Se o vídeo estiver nos Favoritos, ele continuará lá.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "O arquivo será apagado do Glamo. O original no app Fotos ou Arquivos será mantido.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ itens";
 "No favorites yet" = "Nenhum favorito";
-"Tap the bookmark while watching a lesson to save it here." = "Toque no marcador durante a aula para salvá-la aqui.";
+"Tap Save while watching to keep a video here." = "Toque em Salvar enquanto assiste para guardar o vídeo aqui.";
 "No downloads yet" = "Nenhum download";
-"Tap Download on a lesson to watch it offline." = "Toque em Baixar em uma aula para assistir offline.";
+"Tap Download while watching to keep a video offline." = "Toque em Baixar enquanto assiste para ver o vídeo offline.";
 "No exports yet" = "Nenhum arquivo exportado";
 "No imported videos yet" = "Nenhum vídeo importado";
 "Export a video or audio file from Tools to save it here." = "Exporte um vídeo ou áudio em Ferramentas para salvá-lo aqui.";
@@ -753,7 +752,7 @@
 "The rehearsal export could not be created. Please try again." = "Não foi possível exportar o ensaio. Tente novamente.";
 "Watch lessons without daily limits. Save and export your practice." = "Veja aulas sem limite diário. Salve e exporte seus vídeos de treino.";
 "Share a recap with your time, mirror checks and notes." = "Compartilhe um resumo com seu tempo, avaliações no espelho e notas.";
-"Unlimited lesson views" = "Aulas sem limite";
+"Unlimited video views" = "Vídeos sem limite";
 "Unlimited downloads" = "Downloads ilimitados";
 "Skip launch ads" = "Sem anúncios ao abrir o Glamo";
 "Unlimited lesson views and downloads. Export your practice clips." = "Veja e baixe aulas sem limite. Exporte seus vídeos de treino.";
@@ -785,7 +784,6 @@
 "Trim, crop, change speed or extract audio." = "Apare, recorte, altere a velocidade ou extraia o áudio.";
 "Recent files" = "Ficheiros recentes";
 "All files" = "Todos os ficheiros";
-"Lessons" = "Aulas";
 "Video tools" = "Ferramentas de vídeo";
 "Video editor" = "Editor de vídeo";
 "Slow down or speed up a video." = "Abrande ou acelere o vídeo.";
@@ -793,7 +791,7 @@
 "Your imported videos will appear here." = "Os vídeos importados aparecem aqui.";
 "Back to videos" = "Voltar aos Vídeos";
 "Share file" = "Partilhar ficheiro";
-"Open a shared link or code from Lessons." = "Abra uma ligação ou um código partilhado nas Aulas.";
+"Paste a shared video URL on the Videos page." = "Cole a URL de um vídeo compartilhado na página Vídeos.";
 "MP4 and M4A export" = "Exportação em MP4 e M4A";
 "Export video up to 1080p or save the audio as M4A." = "Exporte vídeo até 1080p ou guarde o áudio em M4A.";
 "Processed on your device. Finished files appear in Files under Exports." = "O processamento é feito no dispositivo. Os ficheiros finais aparecem em Ficheiros, na secção Exportações.";

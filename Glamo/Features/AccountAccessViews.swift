@@ -150,7 +150,7 @@ struct PolicyBrowser: View {
     @StateObject private var state = PolicyBrowserState()
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeading(title: document.title) { dismiss() }
+            SheetHeading { dismiss() }
             if webSearch {
                 HStack(spacing: 12) {
                     IconButton(symbol: .back, label: "Back", glass: true) { state.goBack() }

@@ -157,7 +157,8 @@
 "Know the game.\nEnjoy every point." = "Kenali permainan.\nNikmati setiap poin.";
 "Leave room for contact" = "Beri ruang saat kontak";
 "Lesson collections" = "Koleksi pelajaran";
-"Lesson link or short code" = "Tautan pelajaran atau kode singkat";
+"Video URL" = "URL video";
+"Paste or enter a video URL" = "Tempel atau ketik URL video";
 "Lesson or collection link" = "Tautan pelajaran atau koleksi";
 "Let it speak. Or don’t." = "Dengan suara. Atau tanpa.";
 "Let the ball meet your motion" = "Sesuaikan lambungan dengan gerakan";
@@ -181,7 +182,7 @@
 "More court time." = "Lebih lama di lapangan.";
 "Mute" = "Bisukan";
 "No ad is available right now. %@" = "Iklan belum tersedia. %@";
-"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "Tautan ini tidak mengembalikan konten. Periksa huruf besar dan kecil pada kode, atau coba lagi nanti.";
+"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "URL ini tidak mengembalikan konten. Periksa huruf besar dan kecilnya, atau coba lagi nanti.";
 "No lessons are available here yet. Try another search or open a shared lesson link on Home." = "Belum ada pelajaran. Coba pencarian lain atau buka tautan pelajaran di Beranda.";
 "No reward was received. Finish a rewarded ad to get more views." = "Hadiah belum diterima. Selesaikan iklan berhadiah untuk menambah kuota tonton.";
 "Nothing here yet" = "Belum ada apa pun";
@@ -194,8 +195,8 @@
 "One month of Plus" = "Plus selama sebulan";
 "Online streams stay online. Import a video you own to make an edit." = "Streaming online tetap online. Impor video milikmu untuk mengedit.";
 "Open Me and account settings" = "Buka Saya dan pengaturan akun";
-"Open a lesson" = "Buka pelajaran";
-"Open link" = "Buka tautan";
+"Open a video URL" = "Buka URL video";
+"Open" = "Buka";
 "Open your next lesson" = "Buka pelajaran berikutnya";
 "Opening document…" = "Membuka dokumen…";
 "Opening link…" = "Membuka tautan…";
@@ -338,7 +339,7 @@
 "Watch a full ad for %@ more views and %@ more saves." = "Selesaikan iklan untuk %@ tonton dan %@ simpan tambahan.";
 "Watch a full ad for unlimited viewing until 5 AM and %@ more saves." = "Selesaikan iklan untuk tonton tanpa batas hingga pukul 05.00 dan %@ simpan tambahan.";
 "Watch an ad" = "Tonton iklan";
-"Watch lessons" = "Tonton pelajaran";
+"Browse videos" = "Jelajahi video";
 "Watch. Practise. Repeat." = "Tonton. Latih. Ulangi.";
 "What happens at 40–40?" = "Apa yang terjadi saat 40–40?";
 "When reviewing your footage, pause at contact: is there space between the ball and your body?" = "Saat meninjau video, jeda pada titik kontak: adakah ruang antara bola dan tubuhmu?";
@@ -443,7 +444,7 @@
 
 "Follow system" = "Ikuti sistem";
 
-"No more lessons are available right now. Try again." = "Belum ada pelajaran tambahan. Coba lagi.";
+"No more videos are available right now. Try again." = "Belum ada video tambahan. Coba lagi.";
 
 "Another download is being prepared." = "Unduhan lain sedang disiapkan.";
 
@@ -525,7 +526,6 @@
 // Glamo lesson link entry.
 "Glamo link or lesson code" = "Tautan Glamo atau kode pelajaran";
 "Paste" = "Tempel";
-"Open lesson" = "Buka pelajaran";
 "Use a lesson link or code shared through Glamo." = "Gunakan tautan atau kode pelajaran yang dibagikan melalui Glamo.";
 "Copy a Glamo link or lesson code first, then tap Paste." = "Salin tautan Glamo atau kode pelajaran terlebih dahulu, lalu ketuk Tempel.";
 "1. Copy a Glamo link" = "1. Salin tautan Glamo";
@@ -609,48 +609,47 @@
 "Connecting to Glamo…" = "Menghubungkan ke Glamo…";
 "Ad privacy choices" = "Privasi iklan";
 "Couldn’t open the Glamo website. Try again." = "Situs Glamo tidak dapat dibuka. Coba lagi.";
-"Lesson not found" = "Pelajaran tidak ditemukan";
-"Check the link or code with the person who shared it." = "Konfirmasi tautan atau kode kepada pengirimnya.";
+"No match found" = "Tidak ada yang cocok";
+"Check the URL with the person who shared it." = "Periksa URL-nya dengan orang yang membagikannya.";
 "Search the web" = "Cari di web";
-"Couldn’t load lessons" = "Pelajaran tidak dapat dimuat";
-"No lessons available" = "Belum ada pelajaran";
+"Couldn’t load videos" = "Video tidak dapat dimuat";
+"No videos available" = "Belum ada video";
 "You can open a shared lesson link from the Looks tab." = "Buka tautan pelajaran yang dibagikan dari tab Tampilan.";
-"Load more lessons" = "Muat pelajaran lainnya";
-"Loading lessons…" = "Memuat pelajaran…";
-"Looking up lesson…" = "Mencari pelajaran…";
+"Load more videos" = "Muat video lainnya";
+"Loading videos…" = "Memuat video…";
 "Swipe up or down for another video" = "Geser ke atas atau bawah untuk berganti video";
 "Daily viewing limit reached" = "Batas tontonan harian tercapai";
 "Couldn’t play this video" = "Video ini tidak dapat diputar";
 "Video quality adjusts to your connection on supported streams." = "Kualitas video mengikuti koneksi pada streaming yang mendukungnya.";
 "Open video editor" = "Buka editor video";
-"Download lesson" = "Unduh pelajaran";
+"Download video" = "Unduh video";
 "Open video tools" = "Buka alat video";
-"Couldn’t open the lesson" = "Pelajaran tidak dapat dibuka";
+"Couldn’t open the URL" = "URL tidak dapat dibuka";
 "Back to Looks" = "Kembali ke Tampilan";
-"Couldn’t load lesson collections" = "Koleksi pelajaran tidak dapat dimuat";
+"Couldn’t load collections" = "Koleksi tidak dapat dimuat";
 "Makeup guides" = "Panduan rias";
-"Help with links and codes" = "Bantuan tautan dan kode";
-"Clear link or code" = "Hapus tautan atau kode";
-"Recent lessons" = "Pelajaran terbaru";
+"How to open a video URL" = "Cara membuka URL video";
+"Clear URL" = "Hapus URL";
 "Clear history" = "Hapus riwayat";
 "No videos in this collection" = "Koleksi ini belum berisi video";
 "Go back to browse other collections." = "Kembali untuk melihat koleksi lain.";
-"Lesson links and codes" = "Tautan dan kode pelajaran";
-"Enter the link or code" = "Masukkan tautan atau kode";
-"Paste the lesson link or type the short code. Match uppercase and lowercase letters." = "Tempel tautan pelajaran atau ketik kode singkatnya. Perhatikan huruf besar dan kecil.";
-"Swipe up or down to browse videos once the lesson opens." = "Setelah pelajaran terbuka, geser ke atas atau bawah untuk melihat video lain.";
+"Copy the URL" = "Salin URL";
+"Copy the video URL from the share menu or the address bar." = "Salin URL video dari menu bagikan atau bilah alamat.";
+"Paste it here" = "Tempel di sini";
+"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "Tempel URL di halaman Video, lalu ketuk Buka. Ketik persis seperti yang dibagikan, termasuk huruf besar dan kecil.";
+"Once it opens, swipe up or down to browse videos." = "Setelah terbuka, geser ke atas atau bawah untuk melihat video lain.";
 "There’s no playable video here." = "Tidak ada video yang bisa diputar.";
-"Copy a lesson link or short code, then try pasting again." = "Salin tautan pelajaran atau kode singkat, lalu coba tempel lagi.";
-"Connect to Glamo, then try opening the lesson again." = "Hubungkan ke Glamo, lalu coba buka pelajarannya lagi.";
+"Copy a video URL, then try pasting again." = "Salin URL video, lalu coba tempel lagi.";
+"Connect to Glamo, then try opening the URL again." = "Hubungkan ke Glamo, lalu coba buka URL-nya lagi.";
 "Remove this download?" = "Hapus unduhan ini?";
-"This removes the offline copy. Any bookmark stays in Favorites." = "Salinan offline akan dihapus. Jika pelajaran ditandai, pelajaran tetap ada di Favorit.";
+"This removes the offline copy. Any bookmark stays in Favorites." = "Salinan offline akan dihapus. Jika video ditandai, video tetap ada di Favorit.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "File di Glamo akan dihapus. File asli di Foto atau File tetap ada.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ item";
 "No favorites yet" = "Belum ada favorit";
-"Tap the bookmark while watching a lesson to save it here." = "Ketuk ikon penanda saat menonton pelajaran untuk menyimpannya di sini.";
+"Tap Save while watching to keep a video here." = "Ketuk Simpan saat menonton untuk menyimpan video di sini.";
 "No downloads yet" = "Belum ada unduhan";
-"Tap Download on a lesson to watch it offline." = "Ketuk Unduh pada pelajaran agar bisa ditonton offline.";
+"Tap Download while watching to keep a video offline." = "Ketuk Unduh saat menonton agar video bisa ditonton offline.";
 "No exports yet" = "Belum ada hasil ekspor";
 "No imported videos yet" = "Belum ada video yang diimpor";
 "Export a video or audio file from Tools to save it here." = "Ekspor video atau audio dari Alat untuk menyimpannya di sini.";
@@ -753,7 +752,7 @@
 "The rehearsal export could not be created. Please try again." = "Latihan tidak dapat diekspor. Coba lagi.";
 "Watch lessons without daily limits. Save and export your practice." = "Tonton pelajaran tanpa batas harian. Simpan dan ekspor video latihanmu.";
 "Share a recap with your time, mirror checks and notes." = "Bagikan ringkasan berisi waktu, hasil cek, dan catatan.";
-"Unlimited lesson views" = "Tonton tanpa batas";
+"Unlimited video views" = "Tonton video tanpa batas";
 "Unlimited downloads" = "Unduhan tanpa batas";
 "Skip launch ads" = "Tanpa iklan pembuka";
 "Unlimited lesson views and downloads. Export your practice clips." = "Tonton dan unduh pelajaran tanpa batas. Ekspor video latihanmu.";
@@ -785,7 +784,6 @@
 "Trim, crop, change speed or extract audio." = "Pangkas durasi, potong bingkai, ubah kecepatan, atau ekstrak audio.";
 "Recent files" = "File terbaru";
 "All files" = "Semua file";
-"Lessons" = "Pelajaran";
 "Video tools" = "Alat video";
 "Video editor" = "Editor video";
 "Slow down or speed up a video." = "Perlambat atau percepat video.";
@@ -793,7 +791,7 @@
 "Your imported videos will appear here." = "Video yang diimpor akan muncul di sini.";
 "Back to videos" = "Kembali ke Video";
 "Share file" = "Bagikan file";
-"Open a shared link or code from Lessons." = "Buka tautan atau kode yang dibagikan dari Pelajaran.";
+"Paste a shared video URL on the Videos page." = "Tempel URL video yang dibagikan di halaman Video.";
 "MP4 and M4A export" = "Ekspor MP4 dan M4A";
 "Export video up to 1080p or save the audio as M4A." = "Ekspor video hingga 1080p atau simpan audio sebagai M4A.";
 "Processed on your device. Finished files appear in Files under Exports." = "Diproses di perangkat Anda. Hasilnya ada di File, di bagian Ekspor.";

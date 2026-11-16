@@ -135,7 +135,7 @@ struct LanguagePicker: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeading(title: "App language") { dismiss() }
+            SheetHeading { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     LocalizedText("Choose your language").font(.glam(.title2, weight: .semibold))

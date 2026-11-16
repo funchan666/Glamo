@@ -157,7 +157,8 @@
 "Know the game.\nEnjoy every point." = "경기를 알아가고,\n모든 포인트를 즐기세요.";
 "Leave room for contact" = "타점에 공간 만들기";
 "Lesson collections" = "레슨 모음";
-"Lesson link or short code" = "레슨 링크 또는 짧은 코드";
+"Video URL" = "동영상 URL";
+"Paste or enter a video URL" = "동영상 URL을 붙여넣거나 입력하세요";
 "Lesson or collection link" = "레슨 또는 모음 링크";
 "Let it speak. Or don’t." = "소리를 켜거나 끄세요.";
 "Let the ball meet your motion" = "토스를 동작에 맞추기";
@@ -181,7 +182,7 @@
 "More court time." = "더 많은 코트 시간.";
 "Mute" = "음소거";
 "No ad is available right now. %@" = "지금은 광고를 이용할 수 없습니다. %@";
-"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "링크에서 콘텐츠를 찾지 못했습니다. 코드의 대소문자를 확인하거나 나중에 다시 시도하세요.";
+"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "이 URL에서 콘텐츠를 찾지 못했습니다. 대소문자를 확인하거나 나중에 다시 시도하세요.";
 "No lessons are available here yet. Try another search or open a shared lesson link on Home." = "아직 레슨이 없습니다. 다른 검색어를 사용하거나 홈에서 공유받은 레슨 링크를 여세요.";
 "No reward was received. Finish a rewarded ad to get more views." = "보상을 받지 못했습니다. 보상형 광고를 끝까지 시청하면 시청 횟수가 추가됩니다.";
 "Nothing here yet" = "아직 비어 있어요";
@@ -194,8 +195,8 @@
 "One month of Plus" = "Plus 1개월 이용";
 "Online streams stay online. Import a video you own to make an edit." = "온라인 영상은 온라인으로만 재생됩니다. 편집하려면 소유한 영상을 가져오세요.";
 "Open Me and account settings" = "내 정보 및 계정 설정 열기";
-"Open a lesson" = "레슨 열기";
-"Open link" = "링크 열기";
+"Open a video URL" = "동영상 URL 열기";
+"Open" = "열기";
 "Open your next lesson" = "다음 레슨 열기";
 "Opening document…" = "문서 여는 중…";
 "Opening link…" = "링크 여는 중…";
@@ -338,7 +339,7 @@
 "Watch a full ad for %@ more views and %@ more saves." = "광고를 끝까지 보면 시청 %@회와 저장 %@회를 드립니다.";
 "Watch a full ad for unlimited viewing until 5 AM and %@ more saves." = "광고를 끝까지 보면 오전 5시까지 무제한 시청과 저장 %@회를 드립니다.";
 "Watch an ad" = "광고 보기";
-"Watch lessons" = "레슨 보기";
+"Browse videos" = "영상 둘러보기";
 "Watch. Practise. Repeat." = "보고. 연습하고. 반복하세요.";
 "What happens at 40–40?" = "40–40이면 어떻게 될까요?";
 "When reviewing your footage, pause at contact: is there space between the ball and your body?" = "영상을 볼 때 임팩트 순간에 멈춰보세요. 공과 몸 사이에 공간이 있나요?";
@@ -443,7 +444,7 @@
 
 "Follow system" = "시스템 설정 따르기";
 
-"No more lessons are available right now. Try again." = "지금은 더 볼 수 있는 레슨이 없습니다. 다시 시도해 주세요.";
+"No more videos are available right now. Try again." = "지금은 더 볼 수 있는 영상이 없습니다. 다시 시도해 주세요.";
 
 "Another download is being prepared." = "다른 다운로드를 준비하고 있습니다.";
 
@@ -525,7 +526,6 @@
 // Glamo lesson link entry.
 "Glamo link or lesson code" = "Glamo 링크 또는 레슨 코드";
 "Paste" = "붙여넣기";
-"Open lesson" = "레슨 열기";
 "Use a lesson link or code shared through Glamo." = "Glamo를 통해 공유받은 레슨 링크나 코드를 사용하세요.";
 "Copy a Glamo link or lesson code first, then tap Paste." = "먼저 Glamo 링크나 레슨 코드를 복사한 뒤 붙여넣기를 누르세요.";
 "1. Copy a Glamo link" = "1. Glamo 링크 복사";
@@ -609,48 +609,47 @@
 "Connecting to Glamo…" = "Glamo에 연결 중…";
 "Ad privacy choices" = "광고 개인정보 설정";
 "Couldn’t open the Glamo website. Try again." = "Glamo 웹사이트를 열지 못했어요. 다시 시도해 주세요.";
-"Lesson not found" = "레슨을 찾을 수 없어요";
-"Check the link or code with the person who shared it." = "보내 준 사람에게 링크나 코드를 확인해 보세요.";
+"No match found" = "일치하는 항목이 없어요";
+"Check the URL with the person who shared it." = "공유한 사람에게 URL을 확인해 주세요.";
 "Search the web" = "웹에서 검색";
-"Couldn’t load lessons" = "레슨을 불러오지 못했어요";
-"No lessons available" = "볼 수 있는 레슨이 없어요";
+"Couldn’t load videos" = "영상을 불러오지 못했어요";
+"No videos available" = "볼 수 있는 영상이 없어요";
 "You can open a shared lesson link from the Looks tab." = "공유받은 레슨 링크는 메이크업 탭에서 열 수 있어요.";
-"Load more lessons" = "레슨 더 불러오기";
-"Loading lessons…" = "레슨 불러오는 중…";
-"Looking up lesson…" = "레슨 찾는 중…";
+"Load more videos" = "영상 더 불러오기";
+"Loading videos…" = "영상 불러오는 중…";
 "Swipe up or down for another video" = "위아래로 쓸어 넘겨 다른 영상 보기";
 "Daily viewing limit reached" = "일일 시청 한도에 도달했어요";
 "Couldn’t play this video" = "이 영상을 재생하지 못했어요";
 "Video quality adjusts to your connection on supported streams." = "지원되는 스트림은 연결 상태에 맞춰 화질이 조정돼요.";
 "Open video editor" = "영상 편집기 열기";
-"Download lesson" = "레슨 다운로드";
+"Download video" = "영상 다운로드";
 "Open video tools" = "영상 도구 열기";
-"Couldn’t open the lesson" = "레슨을 열지 못했어요";
+"Couldn’t open the URL" = "URL을 열지 못했어요";
 "Back to Looks" = "메이크업으로 돌아가기";
-"Couldn’t load lesson collections" = "레슨 모음을 불러오지 못했어요";
+"Couldn’t load collections" = "모음을 불러오지 못했어요";
 "Makeup guides" = "메이크업 가이드";
-"Help with links and codes" = "링크 및 코드 도움말";
-"Clear link or code" = "링크 또는 코드 지우기";
-"Recent lessons" = "최근 연 레슨";
+"How to open a video URL" = "동영상 URL 여는 방법";
+"Clear URL" = "URL 지우기";
 "Clear history" = "기록 지우기";
 "No videos in this collection" = "이 모음에는 영상이 없어요";
 "Go back to browse other collections." = "뒤로 가서 다른 모음을 둘러보세요.";
-"Lesson links and codes" = "레슨 링크 및 코드";
-"Enter the link or code" = "링크 또는 코드 입력";
-"Paste the lesson link or type the short code. Match uppercase and lowercase letters." = "레슨 링크를 붙여넣거나 짧은 코드를 입력하세요. 대소문자를 구분해 주세요.";
-"Swipe up or down to browse videos once the lesson opens." = "레슨이 열리면 위아래로 쓸어 넘겨 다른 영상을 보세요.";
+"Copy the URL" = "URL 복사하기";
+"Copy the video URL from the share menu or the address bar." = "공유 메뉴나 주소창에서 동영상 URL을 복사하세요.";
+"Paste it here" = "여기에 붙여넣기";
+"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "‘동영상’ 페이지에 URL을 붙여넣고 ‘열기’를 누르세요. 대문자와 소문자까지 공유받은 그대로 입력해 주세요.";
+"Once it opens, swipe up or down to browse videos." = "열리면 위아래로 쓸어 넘겨 영상을 둘러보세요.";
 "There’s no playable video here." = "재생할 수 있는 영상이 없어요.";
-"Copy a lesson link or short code, then try pasting again." = "레슨 링크나 짧은 코드를 복사한 뒤 다시 붙여넣으세요.";
-"Connect to Glamo, then try opening the lesson again." = "Glamo에 연결한 뒤 레슨을 다시 열어 보세요.";
+"Copy a video URL, then try pasting again." = "동영상 URL을 복사한 뒤 다시 붙여넣으세요.";
+"Connect to Glamo, then try opening the URL again." = "Glamo에 연결한 뒤 URL을 다시 열어 보세요.";
 "Remove this download?" = "이 다운로드를 삭제할까요?";
-"This removes the offline copy. Any bookmark stays in Favorites." = "오프라인 사본을 삭제해요. 즐겨찾기에 추가한 레슨은 그대로 남아요.";
+"This removes the offline copy. Any bookmark stays in Favorites." = "오프라인 사본을 삭제해요. 즐겨찾기에 추가한 영상은 그대로 남아요.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "Glamo에서 파일을 삭제해요. 사진이나 파일 앱에 있는 원본은 그대로 남아요.";
 "%@ item" = "%@개";
 "%@ items" = "%@개";
 "No favorites yet" = "즐겨찾기가 아직 없어요";
-"Tap the bookmark while watching a lesson to save it here." = "레슨을 보는 중에 북마크를 누르면 여기에 저장돼요.";
+"Tap Save while watching to keep a video here." = "영상을 보는 중에 저장을 누르면 여기에 모여요.";
 "No downloads yet" = "아직 다운로드한 영상이 없어요";
-"Tap Download on a lesson to watch it offline." = "레슨에서 다운로드를 누르면 오프라인으로 볼 수 있어요.";
+"Tap Download while watching to keep a video offline." = "영상을 보는 중에 다운로드를 누르면 오프라인으로 볼 수 있어요.";
 "No exports yet" = "내보낸 파일이 아직 없어요";
 "No imported videos yet" = "가져온 영상이 아직 없어요";
 "Export a video or audio file from Tools to save it here." = "도구에서 영상이나 오디오를 내보내면 여기에 저장돼요.";
@@ -753,7 +752,7 @@
 "The rehearsal export could not be created. Please try again." = "연습 기록을 내보내지 못했어요. 다시 시도해 주세요.";
 "Watch lessons without daily limits. Save and export your practice." = "일일 한도 없이 레슨을 보고 연습 영상을 저장하고 내보내세요.";
 "Share a recap with your time, mirror checks and notes." = "소요 시간과 거울 체크 결과, 메모를 요약해 공유할 수 있어요.";
-"Unlimited lesson views" = "레슨 무제한 시청";
+"Unlimited video views" = "영상 무제한 시청";
 "Unlimited downloads" = "무제한 다운로드";
 "Skip launch ads" = "앱 시작 광고 없음";
 "Unlimited lesson views and downloads. Export your practice clips." = "레슨을 제한 없이 보고 다운로드하세요. 연습 영상도 내보낼 수 있어요.";
@@ -785,7 +784,6 @@
 "Trim, crop, change speed or extract audio." = "길이나 화면을 자르고, 속도를 바꾸거나 오디오를 추출하세요.";
 "Recent files" = "최근 파일";
 "All files" = "모든 파일";
-"Lessons" = "레슨";
 "Video tools" = "동영상 도구";
 "Video editor" = "동영상 편집기";
 "Slow down or speed up a video." = "동영상을 느리게 또는 빠르게 재생하세요.";
@@ -793,7 +791,7 @@
 "Your imported videos will appear here." = "가져온 동영상이 여기에 표시됩니다.";
 "Back to videos" = "동영상으로 돌아가기";
 "Share file" = "파일 공유";
-"Open a shared link or code from Lessons." = "레슨에서 공유받은 링크나 코드를 열 수 있습니다.";
+"Paste a shared video URL on the Videos page." = "‘동영상’ 페이지에 공유받은 동영상 URL을 붙여넣으세요.";
 "MP4 and M4A export" = "MP4 및 M4A 내보내기";
 "Export video up to 1080p or save the audio as M4A." = "동영상을 최대 1080p로 내보내거나 오디오를 M4A로 저장하세요.";
 "Processed on your device. Finished files appear in Files under Exports." = "기기에서 처리합니다. 완성된 파일은 파일 탭의 내보내기에서 확인할 수 있습니다.";

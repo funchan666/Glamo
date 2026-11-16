@@ -157,7 +157,8 @@
 "Know the game.\nEnjoy every point." = "Know the game.\nEnjoy every point.";
 "Leave room for contact" = "Leave room for contact";
 "Lesson collections" = "Lesson collections";
-"Lesson link or short code" = "Lesson link or short code";
+"Video URL" = "Video URL";
+"Paste or enter a video URL" = "Paste or enter a video URL";
 "Lesson or collection link" = "Lesson or collection link";
 "Let it speak. Or don’t." = "Let it speak. Or don’t.";
 "Let the ball meet your motion" = "Let the ball meet your motion";
@@ -181,7 +182,7 @@
 "More court time." = "More court time.";
 "Mute" = "Mute";
 "No ad is available right now. %@" = "No ad is available right now. %@";
-"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later.";
+"No content was returned for this link. Check the code, including uppercase and lowercase letters, or try again later." = "No content was returned for this URL. Check it, including uppercase and lowercase letters, or try again later.";
 "No lessons are available here yet. Try another search or open a shared lesson link on Home." = "No lessons are available here yet. Try another search or open a shared lesson link on Home.";
 "No reward was received. Finish a rewarded ad to get more views." = "No reward was received. Finish a rewarded ad to get more views.";
 "Nothing here yet" = "Nothing here yet";
@@ -194,8 +195,8 @@
 "One month of Plus" = "One month of Plus";
 "Online streams stay online. Import a video you own to make an edit." = "Online streams stay online. Import a video you own to make an edit.";
 "Open Me and account settings" = "Open Me and account settings";
-"Open a lesson" = "Open a lesson";
-"Open link" = "Open link";
+"Open a video URL" = "Open a video URL";
+"Open" = "Open";
 "Open your next lesson" = "Open your next lesson";
 "Opening document…" = "Opening document…";
 "Opening link…" = "Opening link…";
@@ -338,7 +339,7 @@
 "Watch a full ad for %@ more views and %@ more saves." = "Watch a full ad for %@ more views and %@ more saves.";
 "Watch a full ad for unlimited viewing until 5 AM and %@ more saves." = "Watch a full ad for unlimited viewing until 5 AM and %@ more saves.";
 "Watch an ad" = "Watch an ad";
-"Watch lessons" = "Watch lessons";
+"Browse videos" = "Browse videos";
 "Watch. Practise. Repeat." = "Watch. Practise. Repeat.";
 "What happens at 40–40?" = "What happens at 40–40?";
 "When reviewing your footage, pause at contact: is there space between the ball and your body?" = "When reviewing your footage, pause at contact: is there space between the ball and your body?";
@@ -443,7 +444,7 @@
 
 "Follow system" = "Follow system";
 
-"No more lessons are available right now. Try again." = "No more lessons are available right now. Try again.";
+"No more videos are available right now. Try again." = "No more videos are available right now. Try again.";
 
 "Another download is being prepared." = "Another download is being prepared.";
 
@@ -525,7 +526,6 @@
 // Glamo lesson link entry.
 "Glamo link or lesson code" = "Glamo link or lesson code";
 "Paste" = "Paste";
-"Open lesson" = "Open lesson";
 "Use a lesson link or code shared through Glamo." = "Use a lesson link or code shared through Glamo.";
 "Copy a Glamo link or lesson code first, then tap Paste." = "Copy a Glamo link or lesson code first, then tap Paste.";
 "1. Copy a Glamo link" = "1. Copy a Glamo link";
@@ -609,48 +609,47 @@
 "Connecting to Glamo…" = "Connecting to Glamo…";
 "Ad privacy choices" = "Ad privacy choices";
 "Couldn’t open the Glamo website. Try again." = "Couldn’t open the Glamo website. Try again.";
-"Lesson not found" = "Lesson not found";
-"Check the link or code with the person who shared it." = "Check the link or code with the person who shared it.";
+"No match found" = "No match found";
+"Check the URL with the person who shared it." = "Check the URL with the person who shared it.";
 "Search the web" = "Search the web";
-"Couldn’t load lessons" = "Couldn’t load lessons";
-"No lessons available" = "No lessons available";
+"Couldn’t load videos" = "Couldn’t load videos";
+"No videos available" = "No videos available";
 "You can open a shared lesson link from the Looks tab." = "You can open a shared lesson link from the Looks tab.";
-"Load more lessons" = "Load more lessons";
-"Loading lessons…" = "Loading lessons…";
-"Looking up lesson…" = "Looking up lesson…";
+"Load more videos" = "Load more videos";
+"Loading videos…" = "Loading videos…";
 "Swipe up or down for another video" = "Swipe up or down for another video";
 "Daily viewing limit reached" = "Daily viewing limit reached";
 "Couldn’t play this video" = "Couldn’t play this video";
 "Video quality adjusts to your connection on supported streams." = "Video quality adjusts to your connection on supported streams.";
 "Open video editor" = "Open video editor";
-"Download lesson" = "Download lesson";
+"Download video" = "Download video";
 "Open video tools" = "Open video tools";
-"Couldn’t open the lesson" = "Couldn’t open the lesson";
+"Couldn’t open the URL" = "Couldn’t open the URL";
 "Back to Looks" = "Back to Looks";
-"Couldn’t load lesson collections" = "Couldn’t load lesson collections";
+"Couldn’t load collections" = "Couldn’t load collections";
 "Makeup guides" = "Makeup guides";
-"Help with links and codes" = "Help with links and codes";
-"Clear link or code" = "Clear link or code";
-"Recent lessons" = "Recent lessons";
+"How to open a video URL" = "How to open a video URL";
+"Clear URL" = "Clear URL";
 "Clear history" = "Clear history";
 "No videos in this collection" = "No videos in this collection";
 "Go back to browse other collections." = "Go back to browse other collections.";
-"Lesson links and codes" = "Lesson links and codes";
-"Enter the link or code" = "Enter the link or code";
-"Paste the lesson link or type the short code. Match uppercase and lowercase letters." = "Paste the lesson link or type the short code. Match uppercase and lowercase letters.";
-"Swipe up or down to browse videos once the lesson opens." = "Swipe up or down to browse videos once the lesson opens.";
+"Copy the URL" = "Copy the URL";
+"Copy the video URL from the share menu or the address bar." = "Copy the video URL from the share menu or the address bar.";
+"Paste it here" = "Paste it here";
+"Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters." = "Paste the URL on the Videos page, then tap Open. Enter it exactly as shared, including uppercase and lowercase letters.";
+"Once it opens, swipe up or down to browse videos." = "Once it opens, swipe up or down to browse videos.";
 "There’s no playable video here." = "There’s no playable video here.";
-"Copy a lesson link or short code, then try pasting again." = "Copy a lesson link or short code, then try pasting again.";
-"Connect to Glamo, then try opening the lesson again." = "Connect to Glamo, then try opening the lesson again.";
+"Copy a video URL, then try pasting again." = "Copy a video URL, then try pasting again.";
+"Connect to Glamo, then try opening the URL again." = "Connect to Glamo, then try opening the URL again.";
 "Remove this download?" = "Remove this download?";
 "This removes the offline copy. Any bookmark stays in Favorites." = "This removes the offline copy. Any bookmark stays in Favorites.";
 "This deletes the file from Glamo. Any original in Photos or Files stays there." = "This deletes the file from Glamo. Any original in Photos or Files stays there.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ items";
 "No favorites yet" = "No favorites yet";
-"Tap the bookmark while watching a lesson to save it here." = "Tap the bookmark while watching a lesson to save it here.";
+"Tap Save while watching to keep a video here." = "Tap Save while watching to keep a video here.";
 "No downloads yet" = "No downloads yet";
-"Tap Download on a lesson to watch it offline." = "Tap Download on a lesson to watch it offline.";
+"Tap Download while watching to keep a video offline." = "Tap Download while watching to keep a video offline.";
 "No exports yet" = "No exports yet";
 "No imported videos yet" = "No imported videos yet";
 "Export a video or audio file from Tools to save it here." = "Export a video or audio file from Tools to save it here.";
@@ -753,7 +752,7 @@
 "The rehearsal export could not be created. Please try again." = "The rehearsal export could not be created. Please try again.";
 "Watch lessons without daily limits. Save and export your practice." = "Watch lessons without daily limits. Save and export your practice.";
 "Share a recap with your time, mirror checks and notes." = "Share a recap with your time, mirror checks and notes.";
-"Unlimited lesson views" = "Unlimited lesson views";
+"Unlimited video views" = "Unlimited video views";
 "Unlimited downloads" = "Unlimited downloads";
 "Skip launch ads" = "Skip launch ads";
 "Unlimited lesson views and downloads. Export your practice clips." = "Unlimited lesson views and downloads. Export your practice clips.";
@@ -785,7 +784,6 @@
 "Trim, crop, change speed or extract audio." = "Trim, crop, change speed or extract audio.";
 "Recent files" = "Recent files";
 "All files" = "All files";
-"Lessons" = "Lessons";
 "Video tools" = "Video tools";
 "Video editor" = "Video editor";
 "Slow down or speed up a video." = "Slow down or speed up a video.";
@@ -793,7 +791,7 @@
 "Your imported videos will appear here." = "Your imported videos will appear here.";
 "Back to videos" = "Back to videos";
 "Share file" = "Share file";
-"Open a shared link or code from Lessons." = "Open a shared link or code from Lessons.";
+"Paste a shared video URL on the Videos page." = "Paste a shared video URL on the Videos page.";
 "MP4 and M4A export" = "MP4 and M4A export";
 "Export video up to 1080p or save the audio as M4A." = "Export video up to 1080p or save the audio as M4A.";
 "Processed on your device. Finished files appear in Files under Exports." = "Processed on your device. Finished files appear in Files under Exports.";
