@@ -530,6 +530,8 @@
 "On this device" = "このデバイス上";
 "Play queue" = "再生キュー";
 "Now playing" = "再生中";
+"Current file" = "現在のファイル";
+"Locate current file" = "現在のファイルへ移動";
 "Duration · %@" = "再生時間 · %@";
 "Expanded" = "展開中";
 "Collapsed" = "折りたたみ中";

@@ -530,6 +530,8 @@
 "On this device" = "Di perangkat ini";
 "Play queue" = "Antrean pemutaran";
 "Now playing" = "Sedang diputar";
+"Current file" = "File saat ini";
+"Locate current file" = "Lompat ke file saat ini";
 "Duration · %@" = "Durasi · %@";
 "Expanded" = "Diperluas";
 "Collapsed" = "Diciutkan";

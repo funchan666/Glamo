@@ -530,6 +530,8 @@
 "On this device" = "On this device";
 "Play queue" = "Play queue";
 "Now playing" = "Now playing";
+"Current file" = "Current file";
+"Locate current file" = "Locate current file";
 "Duration · %@" = "Duration · %@";
 "Expanded" = "Expanded";
 "Collapsed" = "Collapsed";

@@ -146,28 +146,37 @@ struct DrivePlayerView: View {
                 max(128, min(availableHeight * 0.58, width * (queueBesideVideo ? 0.42 : 0.68)))
             }
             if let movie = library.movies.first(where: { $0.id == session.currentID }) {
-                VStack(spacing: 0) {
-                    playerHeader(movie, showsFileTitle: titleInHeader)
-                        .pageHorizontalMargins().padding(.vertical, 6)
-                        .frame(maxWidth: 1100).frame(maxWidth: .infinity)
-                        .background(GlamoStyle.background, ignoresSafeAreaEdges: .top)
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+                let showsQueue = !cinema && files.count > 1
+                ScrollViewReader { scroll in
+                    let locateCurrent = { scroll.scrollTo(movie.id) }
+                    let locateInHeader = showsQueue && showingQueue && width >= 260
 
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if !titleInHeader { fileTitle(movie) }
-                            layout {
-                                playbackPanel(movie, files: files, height: stageHeight, railWidth: railWidth)
-                                if !cinema, files.count > 1 {
-                                    queue(files).frame(maxWidth: queueBesideVideo ? 300 : .infinity, alignment: .leading)
+                    VStack(spacing: 0) {
+                        playerHeader(movie, showsFileTitle: titleInHeader, locateCurrent: locateInHeader ? locateCurrent : nil)
+                            .pageHorizontalMargins().padding(.vertical, 6)
+                            .frame(maxWidth: 1100).frame(maxWidth: .infinity)
+                            .background(GlamoStyle.background, ignoresSafeAreaEdges: .top)
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 12) {
+                                if !titleInHeader { fileTitle(movie) }
+                                layout {
+                                    playbackPanel(movie, files: files, height: stageHeight, railWidth: railWidth)
+                                    if showsQueue {
+                                        DrivePlayerQueue(playback: session.playback, isExpanded: $showingQueue,
+                                                         files: files, current: movie, select: session.select,
+                                                         locateCurrent: locateCurrent)
+                                            .frame(maxWidth: queueBesideVideo ? 300 : .infinity, alignment: .leading)
+                                    }
                                 }
                             }
+                            .pageHorizontalMargins()
+                            .padding(.top, topPadding).padding(.bottom, bottomPadding)
+                            .frame(maxWidth: cinema && railWidth == nil ? .infinity : 1100).frame(maxWidth: .infinity)
                         }
-                        .pageHorizontalMargins()
-                        .padding(.top, topPadding).padding(.bottom, bottomPadding)
-                        .frame(maxWidth: cinema && railWidth == nil ? .infinity : 1100).frame(maxWidth: .infinity)
+                        .scrollBounceBehavior(.basedOnSize)
                     }
-                    .scrollBounceBehavior(.basedOnSize)
                 }
                 .padding(pane)
             }
@@ -197,13 +206,18 @@ struct DrivePlayerView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func playerHeader(_ movie: PracticeRecording, showsFileTitle: Bool) -> some View {
+    private func playerHeader(_ movie: PracticeRecording, showsFileTitle: Bool,
+                              locateCurrent: (() -> Void)?) -> some View {
         HStack(spacing: 10) {
             minimizeButton.layoutPriority(1)
             if showsFileTitle {
                 fileTitle(movie)
             } else {
                 Spacer(minLength: 0)
+            }
+            if let locateCurrent {
+                IconButton(symbol: .driveList, label: "Locate current file", glass: true, action: locateCurrent)
+                    .fixedSize()
             }
             IconButton(symbol: .driveMore, label: "File options", glass: true) { fileOptions = movie }
                 .fixedSize()
@@ -254,28 +268,79 @@ struct DrivePlayerView: View {
         .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
 
-    private func queue(_ files: [PracticeRecording]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button { showingQueue.toggle() } label: {
+private struct DrivePlayerQueue: View {
+    @ObservedObject var playback: PlaybackController
+    @Binding var isExpanded: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
+    let files: [PracticeRecording]
+    let current: PracticeRecording
+    let select: (PracticeRecording) -> Void
+    let locateCurrent: () -> Void
+
+    private var currentStatus: String {
+        if playback.error != nil { return "Playback failed" }
+        if playback.isLoading { return "Loading…" }
+        return playback.isPlaying ? "Now playing" : "Current file"
+    }
+
+    var body: some View {
+        let status = currentStatus
+        let summary = VStack(alignment: .leading, spacing: 3) {
+            Text(verbatim: current.displayName)
+                .font(.glam(.subheadline, weight: .medium)).foregroundStyle(GlamoStyle.ink)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
+            LocalizedText(status)
+                .font(.glam(.footnote, weight: .semibold)).foregroundStyle(GlamoStyle.accent)
+        }
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        let locateButton = Button(action: locateCurrent) {
+            LocalizedText("Locate current file")
+        }
+        .buttonStyle(CompactActionStyle())
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Button { isExpanded.toggle() } label: {
                 HStack(spacing: 10) {
-                    LocalizedText("Play queue").font(.glam(.headline))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 4) {
+                        LocalizedText("Play queue").font(.glam(.headline))
+                        if !isExpanded {
+                            summary
+                        }
+                    }
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     Glyph(symbol: .back, size: 13, tint: GlamoStyle.accent)
-                        .rotationEffect(.degrees(showingQueue ? 90 : -90))
+                        .rotationEffect(.degrees(isExpanded ? 90 : -90))
+                        .accessibilityHidden(true)
                 }.frame(minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(PressStyle())
-            .accessibilityValue(Text(LocalizedStringKey(showingQueue ? "Expanded" : "Collapsed")))
-            if showingQueue {
+            .accessibilityValue(Text(LocalizedStringKey(isExpanded ? "Expanded" : "Collapsed")))
+            if isExpanded {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        summary
+                        locateButton
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        summary
+                        locateButton
+                    }
+                }
                 Divider().overlay(GlamoStyle.line).allowsHitTesting(false)
                 LazyVStack(spacing: 4) {
                     ForEach(files) { file in
-                        let active = file.id == session.currentID
-                        Button { session.select(file) } label: {
-                            DriveQueueRow(file: file, active: active)
-                        }.buttonStyle(PressStyle()).accessibilityAddTraits(active ? .isSelected : [])
+                        let active = file.id == current.id
+                        Button { select(file) } label: {
+                            DriveQueueRow(file: file, currentStatus: active ? status : nil)
+                        }
+                        .buttonStyle(PressStyle()).accessibilityAddTraits(active ? .isSelected : [])
+                        .id(file.id)
                     }
                 }
             }
@@ -291,13 +356,14 @@ private struct DriveQueueRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var measuredDuration: Double?
     let file: PracticeRecording
-    let active: Bool
+    let currentStatus: String?
 
     private var storedDuration: Double? {
         [file.duration, file.viewing?.duration].compactMap { $0 }.first { $0.isFinite && $0 > 0 }
     }
 
     var body: some View {
+        let active = currentStatus != nil
         let duration = (storedDuration ?? measuredDuration).map(durationLabel)
             ?? L10n.text("Unavailable", language: AppLanguage.from(locale))
         HStack(alignment: .top, spacing: 10) {
@@ -306,14 +372,10 @@ private struct DriveQueueRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             VStack(alignment: .leading, spacing: 4) {
-                if active {
-                    Label {
-                        LocalizedText("Now playing").font(.glam(.footnote, weight: .semibold))
-                    } icon: {
-                        Glyph(symbol: .play, size: 11, tint: GlamoStyle.accent)
-                    }
-                    .foregroundStyle(GlamoStyle.accent)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let currentStatus {
+                    LocalizedText(currentStatus)
+                        .font(.glam(.footnote, weight: .semibold)).foregroundStyle(GlamoStyle.accent)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(verbatim: file.displayName)
                     .font(.glam(.subheadline, weight: active ? .semibold : .regular))
@@ -344,6 +406,7 @@ private struct DriveQueueRow: View {
 
 private struct DrivePlayerStage: View {
     @ObservedObject var playback: PlaybackController
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var phase
     let movie: PracticeRecording
@@ -418,22 +481,30 @@ private struct DrivePlayerStage: View {
 
     private var loadingNotice: some View {
         let animates = !reduceMotion && phase == .active
-        return HStack(spacing: 8) {
-            AssetMask(name: "GlamoLoadingMark", tint: GlamoStyle.accent)
-                .frame(width: 24, height: 24)
-                .phaseAnimator([false, true]) { content, dimmed in
-                    content.opacity(animates && dimmed ? 0.45 : 1)
-                } animation: { _ in
-                    animates ? .easeInOut(duration: 0.6) : nil
-                }
-                .accessibilityHidden(true)
-            LocalizedText("Loading…")
-                .font(.glam(.subheadline, weight: .semibold))
-                .foregroundStyle(GlamoStyle.ink)
-                .fixedSize(horizontal: false, vertical: true)
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(verbatim: movie.displayName)
+                .font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
+                .lineLimit(typeSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
+            HStack(spacing: 6) {
+                AssetMask(name: "GlamoLoadingMark", tint: GlamoStyle.accent)
+                    .frame(width: 22, height: 22)
+                    .phaseAnimator([false, true]) { content, dimmed in
+                        content.opacity(animates && dimmed ? 0.45 : 1)
+                    } animation: { _ in
+                        animates ? .easeInOut(duration: 0.6) : nil
+                    }
+                    .accessibilityHidden(true)
+                LocalizedText("Loading…")
+                    .font(.glam(.footnote, weight: .semibold))
+                    .foregroundStyle(GlamoStyle.secondary)
+            }
         }
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: 340, alignment: .leading)
         .padding(.horizontal, 14).padding(.vertical, 10)
         .glamoGlass(in: RoundedRectangle(cornerRadius: 14), tint: GlamoStyle.paper, mediaBackdrop: true)
+        .accessibilityElement(children: .combine)
         .allowsHitTesting(false)
     }
 

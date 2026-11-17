@@ -530,6 +530,8 @@
 "On this device" = "على هذا الجهاز";
 "Play queue" = "قائمة التشغيل";
 "Now playing" = "قيد التشغيل";
+"Current file" = "الملف الحالي";
+"Locate current file" = "انتقل إلى الملف الحالي";
 "Duration · %@" = "المدة · %@";
 "Expanded" = "موسّع";
 "Collapsed" = "مطوي";

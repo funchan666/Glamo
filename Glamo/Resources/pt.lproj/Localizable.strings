@@ -530,6 +530,8 @@
 "On this device" = "Neste dispositivo";
 "Play queue" = "Fila de reprodução";
 "Now playing" = "Em reprodução";
+"Current file" = "Ficheiro atual";
+"Locate current file" = "Ir para o ficheiro atual";
 "Duration · %@" = "Duração · %@";
 "Expanded" = "Expandida";
 "Collapsed" = "Recolhida";

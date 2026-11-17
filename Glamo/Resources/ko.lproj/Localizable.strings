@@ -530,6 +530,8 @@
 "On this device" = "이 기기에 저장됨";
 "Play queue" = "재생 대기열";
 "Now playing" = "재생 중";
+"Current file" = "현재 파일";
+"Locate current file" = "현재 파일로 이동";
 "Duration · %@" = "재생 시간 · %@";
 "Expanded" = "펼쳐짐";
 "Collapsed" = "접힘";
