@@ -116,7 +116,7 @@ struct GlamoStartupView: View {
         }
         .background(Color("LaunchBackground").ignoresSafeArea())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Opening Glamo…")
+        .accessibilityLabel("Opening Vifol…")
     }
 
     private var loadingMark: some View {
@@ -145,7 +145,7 @@ enum GlamoTab: Int, CaseIterable, Hashable {
     var name: String {
         switch self {
         case .files: "Files"
-        case .recent: "Recent"
+        case .recent: "Home"
         case .profile: "Profile"
         }
     }
@@ -160,7 +160,11 @@ enum GlamoTab: Int, CaseIterable, Hashable {
 }
 
 struct GlamoRootView: View {
-    private enum Destination: Hashable { case search, activity }
+    private enum Destination: Hashable {
+        case search
+        case activity
+        case history(DriveRecentView.History)
+    }
 
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
@@ -171,13 +175,14 @@ struct GlamoRootView: View {
     @StateObject private var player = DrivePlaybackSession()
     @State private var destinations: [Destination] = []
     @State private var searching = false
+    @State private var folderOpen = false
     @State private var activityFilter = DriveActivityFilter.all
 
     var body: some View {
         GeometryReader { container in
             let pane = drivePaneMargins(in: container, includesHorizontalFold: true)
             let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
-            let isMainPage = destinations.isEmpty
+            let isMainPage = destinations.isEmpty && (tab != .files || !folderOpen)
             let hidesMiniPlayer = destinations.last == .search && searching
             NavigationStack(path: $destinations) {
                 tabs
@@ -198,7 +203,7 @@ struct GlamoRootView: View {
                         if isMainPage {
                             GlamoTabDock(selection: $tab,
                                          compact: container.size.height - pane.top - pane.bottom < 420)
-                                .pageHorizontalMargins()
+                                .padding(.horizontal, DriveStyle.pageInset)
                         }
                     }
                     .padding(.vertical, 5)
@@ -207,8 +212,7 @@ struct GlamoRootView: View {
             }
             .padding(pane)
         }
-        .glamoScreenBackground(GlamoStyle.background)
-        .foregroundStyle(GlamoStyle.ink)
+        .driveScreenBackground()
         .fullScreenCover(isPresented: $player.expanded) { DrivePlayerView(session: player) }
         .onReceive(player.playback.$isPlaying.removeDuplicates()) { playing in
             if playing { player.markStarted() }
@@ -241,13 +245,12 @@ struct GlamoRootView: View {
 
     private var tabs: some View {
         TabView(selection: $tab) {
-            DriveRecentView(play: open, pausePlayback: player.pause, browse: openFiles, search: openFileSearch,
-                            showActivity: { openActivity(.all) }, showProfile: { tab = .profile })
+            recentPage()
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.recent) }.tag(GlamoTab.recent)
             DriveBrowser(surface: .files(search: openFileSearch, profile: { tab = .profile }),
                          isSearching: .constant(false), play: open, pausePlayback: player.pause,
-                         showActivity: { openActivity(.imports) })
+                         showActivity: { openActivity(.imports) }, folderVisibility: { folderOpen = $0 })
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
             AccountView(browse: openFiles, showActivity: { openActivity(.all) })
@@ -265,14 +268,23 @@ struct GlamoRootView: View {
                          play: open, pausePlayback: player.pause, showActivity: { openActivity(.imports) })
         case .activity:
             DriveActivityView(filter: $activityFilter, play: open, browse: openFiles, back: closeDestination)
+        case .history(let history):
+            recentPage(history)
         }
+    }
+
+    private func recentPage(_ history: DriveRecentView.History? = nil) -> some View {
+        DriveRecentView(history: history, play: open, pausePlayback: player.pause, browse: openFiles,
+                        search: openFileSearch, showActivity: { openActivity(.all) },
+                        showProfile: { tab = .profile }, showHistory: { destinations.append(.history($0)) },
+                        back: closeDestination)
     }
 
     private func dockClearance(in container: GeometryProxy, pane: EdgeInsets, includesPlayer: Bool) -> CGFloat {
         guard #available(iOS 27.1, *) else { return 0 }
         let width = max(0, container.size.width - pane.leading - pane.trailing)
         let bottom = container.size.height - pane.bottom
-        let dockWidth = min(width, includesPlayer ? 560 : 400)
+        let dockWidth = min(width, includesPlayer ? 560 : DriveStyle.tabWidth)
         let dockHeight = min(max(0, bottom - pane.top), includesPlayer ? 144 : 84)
         let band = CGRect(x: pane.leading + (width - dockWidth) / 2, y: bottom - dockHeight,
                           width: dockWidth, height: dockHeight)
@@ -317,7 +329,7 @@ private struct GlamoTabDock: View {
     @Namespace private var indicator
 
     var body: some View {
-        let labelLayout = compact ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(spacing: 3))
+        let labelLayout = compact ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(spacing: 2))
         HStack(spacing: 3) {
             ForEach(GlamoTab.allCases, id: \.self) { item in
                 let selected = selection == item
@@ -326,18 +338,18 @@ private struct GlamoTabDock: View {
                         Image(item.symbol.assetName).renderingMode(.template).resizable().scaledToFit()
                             .frame(width: 20, height: 20)
                             .accessibilityHidden(true)
-                        LocalizedText(item.name).font(.glam(.caption, weight: selected ? .semibold : .medium))
+                        LocalizedText(item.name).driveFont(10, relativeTo: .caption2, weight: .medium)
                             .multilineTextAlignment(.center)
                             .lineLimit(2).minimumScaleFactor(0.8)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 4)
                     .padding(.vertical, 5)
-                    .frame(minWidth: 44, maxWidth: .infinity, minHeight: 48)
-                    .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.secondary)
+                    .frame(minWidth: 44, maxWidth: .infinity, minHeight: compact ? 44 : 56)
+                    .foregroundStyle(selected ? DriveStyle.accent : DriveStyle.ink)
                     .background {
                         if selected {
-                            Capsule().fill(GlamoStyle.paperMuted)
+                            Capsule().fill(DriveStyle.selectedTab)
                                 .matchedGeometryEffect(id: "selected", in: indicator)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
@@ -351,8 +363,8 @@ private struct GlamoTabDock: View {
             }
         }
         .padding(4)
-        .frame(maxWidth: 400)
-        .glamoGlass(in: Capsule(), tint: GlamoStyle.surface)
+        .frame(maxWidth: DriveStyle.tabWidth)
+        .glamoGlass(in: Capsule(), tint: .white)
         .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selection)
     }
@@ -368,10 +380,10 @@ struct ConnectionPanel: View {
     var body: some View {
         VStack(spacing: 16) {
             if let error {
-                MessagePanel(title: "Couldn’t connect to Glamo", message: error)
+                MessagePanel(title: "Couldn’t connect to Vifol", message: error)
                 ActionButton(title: "Try again", busy: connecting) { attempt += 1 }
             } else {
-                AccountLoadingIndicator(title: "Connecting to Glamo…")
+                AccountLoadingIndicator(title: "Connecting to Vifol…")
             }
             PolicyLinks()
         }

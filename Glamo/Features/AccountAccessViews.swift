@@ -288,12 +288,8 @@ struct PolicyWebView: UIViewRepresentable {
 }
 
 struct AccountSettingsSection: View {
-    let localItemCount: Int
-    let browse: () -> Void
     let showActivity: () -> Void
     @Environment(\.openURL) private var openURL
-    @Environment(\.locale) private var locale
-    @Environment(\.layoutDirection) private var layoutDirection
     @State private var websiteError: String?
     @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
     @State private var languagePicker = false
@@ -308,92 +304,69 @@ struct AccountSettingsSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(spacing: 0) {
-                Button(action: browse) {
-                    localLibrary
-                }.buttonStyle(PressStyle())
-                rowDivider
                 Button(action: showActivity) {
-                    AccountMenuRow(title: "Activity", symbol: .driveActivity)
-                }.buttonStyle(PressStyle())
+                    AccountMenuRow(title: "Activity", symbol: .driveActivity,
+                                   tint: Color(red: 0.15, green: 0.71, blue: 0.90))
+                }
                 rowDivider
                 Button { languagePicker = true } label: {
                     AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system",
                                    symbol: .driveSettings)
-                }.buttonStyle(PressStyle())
-                    .accessibilityIdentifier("account.language")
-            }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
-            if hasPolicyLinks || ads.privacyOptionsRequired {
-                VStack(alignment: .leading, spacing: 8) {
-                    LocalizedText("Privacy & terms").font(.glam(.headline))
-                        .accessibilityAddTraits(.isHeader)
-                    VStack(spacing: 0) {
-                        if let url = api.configuration.privacyURL {
-                            Button { document = PolicyDocument(title: "Privacy Policy", url: url) } label: {
-                                AccountMenuRow(title: "Privacy Policy")
-                            }
-                        }
-                        if let url = api.configuration.termsURL {
-                            if api.configuration.privacyURL != nil { rowDivider }
-                            Button { document = PolicyDocument(title: "Terms of Use", url: url) } label: {
-                                AccountMenuRow(title: "Terms of Use")
-                            }
-                        }
-                        if let website = api.configuration.websiteURL {
-                            if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
-                            Button {
-                                websiteError = nil
-                                openURL(website) { accepted in
-                                    if !accepted { websiteError = "Couldn’t open the Glamo website. Try again." }
-                                }
-                            } label: {
-                                AccountMenuRow(title: "Official website")
-                            }.accessibilityIdentifier("account.officialWebsite")
-                        }
-                        if ads.privacyOptionsRequired {
-                            if hasPolicyLinks { rowDivider }
-                            Button { Task { await ads.privacyOptions() } } label: {
-                                AccountMenuRow(title: "Ad privacy choices")
-                            }.disabled(!ads.canOpenPrivacyOptions)
-                                .accessibilityIdentifier("account.adPrivacyChoices")
-                        }
-                    }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
-                        .buttonStyle(PressStyle()).disabled(unavailable)
+                }.accessibilityIdentifier("account.language")
+                if hasPolicyLinks || ads.privacyOptionsRequired {
+                    rowDivider
+                    policyRows.disabled(unavailable)
                 }
             }
+            .buttonStyle(PressStyle())
+            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
             if let websiteError { ErrorNote(message: websiteError) }
             if let error = ads.error { ErrorNote(message: error) }
         }
-            .sheet(item: $document) { PolicyBrowser(document: $0) }
-            .sheet(isPresented: $languagePicker) { LanguagePicker() }
+        .sheet(item: $document) { PolicyBrowser(document: $0) }
+        .sheet(isPresented: $languagePicker) { LanguagePicker() }
     }
 
-    private var localLibrary: some View {
-        HStack(spacing: 10) {
-            Glyph(symbol: .driveFolder, size: 22, tint: GlamoStyle.accent)
-                .frame(width: 32, height: 32)
-                .background(GlamoStyle.paperMuted, in: RoundedRectangle(cornerRadius: 8))
-            VStack(alignment: .leading, spacing: 3) {
-                LocalizedText("On this device").font(.glam(.subheadline, weight: .semibold))
-                LocalizedText(localItemCount == 1 ? "%@ item" : "%@ items",
-                              localItemCount.formatted(.number.locale(locale)))
-                    .font(.glam(.caption)).monospacedDigit()
-                    .foregroundStyle(GlamoStyle.secondary)
-            }.fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
-                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
-                .frame(width: 20, height: 24)
+    @ViewBuilder
+    private var policyRows: some View {
+        if let url = api.configuration.privacyURL {
+            Button { document = PolicyDocument(title: "Privacy Policy", url: url) } label: {
+                AccountMenuRow(title: "Privacy Policy", symbol: .driveList,
+                               tint: Color(red: 0.18, green: 0.67, blue: 0.40))
+            }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        if let url = api.configuration.termsURL {
+            if api.configuration.privacyURL != nil { rowDivider }
+            Button { document = PolicyDocument(title: "Terms of Use", url: url) } label: {
+                AccountMenuRow(title: "Terms of Use", symbol: .driveList,
+                               tint: Color(red: 0.90, green: 0.24, blue: 0.29))
+            }
+        }
+        if let website = api.configuration.websiteURL {
+            if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
+            Button {
+                websiteError = nil
+                openURL(website) { accepted in
+                    if !accepted { websiteError = "Couldn’t open the Vifol website. Try again." }
+                }
+            } label: {
+                AccountMenuRow(title: "Official website", symbol: .link,
+                               tint: Color(red: 0.18, green: 0.67, blue: 0.40))
+            }.accessibilityIdentifier("account.officialWebsite")
+        }
+        if ads.privacyOptionsRequired {
+            if hasPolicyLinks { rowDivider }
+            Button { Task { await ads.privacyOptions() } } label: {
+                AccountMenuRow(title: "Ad privacy choices", symbol: .driveSettings)
+            }.disabled(!ads.canOpenPrivacyOptions)
+                .accessibilityIdentifier("account.adPrivacyChoices")
+        }
     }
 
     private var rowDivider: some View {
-        Divider().overlay(GlamoStyle.line).padding(.horizontal, 16)
+        Divider().overlay(DriveStyle.separator).padding(.leading, 60).padding(.trailing, 16)
     }
 }
 
@@ -401,27 +374,25 @@ struct AccountSettingsSection: View {
 private struct AccountMenuRow: View {
     let title: String
     var detail: String? = nil
-    var destructive = false
-    var symbol: GlamoGlyph? = nil
-    @Environment(\.layoutDirection) private var layoutDirection
+    let symbol: GlamoGlyph
+    var tint = DriveStyle.accent
     var body: some View {
-        let rowTitle = LocalizedText(title).font(.glam(.subheadline, weight: .medium))
-            .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
+        let rowTitle = LocalizedText(title).driveFont(15, relativeTo: .subheadline, weight: .medium)
+            .foregroundStyle(DriveStyle.ink)
             .fixedSize(horizontal: false, vertical: true)
         return HStack(spacing: 12) {
-            if let symbol {
-                Glyph(symbol: symbol, size: 18, tint: GlamoStyle.accent)
-                    .frame(width: 32, height: 32)
-                    .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 8))
-            }
+            Glyph(symbol: symbol, size: 17, tint: .white)
+                .frame(width: 32, height: 32)
+                .background(tint, in: Circle())
+                .accessibilityHidden(true)
             if let detail {
-                let value = LocalizedText(detail).font(.glam(.footnote))
-                    .foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                let value = LocalizedText(detail).driveFont(14, relativeTo: .footnote)
+                    .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        rowTitle
+                        rowTitle.fixedSize(horizontal: true, vertical: false)
                         Spacer(minLength: 0)
-                        value
+                        value.fixedSize(horizontal: true, vertical: false)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         rowTitle
@@ -432,12 +403,12 @@ private struct AccountMenuRow: View {
             } else {
                 rowTitle.frame(maxWidth: .infinity, alignment: .leading)
             }
-            Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
-                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
+            Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
+                .rotationEffect(.degrees(180))
                 .frame(width: 20, height: 24)
                 .allowsHitTesting(false).accessibilityHidden(true)
-        }.padding(.horizontal, 16).padding(.vertical, 11)
-            .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+        }.padding(.horizontal, 16).padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
             .contentShape(.interaction, Rectangle())
     }
 }

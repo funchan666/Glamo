@@ -18,6 +18,39 @@ enum GlamoStyle {
     static let danger = Color(red: 0.647, green: 0.176, blue: 0.212)     // #A52D36
 }
 
+enum DriveStyle {
+    static let background = Color(red: 242 / 255, green: 241 / 255, blue: 248 / 255)
+    static let accent = Color(red: 0, green: 130 / 255, blue: 251 / 255)
+    static let link = Color(red: 0, green: 101 / 255, blue: 200 / 255)
+    static let folder = Color(red: 238 / 255, green: 170 / 255, blue: 23 / 255)
+    static let ink = Color(red: 23 / 255, green: 23 / 255, blue: 23 / 255)
+    static let secondary = Color(red: 113 / 255, green: 112 / 255, blue: 120 / 255)
+    static let separator = Color(red: 244 / 255, green: 244 / 255, blue: 246 / 255)
+    static let selectedTab = Color(red: 229 / 255, green: 229 / 255, blue: 233 / 255)
+    static let pageInset: CGFloat = 24
+    static let cardRadius: CGFloat = 24
+    static let tabWidth: CGFloat = 344
+}
+
+struct DrivePrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    var fillsWidth = true
+    var radius: CGFloat = 24
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .driveFont(17, relativeTo: .body, weight: .semibold)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: fillsWidth ? 48 : 44)
+            .foregroundStyle(Color.white)
+            .background(DriveStyle.accent, in: RoundedRectangle(cornerRadius: radius))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
+            .contentShape(Rectangle())
+    }
+}
+
 // MARK: - Original raster artwork
 // Every pictorial element is an original bitmap in Assets.xcassets.
 // Native code supplies layout, text and touch handling.
@@ -113,10 +146,11 @@ struct IconButton: View {
     var selected = false
     var tint: Color = GlamoStyle.ink
     var glass = false
+    var glyphSize: CGFloat = 20
     var action: () -> Void
     var body: some View {
         Button(action: action) {
-            let glyph = Glyph(symbol: symbol, size: 20, tint: selected ? GlamoStyle.onAccent : tint)
+            let glyph = Glyph(symbol: symbol, size: glyphSize, tint: selected ? GlamoStyle.onAccent : tint)
                 .frame(minWidth: 44, minHeight: 44)
             Group {
                 if selected {
@@ -314,6 +348,12 @@ private struct OutsideInputTap: ViewModifier {
 }
 
 extension View {
+    func driveScreenBackground() -> some View {
+        glamoScreenBackground(DriveStyle.background)
+            .foregroundStyle(DriveStyle.ink)
+            .preferredColorScheme(.light)
+    }
+
     func glamoCard(radius: CGFloat = 22, fill: Color = GlamoStyle.surface, border: Color = GlamoStyle.line) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius)
         return background(fill, in: shape)

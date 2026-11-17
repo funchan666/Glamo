@@ -10,7 +10,7 @@
 "A full year of Plus" = "Plus 1년 이용";
 "No results? Check your input, or ask the sender for a new link." = "결과가 없나요? 입력 내용을 확인하거나 보낸 사람에게 새 링크를 요청하세요.";
 "A little luck, on us" = "작은 보너스를 드려요";
-"A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Glamo에 안전하게 연결할 수 없습니다. 네트워크나 VPN을 확인하고 다시 시도하세요. 문제가 계속되면 서비스가 일시적으로 중단되었을 수 있습니다.";
+"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Vifol에 안전하게 연결할 수 없습니다. 네트워크나 VPN을 확인하고 다시 시도하세요. 문제가 계속되면 서비스가 일시적으로 중단되었을 수 있습니다.";
 "Access password" = "접근 비밀번호";
 "Access through %@." = "%@까지 이용 가능";
 "Ads are unavailable with your current privacy choices." = "현재 개인정보 설정으로는 광고를 이용할 수 없습니다.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "사진 앱에서 가져오기";
 "Choose your language" = "언어를 선택하세요";
 "Clear" = "지우기";
-"Glamo is starting" = "Glamo 시작 중";
-"Glamo’s online service is not configured yet. Local editing is available." = "Glamo 온라인 서비스가 아직 설정되지 않았습니다. 로컬 편집은 이용할 수 있습니다.";
+"Vifol is starting" = "Vifol 시작 중";
+"Vifol’s online service is not configured yet. Local editing is available." = "Vifol 온라인 서비스가 아직 설정되지 않았습니다. 로컬 편집은 이용할 수 있습니다.";
 "Close" = "닫기";
 "Confirming your purchase…" = "구매 확인 중…";
 "Connecting your lesson feed…" = "레슨 피드 연결 중…";
@@ -62,7 +62,7 @@
 "Delete folder" = "폴더 삭제";
 "After deletion" = "삭제 후";
 "Folder contains items" = "폴더에 항목이 있어요";
-"The empty folder will be removed from Glamo." = "이 빈 폴더가 Glamo에서 삭제돼요.";
+"The empty folder will be removed from Vifol." = "이 빈 폴더가 Vifol에서 삭제돼요.";
 "Dismiss message" = "메시지 닫기";
 "Edit" = "편집";
 "Edit a local video" = "로컬 영상 편집";
@@ -213,7 +213,7 @@
 "Terms of Use" = "이용약관";
 "Test ads require Google's sample iOS App ID." = "테스트 광고에는 Google의 샘플 iOS 앱 ID가 필요합니다.";
 "The ad finished, but its reward could not be saved. %@" = "광고는 끝났지만 보상을 저장하지 못했습니다. %@";
-"The copy in Glamo will be removed. The original in Photos or Files will stay untouched." = "Glamo의 사본이 삭제됩니다. 사진이나 파일의 원본은 그대로 유지됩니다.";
+"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "Vifol의 사본이 삭제됩니다. 사진이나 파일의 원본은 그대로 유지됩니다.";
 "The document was interrupted. Please try again." = "문서가 중단되었습니다. 다시 시도하세요.";
 "The export finished but could not be added to your library. %@" = "내보내기는 완료했지만 보관함에 추가하지 못했습니다. %@";
 "The request could not be completed." = "요청을 완료하지 못했습니다.";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "이 광고를 끝까지 보면 오늘 무제한으로 시청할 수 있습니다.";
 "Connect to refresh your allowance." = "이용 한도를 새로고침하려면 인터넷에 연결하세요.";
 
-// Glamo lesson link entry.
-"Glamo link or lesson code" = "Glamo 링크 또는 레슨 코드";
+// Vifol lesson link entry.
+"Vifol link or lesson code" = "Vifol 링크 또는 레슨 코드";
 "Paste" = "붙여넣기";
-"Use a lesson link or code shared through Glamo." = "Glamo를 통해 공유받은 레슨 링크나 코드를 사용하세요.";
-"Copy a Glamo link or lesson code first, then tap Paste." = "먼저 Glamo 링크나 레슨 코드를 복사한 뒤 붙여넣기를 누르세요.";
-"1. Copy a Glamo link" = "1. Glamo 링크 복사";
+"Use a lesson link or code shared through Vifol." = "Vifol를 통해 공유받은 레슨 링크나 코드를 사용하세요.";
+"Copy a Vifol link or lesson code first, then tap Paste." = "먼저 Vifol 링크나 레슨 코드를 복사한 뒤 붙여넣기를 누르세요.";
+"1. Copy a Vifol link" = "1. Vifol 링크 복사";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "붙여넣기를 누르거나 받은 레슨 코드를 그대로 입력하세요. 코드는 대소문자를 구분합니다.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "레슨 열기를 눌러 일치하는 레슨을 찾은 뒤 스와이프하여 시청하세요.";
 
@@ -357,7 +357,7 @@
 "Web search" = "웹 검색";
 "Opening page…" = "페이지 여는 중…";
 
-/* Glamo Plus */
+/* Vifol Plus */
 "Plus benefits" = "Plus 혜택";
 "MP4 export up to 1080p" = "최대 1080p MP4 내보내기";
 "M4A audio export" = "M4A 오디오 내보내기";
@@ -366,11 +366,11 @@
 "Subscribe to Plus" = "Plus 구독하기";
 
 /* App startup and video links */
-"Opening Glamo…" = "Glamo 여는 중…";
-"Couldn’t connect to Glamo" = "Glamo에 연결하지 못했어요";
-"Connecting to Glamo…" = "Glamo에 연결 중…";
+"Opening Vifol…" = "Vifol 여는 중…";
+"Couldn’t connect to Vifol" = "Vifol에 연결하지 못했어요";
+"Connecting to Vifol…" = "Vifol에 연결 중…";
 "Ad privacy choices" = "광고 개인정보 설정";
-"Couldn’t open the Glamo website. Try again." = "Glamo 웹사이트를 열지 못했어요. 다시 시도해 주세요.";
+"Couldn’t open the Vifol website. Try again." = "Vifol 웹사이트를 열지 못했어요. 다시 시도해 주세요.";
 "No match found" = "일치하는 항목이 없어요";
 "Check the URL with the person who shared it." = "공유한 사람에게 URL을 확인해 주세요.";
 "Search the web" = "웹에서 검색";
@@ -394,8 +394,8 @@
 "Once it opens, swipe up or down to browse videos." = "열리면 위아래로 쓸어 넘겨 영상을 둘러보세요.";
 "There’s no playable video here." = "재생할 수 있는 영상이 없어요.";
 "Copy a video URL, then try pasting again." = "동영상 URL을 복사한 뒤 다시 붙여넣으세요.";
-"Connect to Glamo, then try opening the URL again." = "Glamo에 연결한 뒤 URL을 다시 열어 보세요.";
-"This deletes the file from Glamo. Any original in Photos or Files stays there." = "Glamo에서 파일을 삭제해요. 사진이나 파일 앱에 있는 원본은 그대로 남아요.";
+"Connect to Vifol, then try opening the URL again." = "Vifol에 연결한 뒤 URL을 다시 열어 보세요.";
+"This deletes the file from Vifol. Any original in Photos or Files stays there." = "Vifol에서 파일을 삭제해요. 사진이나 파일 앱에 있는 원본은 그대로 남아요.";
 "%@ item" = "%@개";
 "%@ items" = "%@개";
 "Export a video or audio file from Tools to save it here." = "도구에서 영상이나 오디오를 내보내면 여기에 저장돼요.";
@@ -564,3 +564,23 @@
 "Keep just the soundtrack as an M4A file." = "오디오 트랙만 M4A 파일로 저장하세요.";
 "Share files" = "파일 공유";
 "Send an original file or an export to another app." = "원본이나 내보낸 파일을 다른 앱으로 보내세요.";
+
+/* Recent, Files and Profile */
+"All Files" = "모든 파일";
+"Profile" = "프로필";
+"No recent activity" = "최근 활동 없음";
+"Account ID · %@" = "계정 ID · %@";
+"Recents" = "최근 항목";
+"Saved History" = "저장 기록";
+"View History" = "시청 기록";
+"Viewed" = "시청한 항목";
+"Browse files" = "파일 둘러보기";
+"Files you save or open will appear here." = "저장하거나 연 파일이 여기에 표시됩니다.";
+"No files yet" = "아직 파일이 없어요";
+"Add your first file to keep everything in one place." = "첫 파일을 추가해 한곳에서 관리하세요.";
+"Add files" = "파일 추가";
+"Upgrade" = "업그레이드";
+"Get Premium" = "프리미엄 시작하기";
+"Maybe Later" = "나중에";
+"Upgrade Now" = "지금 업그레이드";
+"Vifol Plus" = "Vifol Plus";

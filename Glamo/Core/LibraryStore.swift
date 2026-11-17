@@ -77,7 +77,7 @@ final class LibraryStore: ObservableObject {
             }
             name = name.trimmingCharacters(in: CharacterSet(charactersIn: ". "))
             while name.utf8.count > 160 { name.removeLast() }
-            if name.isEmpty { name = "Glamo video" }
+            if name.isEmpty { name = "Vifol video" }
             let destination = directory.appendingPathComponent(name).appendingPathExtension(source.pathExtension)
             do {
                 try Task.checkCancellation()

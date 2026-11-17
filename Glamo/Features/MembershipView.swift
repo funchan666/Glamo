@@ -9,7 +9,6 @@ struct MembershipView: View {
 
     var requiredBenefit: RequiredBenefit? = nil
     @Environment(\.locale) private var locale
-    @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @EnvironmentObject private var api: APIClient
@@ -49,13 +48,14 @@ struct MembershipView: View {
             VStack(spacing: 0) {
                 closeButton
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .pageHorizontalMargins().padding(.bottom, compact ? 2 : 6)
+                    .padding(.horizontal, DriveStyle.pageInset)
+                    .padding(.top, compact ? 0 : 8).padding(.bottom, compact ? 2 : 8)
                     .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
-                    .background(GlamoStyle.background, ignoresSafeAreaEdges: .top)
+                    .background(DriveStyle.background, ignoresSafeAreaEdges: .top)
                 ScrollViewReader { scroll in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: compact ? 12 : 16) {
-                            membershipHeader(wide: wide, paneWidth: paneWidth, compact: compact)
+                        VStack(alignment: .leading, spacing: compact ? 12 : 22) {
+                            membershipHeader
                             layout {
                                 if benefitsFirst {
                                     benefits.frame(maxWidth: wide ? 300 : .infinity, alignment: .leading)
@@ -69,13 +69,13 @@ struct MembershipView: View {
                                 .id("membership.purchaseFeedback")
                             supportLinks
                         }
-                        .pageHorizontalMargins().padding(.bottom, 12)
+                        .padding(.horizontal, DriveStyle.pageInset)
+                        .padding(.top, compact ? 0 : 22).padding(.bottom, 12)
                         .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        bottomBar(pageWidth: pageWidth,
-                                  showsPrice: paneHeight >= 460 && !typeSize.isAccessibilitySize)
+                        bottomBar(pageWidth: pageWidth, compact: paneHeight < 420)
                     }
                     .onChange(of: feedback) { _, value in
                         if value != nil { scroll.scrollTo("membership.purchaseFeedback", anchor: .bottom) }
@@ -83,7 +83,8 @@ struct MembershipView: View {
                 }
             }.padding(paneMargins)
         }
-        .glamoScreenBackground()
+        .driveScreenBackground()
+        .presentationBackground(DriveStyle.background)
         .task { await commerce.loadPlans() }
         .task(id: api.session?.userId.value) {
             if api.session != nil { await commerce.refresh() }
@@ -100,73 +101,46 @@ struct MembershipView: View {
     }
 
     private var closeButton: some View {
-        IconButton(symbol: .close, label: "Close", glass: true) { dismiss() }
+        IconButton(symbol: .back, label: "Close", tint: DriveStyle.ink, glass: true, glyphSize: 13) { dismiss() }
             .disabled(purchasing || ads.isPresenting)
     }
 
-    private func membershipHeader(wide: Bool, paneWidth: CGFloat, compact: Bool) -> some View {
-        HStack(spacing: 10) {
-            heroCopy
-            if paneWidth >= 350, typeSize <= .xxLarge {
-                plusArtwork
-                    .frame(width: wide ? 166 : (compact ? 80 : 106), height: compact ? 54 : 76)
+    private var membershipHeader: some View {
+        VStack(spacing: 4) {
+            LocalizedText(commerce.premium ? "Vifol Plus" : "Get Premium")
+                .driveFont(30, relativeTo: .title, weight: .bold)
+                .accessibilityAddTraits(.isHeader)
+            if let requiredBenefit {
+                LocalizedText(requiredBenefit == .mediaExport ? "Plus includes file export and sharing." : "Unlimited video views")
+                    .driveFont(14, relativeTo: .footnote)
+                    .foregroundStyle(DriveStyle.secondary)
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, compact ? 8 : 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var heroCopy: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(verbatim: "Glamo Plus")
-                .glamDisplay(42, relativeTo: .title)
-                .foregroundStyle(GlamoStyle.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel("Glamo Plus")
-                .accessibilityAddTraits(.isHeader)
-            LocalizedText(membershipSubtitle)
-                .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading).layoutPriority(1)
-    }
-
-    private var membershipSubtitle: String {
-        switch requiredBenefit {
-        case .mediaExport: "Plus includes file export and sharing."
-        case .unlimitedViewing: "Unlimited video views"
-        case nil: "Export and share from your video library."
-        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
     }
 
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            LocalizedText("Plus benefits")
-                .font(.glam(.headline)).accessibilityAddTraits(.isHeader)
-            VStack(spacing: 0) {
-                benefit("MP4 export up to 1080p", symbol: .edit)
-                Divider().overlay(GlamoStyle.line)
-                benefit("M4A audio export", symbol: .sound)
-                Divider().overlay(GlamoStyle.line)
-                benefit("Share files", symbol: .driveShare)
-            }
-            .padding(.horizontal, 12)
-            .glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
+        VStack(spacing: 0) {
+            benefit("MP4 export up to 1080p", symbol: .edit)
+            benefit("M4A audio export", symbol: .sound)
+            benefit("Share files", symbol: .driveShare)
         }
+        .padding(.horizontal, 16).padding(.vertical, 9)
+        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
     }
 
     private func benefit(_ title: String, symbol: GlamoGlyph) -> some View {
-        HStack(spacing: 9) {
-            Glyph(symbol: symbol, size: 16, tint: GlamoStyle.accent)
-                .frame(width: 26, height: 26)
-                .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 8))
+        HStack(spacing: 10) {
+            Glyph(symbol: symbol, size: 17, tint: DriveStyle.ink)
+                .frame(width: 22, height: 22)
             LocalizedText(title)
-                .font(.glam(.subheadline, weight: .medium))
+                .driveFont(15, relativeTo: .subheadline)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
+        .frame(minHeight: 32)
     }
 
     private var offerContent: some View {
@@ -174,9 +148,6 @@ struct MembershipView: View {
             if commerce.premium {
                 activeMembership
             } else {
-                LocalizedText("Choose your plan")
-                    .font(.glam(.headline))
-                    .accessibilityAddTraits(.isHeader)
                 if api.session == nil { ConnectionPanel() }
                 if !plans.isEmpty { planPicker }
                 if let error = commerce.plansError {
@@ -222,7 +193,7 @@ struct MembershipView: View {
         if commerce.loadingProducts || commerce.loadingPlans { return "Loading prices…" }
         if purchaseTask != nil { return "Waiting for Apple…" }
         if commerce.busy { return "Please wait…" }
-        return "Subscribe to Plus"
+        return "Upgrade Now"
     }
 
     private var activeMembership: some View {
@@ -239,21 +210,11 @@ struct MembershipView: View {
             .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted)
     }
 
-    @ViewBuilder
     private var planPicker: some View {
-        if plans.count == 2, !typeSize.isAccessibilitySize {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 8) { planOptions(sideBySide: true) }
-                VStack(spacing: 8) { planOptions(sideBySide: false) }
+        VStack(spacing: 22) {
+            ForEach(plans, id: \.productIdentifier) { plan in
+                planOption(plan)
             }
-        } else {
-            VStack(spacing: 8) { planOptions(sideBySide: false) }
-        }
-    }
-
-    private func planOptions(sideBySide: Bool) -> some View {
-        ForEach(plans, id: \.productIdentifier) { plan in
-            planOption(plan, sideBySide: sideBySide)
         }
     }
 
@@ -274,73 +235,49 @@ struct MembershipView: View {
         return (product.localizedTitle, billing)
     }
 
-    private func planOption(_ product: SKProduct, sideBySide: Bool) -> some View {
+    private func planOption(_ product: SKProduct) -> some View {
         let selected = selectedPlan?.productIdentifier == product.productIdentifier
         let price = commerce.price(product)
+        let duration = commerce.period(product, locale: locale)
         let copy = planCopy(product)
-        let shape = RoundedRectangle(cornerRadius: 16)
-        let title = Text(verbatim: copy.title)
-            .font(.glam(.subheadline, weight: .semibold))
-            .fixedSize(horizontal: false, vertical: true)
-        let priceLabel = Text(verbatim: price).environment(\.layoutDirection, .leftToRight)
-            .font(.glam(.title2, weight: .semibold)).monospacedDigit()
-            .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.ink)
-            .fixedSize(horizontal: sideBySide, vertical: true)
-        let billing = Text(verbatim: copy.billing).font(.glam(.footnote))
-            .foregroundStyle(GlamoStyle.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        let shape = RoundedRectangle(cornerRadius: DriveStyle.cardRadius)
 
         return Button { selectedID = product.productIdentifier } label: {
-            Group {
-                if sideBySide {
-                    VStack(alignment: .leading, spacing: 3) {
-                        title
-                        priceLabel
-                        billing
-                    }
-                } else {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                title
-                                billing
-                            }
-                            Spacer(minLength: 0)
-                            VStack(alignment: .trailing, spacing: 3) {
-                                priceLabel
-                                if selected { selectedLabel }
-                            }
-                        }
-                        VStack(alignment: .leading, spacing: 3) {
-                            title
-                            priceLabel
-                            billing
-                            if selected { selectedLabel }
-                        }
-                    }
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(verbatim: duration.isEmpty ? price : "\(price) / \(duration)")
+                        .driveFont(17, relativeTo: .body, weight: .medium)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(verbatim: copy.billing.isEmpty ? copy.title : copy.billing)
+                        .driveFont(12, relativeTo: .caption)
+                        .foregroundStyle(DriveStyle.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            }.padding(.horizontal, 12).padding(.vertical, 9)
-                .frame(minWidth: sideBySide ? 120 : nil, maxWidth: .infinity,
-                       minHeight: sideBySide ? 94 : 44, alignment: .topLeading)
-                .foregroundStyle(GlamoStyle.ink)
-                .glamoGlass(in: shape, tint: selected ? GlamoStyle.paperMuted : GlamoStyle.surface,
-                            mediaBackdrop: selected)
-                .overlay {
-                    shape.strokeBorder(selected ? GlamoStyle.accent : GlamoStyle.line, lineWidth: selected ? 2 : 1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Circle()
+                    .fill(selected ? DriveStyle.accent : .clear)
+                    .overlay {
+                        Circle().strokeBorder(selected ? DriveStyle.accent : DriveStyle.secondary.opacity(0.45))
+                    }
+                    .frame(width: 19, height: 19)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 11)
+            .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+            .foregroundStyle(DriveStyle.ink)
+            .background(.white, in: shape)
+            .overlay {
+                if selected {
+                    shape.strokeBorder(DriveStyle.accent, lineWidth: 2)
                         .allowsHitTesting(false)
                 }
-                .contentShape(shape)
-        }.buttonStyle(PressStyle()).disabled(interactionLocked)
-            .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityIdentifier("membership.plan.\(product.productIdentifier)")
-    }
-
-    private var selectedLabel: some View {
-        LocalizedText("Selected").font(.glam(.caption, weight: .semibold))
-            .padding(.horizontal, 10).padding(.vertical, 4)
-            .foregroundStyle(GlamoStyle.accent)
-            .background(GlamoStyle.surface, in: Capsule())
-            .accessibilityHidden(true)
+            }
+            .contentShape(shape)
+        }
+        .buttonStyle(PressStyle()).disabled(interactionLocked)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("membership.plan.\(product.productIdentifier)")
     }
 
     private var renewalDisclosure: some View {
@@ -349,65 +286,38 @@ struct MembershipView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func bottomBar(pageWidth: CGFloat, showsPrice: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func bottomBar(pageWidth: CGFloat, compact: Bool) -> some View {
+        let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 8))
+        return layout {
             if commerce.premium {
-                ActionButton(title: "Manage subscription", primary: false) { managingSubscriptions = true }
-                    .disabled(interactionLocked)
+                Button { managingSubscriptions = true } label: {
+                    LocalizedText("Manage subscription")
+                }.buttonStyle(DrivePrimaryButtonStyle()).disabled(interactionLocked)
             } else {
-                if showsPrice, let plan = selectedPlan {
-                    selectedPlanPrice(plan)
-                }
                 purchaseAction
             }
+            Button { dismiss() } label: {
+                LocalizedText("Maybe Later")
+                    .driveFont(17, relativeTo: .body, weight: .semibold)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .foregroundStyle(DriveStyle.ink)
+                    .glamoGlass(in: Capsule(), tint: .white, interactive: true)
+                    .contentShape(Capsule())
+            }.buttonStyle(PressStyle()).disabled(purchasing || ads.isPresenting)
         }
-        .pageHorizontalMargins()
-        .padding(.vertical, 8)
-        .frame(maxWidth: pageWidth)
-        .frame(maxWidth: .infinity)
-        .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
-        .overlay(alignment: .top) {
-            Divider().overlay(GlamoStyle.line).allowsHitTesting(false)
-        }
-    }
-
-    private func selectedPlanPrice(_ plan: SKProduct) -> some View {
-        let price = Text(verbatim: commerce.price(plan)).environment(\.layoutDirection, .leftToRight)
-            .font(.glam(.headline)).monospacedDigit()
-        let period = Text(verbatim: planCopy(plan).billing)
-            .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-
-        return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                price
-                period
-                Spacer(minLength: 0)
-                selectedLabel
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                price
-                period
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
+        .background(DriveStyle.background, ignoresSafeAreaEdges: .bottom)
     }
 
     private var purchaseAction: some View {
         Button(action: subscribe) {
-            HStack(spacing: 10) {
-                LocalizedText(purchaseButtonTitle)
-                    .font(.glam(.subheadline, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                if canSubscribe {
-                    Glyph(symbol: .back, size: 12, tint: GlamoStyle.onAccent)
-                        .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
-                }
-            }
-        }.buttonStyle(GlamoActionStyle())
-            .disabled(!canSubscribe)
-            .accessibilityIdentifier("membership.subscribe")
+            LocalizedText(purchaseButtonTitle)
+        }
+        .buttonStyle(DrivePrimaryButtonStyle()).disabled(!canSubscribe)
+        .accessibilityIdentifier("membership.subscribe")
     }
 
     private func subscribe() {
@@ -437,76 +347,6 @@ struct MembershipView: View {
     }
 }
 
-struct PlusEntry: View {
-    let isMember: Bool
-    let open: () -> Void
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.layoutDirection) private var layoutDirection
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 24)
-        Button(action: open) {
-            VStack(alignment: .leading, spacing: 0) {
-                hero
-                actionBar
-            }
-            .foregroundStyle(GlamoStyle.ink)
-            .clipShape(shape)
-            .glamoGlass(in: shape, tint: GlamoStyle.paperMuted, interactive: true, mediaBackdrop: true)
-            .contentShape(shape)
-        }.buttonStyle(PressStyle())
-            .accessibilityElement(children: .combine)
-    }
-
-    private var hero: some View {
-        let artworkHeight: CGFloat = verticalSizeClass == .compact ? 70 : 92
-        return Group {
-            if typeSize.isAccessibilitySize {
-                heroCopy
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        heroCopy.frame(minWidth: 125, maxWidth: .infinity, alignment: .leading)
-                        plusArtwork.frame(width: 142, height: artworkHeight)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        heroCopy
-                        plusArtwork.frame(width: 148, height: artworkHeight)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-                }
-            }
-        }
-        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var heroCopy: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(verbatim: "Glamo Plus").glamDisplay(36, relativeTo: .title)
-            LocalizedText(isMember ? "Plus is active" : "MP4 and M4A export")
-                .font(.glam(.subheadline, weight: .semibold))
-                .foregroundStyle(isMember ? GlamoStyle.accent : GlamoStyle.secondary)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var actionBar: some View {
-        HStack(spacing: 10) {
-            LocalizedText(isMember ? "View Plus details" : "View plans")
-                .font(.glam(.subheadline, weight: .semibold))
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            Glyph(symbol: .back, size: 12, tint: GlamoStyle.onAccent)
-                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
-        }
-        .foregroundStyle(GlamoStyle.onAccent)
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .frame(minHeight: 52)
-        .background(GlamoStyle.accent)
-    }
-}
-
 struct PlusShortcut: View {
     let isMember: Bool
     let open: () -> Void
@@ -522,7 +362,7 @@ struct PlusShortcut: View {
                             interactive: true, mediaBackdrop: true)
                 .contentShape(Rectangle())
         }.buttonStyle(PressStyle())
-            .accessibilityLabel("Glamo Plus")
+            .accessibilityLabel("Vifol Plus")
             .accessibilityHint(LocalizedStringKey(isMember ? "Manage membership" : "View plans"))
     }
 }
@@ -537,24 +377,168 @@ struct AccountView: View {
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var library: LibraryStore
+    @Environment(\.locale) private var locale
+    @State private var deviceCapacity: Int64?
     @State private var paywall = false
     let browse: () -> Void
     let showActivity: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                DrivePageTitle(title: "Settings")
-                PlusEntry(isMember: commerce.premium) { paywall = true }
-                    .accessibilityIdentifier("account.membership")
-                AccountSettingsSection(localItemCount: library.movies.count, browse: browse, showActivity: showActivity)
-                LocalizedText("Version \(api.configuration.version)")
-                    .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 2)
-            }.glamoPage()
-        }.glamoScreenBackground()
-            .fullScreenCover(isPresented: $paywall) { MembershipView() }
+        VStack(alignment: .leading, spacing: 0) {
+            DrivePageTitle(title: "Profile")
+                .padding(.horizontal, DriveStyle.pageInset).frame(minHeight: 44, alignment: .leading)
+                .padding(.vertical, 8)
+                .frame(maxWidth: 680, alignment: .leading)
+                .frame(maxWidth: .infinity)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    identity
+                    VStack(spacing: 0) {
+                        librarySummary
+                        Divider().overlay(DriveStyle.separator).padding(.horizontal, 16)
+                        plusEntry
+                    }
+                    .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+                    AccountSettingsSection(showActivity: showActivity)
+                }
+                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 22).padding(.bottom, 24)
+                .frame(maxWidth: 680).frame(maxWidth: .infinity)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .driveScreenBackground()
+        .task {
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            if let capacity = try? documents?.resourceValues(forKeys: [.volumeTotalCapacityKey]).volumeTotalCapacity {
+                deviceCapacity = Int64(capacity)
+            }
+        }
+        .fullScreenCover(isPresented: $paywall) { MembershipView() }
+    }
+
+    private var identity: some View {
+        let name = Text(verbatim: "Vifol").driveFont(16, relativeTo: .subheadline, weight: .medium)
+        let badge = Text(verbatim: "Plus")
+            .driveFont(10, relativeTo: .caption2, weight: .bold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(DriveStyle.accent, in: RoundedRectangle(cornerRadius: 3))
+        return HStack(spacing: 12) {
+            DriveProfileAvatar(size: 60)
+            VStack(alignment: .leading, spacing: 4) {
+                if commerce.premium {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
+                            name
+                            badge
+                        }.fixedSize()
+                        VStack(alignment: .leading, spacing: 4) {
+                            name
+                            badge
+                        }
+                    }
+                } else {
+                    name
+                }
+                if let id = api.session?.userId.value, !id.isEmpty {
+                    LocalizedText("Account ID · %@", id)
+                        .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var localBytes: Int64? {
+        let sizes = library.movies.compactMap(\.byteCount)
+        guard !sizes.isEmpty, sizes.count == library.movies.count else { return nil }
+        return sizes.reduce(Int64(0), +)
+    }
+
+    private var librarySummary: some View {
+        let count = library.movies.count
+        let size = localBytes
+        let localSize = size?.formatted(.byteCount(style: .file).locale(locale))
+        let heading = LocalizedText("On this device").driveFont(16, relativeTo: .subheadline, weight: .semibold)
+        let fileCount = LocalizedText(count == 1 ? "%@ item" : "%@ items", count.formatted(.number.locale(locale)))
+        let usage = Text(verbatim: localSize ?? "").accessibilityHidden(localSize == nil)
+        let summary = Group {
+            if localSize != nil {
+                usage
+            } else {
+                fileCount
+            }
+        }.driveFont(14, relativeTo: .footnote).monospacedDigit().foregroundStyle(DriveStyle.secondary)
+        return Button(action: browse) {
+            HStack(spacing: 10) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        heading.fixedSize(horizontal: true, vertical: false)
+                        if let size, let deviceCapacity, deviceCapacity > 0 {
+                            DriveMeter(value: Double(size) / Double(deviceCapacity),
+                                       tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 7)
+                                .frame(width: 68)
+                        }
+                        Spacer(minLength: 0)
+                        summary.fixedSize(horizontal: true, vertical: false)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        heading
+                        summary
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
+                    .rotationEffect(.degrees(180))
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 6)
+            .foregroundStyle(DriveStyle.ink)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityElement(children: .combine)
+    }
+
+    private var plusEntry: some View {
+        let description = VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: "Vifol Plus").driveFont(16, relativeTo: .subheadline, weight: .medium)
+            LocalizedText(commerce.premium ? "Plus is active" : "MP4 and M4A export")
+                .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
+        }.fixedSize(horizontal: false, vertical: true)
+        let plansButton = Button { paywall = true } label: {
+            LocalizedText(commerce.premium ? "View Plus details" : "Upgrade")
+                .driveFont(14, relativeTo: .footnote, weight: .semibold)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .frame(minHeight: 26)
+                .background(DriveStyle.accent, in: Capsule())
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }.buttonStyle(PressStyle()).accessibilityIdentifier("account.membership")
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                description.fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: 0)
+                plansButton.fixedSize(horizontal: true, vertical: false)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                description
+                plansButton
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16).padding(.vertical, 10)
     }
 }
 

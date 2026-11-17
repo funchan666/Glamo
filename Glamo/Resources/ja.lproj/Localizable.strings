@@ -10,7 +10,7 @@
 "A full year of Plus" = "Plusを1年間";
 "No results? Check your input, or ask the sender for a new link." = "結果がない場合は、入力内容を確認するか、送信者に新しいリンクを依頼してください。";
 "A little luck, on us" = "ささやかなボーナスをどうぞ";
-"A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Glamoに安全に接続できません。ネットワークやVPNを確認して再試行してください。問題が続く場合、サービスが一時的に利用できない可能性があります。";
+"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Vifolに安全に接続できません。ネットワークやVPNを確認して再試行してください。問題が続く場合、サービスが一時的に利用できない可能性があります。";
 "Access password" = "アクセス用パスワード";
 "Access through %@." = "%@まで利用できます。";
 "Ads are unavailable with your current privacy choices." = "現在のプライバシー設定では広告を利用できません。";
@@ -46,8 +46,8 @@
 "Import from Photos" = "「写真」から取り込む";
 "Choose your language" = "言語を選択";
 "Clear" = "消去";
-"Glamo is starting" = "Glamoを起動中";
-"Glamo’s online service is not configured yet. Local editing is available." = "Glamoのオンラインサービスは未設定です。端末内の編集は利用できます。";
+"Vifol is starting" = "Vifolを起動中";
+"Vifol’s online service is not configured yet. Local editing is available." = "Vifolのオンラインサービスは未設定です。端末内の編集は利用できます。";
 "Close" = "閉じる";
 "Confirming your purchase…" = "購入を確認中…";
 "Connecting your lesson feed…" = "レッスンフィードに接続中…";
@@ -62,7 +62,7 @@
 "Delete folder" = "フォルダを削除";
 "After deletion" = "削除後";
 "Folder contains items" = "フォルダに項目があります";
-"The empty folder will be removed from Glamo." = "この空のフォルダはGlamoから削除されます。";
+"The empty folder will be removed from Vifol." = "この空のフォルダはVifolから削除されます。";
 "Dismiss message" = "メッセージを閉じる";
 "Edit" = "編集";
 "Edit a local video" = "端末内の動画を編集";
@@ -213,7 +213,7 @@
 "Terms of Use" = "利用規約";
 "Test ads require Google's sample iOS App ID." = "テスト広告にはGoogleのサンプルiOSアプリIDが必要です。";
 "The ad finished, but its reward could not be saved. %@" = "広告は完了しましたが、報酬を保存できませんでした。%@";
-"The copy in Glamo will be removed. The original in Photos or Files will stay untouched." = "Glamo内のコピーを削除します。写真やファイルにある元の動画は変更されません。";
+"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "Vifol内のコピーを削除します。写真やファイルにある元の動画は変更されません。";
 "The document was interrupted. Please try again." = "ドキュメントの読み込みが中断されました。再試行してください。";
 "The export finished but could not be added to your library. %@" = "書き出しは完了しましたが、ライブラリに追加できませんでした。%@";
 "The request could not be completed." = "リクエストを完了できませんでした。";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "広告を最後まで見ると、今日は無制限で視聴できます。";
 "Connect to refresh your allowance." = "利用回数を更新するには接続してください。";
 
-// Glamo lesson link entry.
-"Glamo link or lesson code" = "Glamoのリンクまたはレッスンコード";
+// Vifol lesson link entry.
+"Vifol link or lesson code" = "Vifolのリンクまたはレッスンコード";
 "Paste" = "ペースト";
-"Use a lesson link or code shared through Glamo." = "Glamoで共有されたレッスンのリンクまたはコードを使ってください。";
-"Copy a Glamo link or lesson code first, then tap Paste." = "先にGlamoのリンクまたはレッスンコードをコピーしてから「ペースト」をタップしてください。";
-"1. Copy a Glamo link" = "1. Glamoのリンクをコピー";
+"Use a lesson link or code shared through Vifol." = "Vifolで共有されたレッスンのリンクまたはコードを使ってください。";
+"Copy a Vifol link or lesson code first, then tap Paste." = "先にVifolのリンクまたはレッスンコードをコピーしてから「ペースト」をタップしてください。";
+"1. Copy a Vifol link" = "1. Vifolのリンクをコピー";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "「ペースト」をタップするか、受け取ったレッスンコードをそのまま入力してください。大文字と小文字は区別されます。";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "「レッスンを開く」をタップして該当するレッスンを探し、スワイプして視聴します。";
 
@@ -357,7 +357,7 @@
 "Web search" = "ウェブ検索";
 "Opening page…" = "ページを開いています…";
 
-/* Glamo Plus */
+/* Vifol Plus */
 "Plus benefits" = "Plusの特典";
 "MP4 export up to 1080p" = "最大1080pのMP4書き出し";
 "M4A audio export" = "M4A音声の書き出し";
@@ -366,11 +366,11 @@
 "Subscribe to Plus" = "Plusに登録";
 
 /* App startup and video links */
-"Opening Glamo…" = "Glamoを起動中…";
-"Couldn’t connect to Glamo" = "Glamoに接続できませんでした";
-"Connecting to Glamo…" = "Glamoに接続中…";
+"Opening Vifol…" = "Vifolを起動中…";
+"Couldn’t connect to Vifol" = "Vifolに接続できませんでした";
+"Connecting to Vifol…" = "Vifolに接続中…";
 "Ad privacy choices" = "広告のプライバシー設定";
-"Couldn’t open the Glamo website. Try again." = "Glamoのウェブサイトを開けませんでした。もう一度お試しください。";
+"Couldn’t open the Vifol website. Try again." = "Vifolのウェブサイトを開けませんでした。もう一度お試しください。";
 "No match found" = "一致する項目が見つかりません";
 "Check the URL with the person who shared it." = "共有した人にURLを確認してください。";
 "Search the web" = "ウェブで検索";
@@ -394,8 +394,8 @@
 "Once it opens, swipe up or down to browse videos." = "開いたら、上下にスワイプして動画を切り替えます。";
 "There’s no playable video here." = "再生できる動画がありません。";
 "Copy a video URL, then try pasting again." = "動画のURLをコピーして、もう一度貼り付けてください。";
-"Connect to Glamo, then try opening the URL again." = "Glamoに接続してから、URLを開き直してください。";
-"This deletes the file from Glamo. Any original in Photos or Files stays there." = "Glamo内のファイルを削除します。「写真」や「ファイル」にある元の動画は残ります。";
+"Connect to Vifol, then try opening the URL again." = "Vifolに接続してから、URLを開き直してください。";
+"This deletes the file from Vifol. Any original in Photos or Files stays there." = "Vifol内のファイルを削除します。「写真」や「ファイル」にある元の動画は残ります。";
 "%@ item" = "%@件";
 "%@ items" = "%@件";
 "Export a video or audio file from Tools to save it here." = "「ツール」で動画や音声を書き出すと、ここに保存されます。";
@@ -564,3 +564,23 @@
 "Keep just the soundtrack as an M4A file." = "音声トラックだけをM4Aファイルとして保存します。";
 "Share files" = "ファイルを共有";
 "Send an original file or an export to another app." = "元のファイルや書き出したファイルを別のアプリに送れます。";
+
+/* Recent, Files and Profile */
+"All Files" = "すべてのファイル";
+"Profile" = "プロフィール";
+"No recent activity" = "最近の履歴はありません";
+"Account ID · %@" = "アカウントID · %@";
+"Recents" = "最近の項目";
+"Saved History" = "保存履歴";
+"View History" = "視聴履歴";
+"Viewed" = "視聴済み";
+"Browse files" = "ファイルを見る";
+"Files you save or open will appear here." = "保存したファイルや開いたファイルがここに表示されます。";
+"No files yet" = "ファイルがまだありません";
+"Add your first file to keep everything in one place." = "最初のファイルを追加して、まとめて管理しましょう。";
+"Add files" = "ファイルを追加";
+"Upgrade" = "アップグレード";
+"Get Premium" = "プレミアムに登録";
+"Maybe Later" = "あとで";
+"Upgrade Now" = "今すぐアップグレード";
+"Vifol Plus" = "Vifol Plus";

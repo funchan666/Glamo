@@ -139,7 +139,7 @@ struct VideoLinkComposer: View {
         focused.wrappedValue = false
         guard api.session != nil else {
             needsConnection = true
-            composerError = "Connect to Glamo, then try opening the URL again."
+            composerError = "Connect to Vifol, then try opening the URL again."
             return
         }
         composerError = nil

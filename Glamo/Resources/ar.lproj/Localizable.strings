@@ -10,7 +10,7 @@
 "A full year of Plus" = "عام كامل من Plus";
 "No results? Check your input, or ask the sender for a new link." = "لا توجد نتائج؟ تحقق مما أدخلته أو اطلب رابطًا جديدًا من المُرسل.";
 "A little luck, on us" = "مكافأة صغيرة منا";
-"A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "تعذر إنشاء اتصال آمن بـ Glamo. تحقق من الشبكة أو VPN ثم أعد المحاولة. إذا استمرت المشكلة فقد تكون الخدمة غير متاحة مؤقتًا.";
+"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "تعذر إنشاء اتصال آمن بـ Vifol. تحقق من الشبكة أو VPN ثم أعد المحاولة. إذا استمرت المشكلة فقد تكون الخدمة غير متاحة مؤقتًا.";
 "Access password" = "كلمة مرور الوصول";
 "Access through %@." = "متاح حتى %@.";
 "Ads are unavailable with your current privacy choices." = "الإعلانات غير متاحة وفق خيارات الخصوصية الحالية.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "استيراد من تطبيق الصور";
 "Choose your language" = "اختر لغتك";
 "Clear" = "مسح";
-"Glamo is starting" = "جارٍ بدء Glamo";
-"Glamo’s online service is not configured yet. Local editing is available." = "لم تُهيَّأ خدمة Glamo عبر الإنترنت بعد. التحرير المحلي متاح.";
+"Vifol is starting" = "جارٍ بدء Vifol";
+"Vifol’s online service is not configured yet. Local editing is available." = "لم تُهيَّأ خدمة Vifol عبر الإنترنت بعد. التحرير المحلي متاح.";
 "Close" = "إغلاق";
 "Confirming your purchase…" = "جارٍ تأكيد الشراء…";
 "Connecting your lesson feed…" = "جارٍ الاتصال بقائمة الدروس…";
@@ -62,7 +62,7 @@
 "Delete folder" = "حذف المجلد";
 "After deletion" = "بعد الحذف";
 "Folder contains items" = "يحتوي المجلد على عناصر";
-"The empty folder will be removed from Glamo." = "سيُحذف هذا المجلد الفارغ من Glamo.";
+"The empty folder will be removed from Vifol." = "سيُحذف هذا المجلد الفارغ من Vifol.";
 "Dismiss message" = "إغلاق الرسالة";
 "Edit" = "تحرير";
 "Edit a local video" = "تحرير فيديو محلي";
@@ -213,7 +213,7 @@
 "Terms of Use" = "شروط الاستخدام";
 "Test ads require Google's sample iOS App ID." = "تتطلب الإعلانات التجريبية معرّف تطبيق iOS التجريبي من Google.";
 "The ad finished, but its reward could not be saved. %@" = "اكتمل الإعلان، لكن تعذر حفظ المكافأة. %@";
-"The copy in Glamo will be removed. The original in Photos or Files will stay untouched." = "ستُحذف النسخة الموجودة في Glamo. سيبقى الأصل في الصور أو الملفات دون تغيير.";
+"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "ستُحذف النسخة الموجودة في Vifol. سيبقى الأصل في الصور أو الملفات دون تغيير.";
 "The document was interrupted. Please try again." = "انقطع تحميل المستند. أعد المحاولة.";
 "The export finished but could not be added to your library. %@" = "اكتمل التصدير، لكن تعذرت إضافته إلى المكتبة. %@";
 "The request could not be completed." = "تعذر إكمال الطلب.";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "أكمل هذا الإعلان لمشاهدات غير محدودة اليوم.";
 "Connect to refresh your allowance." = "اتصل بالإنترنت لتحديث حصتك.";
 
-// Glamo lesson link entry.
-"Glamo link or lesson code" = "رابط Glamo أو رمز الدرس";
+// Vifol lesson link entry.
+"Vifol link or lesson code" = "رابط Vifol أو رمز الدرس";
 "Paste" = "لصق";
-"Use a lesson link or code shared through Glamo." = "استخدم رابط درس أو رمزًا تمت مشاركته عبر Glamo.";
-"Copy a Glamo link or lesson code first, then tap Paste." = "انسخ رابط Glamo أو رمز الدرس أولًا، ثم اضغط على لصق.";
-"1. Copy a Glamo link" = "1. انسخ رابط Glamo";
+"Use a lesson link or code shared through Vifol." = "استخدم رابط درس أو رمزًا تمت مشاركته عبر Vifol.";
+"Copy a Vifol link or lesson code first, then tap Paste." = "انسخ رابط Vifol أو رمز الدرس أولًا، ثم اضغط على لصق.";
+"1. Copy a Vifol link" = "1. انسخ رابط Vifol";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "اضغط على لصق أو أدخل رمز الدرس كما وصلك تمامًا. الرموز حساسة لحالة الأحرف.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "اضغط على فتح الدرس للعثور على الدروس المطابقة، ثم اسحب للمشاهدة.";
 
@@ -357,7 +357,7 @@
 "Web search" = "بحث الويب";
 "Opening page…" = "جارٍ فتح الصفحة…";
 
-/* Glamo Plus */
+/* Vifol Plus */
 "Plus benefits" = "مزايا Plus";
 "MP4 export up to 1080p" = "تصدير MP4 بدقة تصل إلى 1080p";
 "M4A audio export" = "تصدير الصوت بصيغة M4A";
@@ -366,11 +366,11 @@
 "Subscribe to Plus" = "اشترك في Plus";
 
 /* App startup and video links */
-"Opening Glamo…" = "جارٍ فتح Glamo…";
-"Couldn’t connect to Glamo" = "تعذّر الاتصال بـ Glamo";
-"Connecting to Glamo…" = "جارٍ الاتصال بـ Glamo…";
+"Opening Vifol…" = "جارٍ فتح Vifol…";
+"Couldn’t connect to Vifol" = "تعذّر الاتصال بـ Vifol";
+"Connecting to Vifol…" = "جارٍ الاتصال بـ Vifol…";
 "Ad privacy choices" = "خيارات خصوصية الإعلانات";
-"Couldn’t open the Glamo website. Try again." = "تعذّر فتح موقع Glamo. حاول مرة أخرى.";
+"Couldn’t open the Vifol website. Try again." = "تعذّر فتح موقع Vifol. حاول مرة أخرى.";
 "No match found" = "لم يُعثر على نتائج مطابقة";
 "Check the URL with the person who shared it." = "تحقّقي من عنوان URL مع الشخص الذي شاركه.";
 "Search the web" = "البحث على الويب";
@@ -394,8 +394,8 @@
 "Once it opens, swipe up or down to browse videos." = "بعد الفتح، مرّري للأعلى أو للأسفل لتصفّح الفيديوهات.";
 "There’s no playable video here." = "لا يوجد فيديو يمكن تشغيله هنا.";
 "Copy a video URL, then try pasting again." = "انسخي عنوان URL لفيديو، ثم أعيدي محاولة اللصق.";
-"Connect to Glamo, then try opening the URL again." = "اتصلي بـ Glamo، ثم حاولي فتح عنوان URL مرة أخرى.";
-"This deletes the file from Glamo. Any original in Photos or Files stays there." = "سيُحذف الملف من Glamo. وتبقى النسخة الأصلية في «الصور» أو «الملفات».";
+"Connect to Vifol, then try opening the URL again." = "اتصلي بـ Vifol، ثم حاولي فتح عنوان URL مرة أخرى.";
+"This deletes the file from Vifol. Any original in Photos or Files stays there." = "سيُحذف الملف من Vifol. وتبقى النسخة الأصلية في «الصور» أو «الملفات».";
 "%@ item" = "%@ عنصر";
 "%@ items" = "العناصر (%@)";
 "Export a video or audio file from Tools to save it here." = "صدّري فيديو أو ملفًا صوتيًا من «الأدوات» لحفظه هنا.";
@@ -564,3 +564,23 @@
 "Keep just the soundtrack as an M4A file." = "احفظ المسار الصوتي وحده في ملف M4A.";
 "Share files" = "مشاركة الملفات";
 "Send an original file or an export to another app." = "أرسل ملفًا أصليًا أو ملفًا مُصدّرًا إلى تطبيق آخر.";
+
+/* Recent, Files and Profile */
+"All Files" = "كل الملفات";
+"Profile" = "الملف الشخصي";
+"No recent activity" = "لا يوجد نشاط حديث";
+"Account ID · %@" = "معرّف الحساب · %@";
+"Recents" = "الأخيرة";
+"Saved History" = "سجل الملفات المحفوظة";
+"View History" = "سجل المشاهدة";
+"Viewed" = "تمت المشاهدة";
+"Browse files" = "تصفح الملفات";
+"Files you save or open will appear here." = "ستظهر هنا الملفات التي تحفظها أو تفتحها.";
+"No files yet" = "لا توجد ملفات بعد";
+"Add your first file to keep everything in one place." = "أضف أول ملف للاحتفاظ بكل شيء في مكان واحد.";
+"Add files" = "إضافة ملفات";
+"Upgrade" = "ترقية";
+"Get Premium" = "احصل على بريميوم";
+"Maybe Later" = "ربما لاحقًا";
+"Upgrade Now" = "ترقية الآن";
+"Vifol Plus" = "Vifol Plus";

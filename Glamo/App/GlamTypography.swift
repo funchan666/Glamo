@@ -24,4 +24,22 @@ extension View {
     func glamDisplay(_ size: CGFloat = 46, relativeTo: Font.TextStyle = .largeTitle) -> some View {
         modifier(GlamDisplay(size: size, relativeTo: relativeTo))
     }
+
+    func driveFont(_ size: CGFloat, relativeTo style: Font.TextStyle, weight: Font.Weight = .regular) -> some View {
+        modifier(DriveFont(size: size, style: style, weight: weight))
+    }
+}
+
+private struct DriveFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    let weight: Font.Weight
+
+    init(size: CGFloat, style: Font.TextStyle, weight: Font.Weight) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+        self.weight = weight
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size, weight: weight))
+    }
 }

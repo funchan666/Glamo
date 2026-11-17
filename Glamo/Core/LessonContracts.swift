@@ -274,7 +274,7 @@ enum GlamoError: LocalizedError {
     case configuration, invalidResponse, unauthorized, service(String), storage, unsupportedMedia
     var errorDescription: String? {
         switch self {
-        case .configuration: return "Glamo’s online service is not configured yet. Local editing is available."
+        case .configuration: return "Vifol’s online service is not configured yet. Local editing is available."
         case .invalidResponse: return "The service returned an unreadable response. Please try again."
         case .unauthorized: return "Your session has expired. Please sign in again."
         case .service(let message): return message
@@ -287,7 +287,7 @@ enum GlamoError: LocalizedError {
         switch error.code {
         case .secureConnectionFailed, .serverCertificateHasBadDate, .serverCertificateUntrusted,
              .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid:
-            return GlamoError.service("A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.")
+            return GlamoError.service("A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.")
         case .notConnectedToInternet, .networkConnectionLost:
             return GlamoError.service("Your internet connection was interrupted. Reconnect and try again.")
         case .timedOut:

@@ -10,7 +10,7 @@
 "A full year of Plus" = "A full year of Plus";
 "No results? Check your input, or ask the sender for a new link." = "No results? Check your input, or ask the sender for a new link.";
 "A little luck, on us" = "A little luck, on us";
-"A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.";
+"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.";
 "Access password" = "Access password";
 "Access through %@." = "Access through %@.";
 "Ads are unavailable with your current privacy choices." = "Ads are unavailable with your current privacy choices.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "Import from Photos";
 "Choose your language" = "Choose your language";
 "Clear" = "Clear";
-"Glamo is starting" = "Glamo is starting";
-"Glamo’s online service is not configured yet. Local editing is available." = "Glamo’s online service is not configured yet. Local editing is available.";
+"Vifol is starting" = "Vifol is starting";
+"Vifol’s online service is not configured yet. Local editing is available." = "Vifol’s online service is not configured yet. Local editing is available.";
 "Close" = "Close";
 "Confirming your purchase…" = "Confirming your purchase…";
 "Connecting your lesson feed…" = "Connecting your lesson feed…";
@@ -62,7 +62,7 @@
 "Delete folder" = "Delete folder";
 "After deletion" = "After deletion";
 "Folder contains items" = "Folder contains items";
-"The empty folder will be removed from Glamo." = "The empty folder will be removed from Glamo.";
+"The empty folder will be removed from Vifol." = "The empty folder will be removed from Vifol.";
 "Dismiss message" = "Dismiss message";
 "Edit" = "Edit";
 "Edit a local video" = "Edit a local video";
@@ -213,7 +213,7 @@
 "Terms of Use" = "Terms of Use";
 "Test ads require Google's sample iOS App ID." = "Test ads require Google's sample iOS App ID.";
 "The ad finished, but its reward could not be saved. %@" = "The ad finished, but its reward could not be saved. %@";
-"The copy in Glamo will be removed. The original in Photos or Files will stay untouched." = "The copy in Glamo will be removed. The original in Photos or Files will stay untouched.";
+"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "The copy in Vifol will be removed. The original in Photos or Files will stay untouched.";
 "The document was interrupted. Please try again." = "The document was interrupted. Please try again.";
 "The export finished but could not be added to your library. %@" = "The export finished but could not be added to your library. %@";
 "The request could not be completed." = "The request could not be completed.";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "Finish this ad for unlimited views today.";
 "Connect to refresh your allowance." = "Connect to refresh your allowance.";
 
-// Glamo lesson link entry.
-"Glamo link or lesson code" = "Glamo link or lesson code";
+// Vifol lesson link entry.
+"Vifol link or lesson code" = "Vifol link or lesson code";
 "Paste" = "Paste";
-"Use a lesson link or code shared through Glamo." = "Use a lesson link or code shared through Glamo.";
-"Copy a Glamo link or lesson code first, then tap Paste." = "Copy a Glamo link or lesson code first, then tap Paste.";
-"1. Copy a Glamo link" = "1. Copy a Glamo link";
+"Use a lesson link or code shared through Vifol." = "Use a lesson link or code shared through Vifol.";
+"Copy a Vifol link or lesson code first, then tap Paste." = "Copy a Vifol link or lesson code first, then tap Paste.";
+"1. Copy a Vifol link" = "1. Copy a Vifol link";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "Tap Open lesson to find matching lessons, then swipe to watch.";
 
@@ -357,7 +357,7 @@
 "Web search" = "Web search";
 "Opening page…" = "Opening page…";
 
-/* Glamo Plus */
+/* Vifol Plus */
 "Plus benefits" = "Plus benefits";
 "MP4 export up to 1080p" = "MP4 export up to 1080p";
 "M4A audio export" = "M4A audio export";
@@ -366,11 +366,11 @@
 "Subscribe to Plus" = "Subscribe to Plus";
 
 /* App startup and video links */
-"Opening Glamo…" = "Opening Glamo…";
-"Couldn’t connect to Glamo" = "Couldn’t connect to Glamo";
-"Connecting to Glamo…" = "Connecting to Glamo…";
+"Opening Vifol…" = "Opening Vifol…";
+"Couldn’t connect to Vifol" = "Couldn’t connect to Vifol";
+"Connecting to Vifol…" = "Connecting to Vifol…";
 "Ad privacy choices" = "Ad privacy choices";
-"Couldn’t open the Glamo website. Try again." = "Couldn’t open the Glamo website. Try again.";
+"Couldn’t open the Vifol website. Try again." = "Couldn’t open the Vifol website. Try again.";
 "No match found" = "No match found";
 "Check the URL with the person who shared it." = "Check the URL with the person who shared it.";
 "Search the web" = "Search the web";
@@ -394,8 +394,8 @@
 "Once it opens, swipe up or down to browse videos." = "Once it opens, swipe up or down to browse videos.";
 "There’s no playable video here." = "There’s no playable video here.";
 "Copy a video URL, then try pasting again." = "Copy a video URL, then try pasting again.";
-"Connect to Glamo, then try opening the URL again." = "Connect to Glamo, then try opening the URL again.";
-"This deletes the file from Glamo. Any original in Photos or Files stays there." = "This deletes the file from Glamo. Any original in Photos or Files stays there.";
+"Connect to Vifol, then try opening the URL again." = "Connect to Vifol, then try opening the URL again.";
+"This deletes the file from Vifol. Any original in Photos or Files stays there." = "This deletes the file from Vifol. Any original in Photos or Files stays there.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ items";
 "Export a video or audio file from Tools to save it here." = "Export a video or audio file from Tools to save it here.";
@@ -478,7 +478,7 @@
 "Parent folder" = "Parent folder";
 "Import videos" = "Import videos";
 "Clear search" = "Clear search";
-"Name A–Z" = "Name A–Z";
+"Name A–Z" = "Name (A-Z)";
 "Newest first" = "Newest first";
 "Change file sort order" = "Change file sort order";
 "Folders" = "Folders";
@@ -532,7 +532,7 @@
 "Now playing" = "Now playing";
 "Current file" = "Current file";
 "Locate current file" = "Locate current file";
-"Recent searches" = "Recent searches";
+"Recent searches" = "Recent Searches";
 "Clear recent searches" = "Clear recent searches";
 "Recently saved" = "Recently saved";
 "Failed" = "Failed";
@@ -564,3 +564,23 @@
 "Keep just the soundtrack as an M4A file." = "Keep just the soundtrack as an M4A file.";
 "Share files" = "Share files";
 "Send an original file or an export to another app." = "Send an original file or an export to another app.";
+
+/* Recent, Files and Profile */
+"All Files" = "All Files";
+"Profile" = "Profile";
+"No recent activity" = "No recent activity";
+"Account ID · %@" = "Account ID · %@";
+"Recents" = "Recents";
+"Saved History" = "Saved History";
+"View History" = "View History";
+"Viewed" = "Viewed";
+"Browse files" = "Browse files";
+"Files you save or open will appear here." = "Files you save or open will appear here.";
+"No files yet" = "No files yet";
+"Add your first file to keep everything in one place." = "Add your first file to keep everything in one place.";
+"Add files" = "Add files";
+"Upgrade" = "Upgrade";
+"Get Premium" = "Get Premium";
+"Maybe Later" = "Maybe Later";
+"Upgrade Now" = "Upgrade Now";
+"Vifol Plus" = "Vifol Plus";

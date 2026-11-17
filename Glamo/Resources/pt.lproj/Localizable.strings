@@ -10,7 +10,7 @@
 "A full year of Plus" = "Um ano de Plus";
 "No results? Check your input, or ask the sender for a new link." = "Sem resultados? Confira o que digitou ou peça um novo link a quem enviou.";
 "A little luck, on us" = "Um pequeno bônus para você";
-"A secure connection to Glamo could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Não foi possível estabelecer uma conexão segura com o Glamo. Confira a rede ou VPN e tente novamente. Se persistir, o serviço pode estar temporariamente indisponível.";
+"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Não foi possível estabelecer uma conexão segura com o Vifol. Confira a rede ou VPN e tente novamente. Se persistir, o serviço pode estar temporariamente indisponível.";
 "Access password" = "Senha de acesso";
 "Access through %@." = "Acesso até %@.";
 "Ads are unavailable with your current privacy choices." = "Os anúncios não estão disponíveis com suas opções de privacidade atuais.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "Importar de Fotos";
 "Choose your language" = "Escolha o idioma";
 "Clear" = "Limpar";
-"Glamo is starting" = "Iniciando o Glamo";
-"Glamo’s online service is not configured yet. Local editing is available." = "O serviço online do Glamo ainda não está configurado. A edição local está disponível.";
+"Vifol is starting" = "Iniciando o Vifol";
+"Vifol’s online service is not configured yet. Local editing is available." = "O serviço online do Vifol ainda não está configurado. A edição local está disponível.";
 "Close" = "Fechar";
 "Confirming your purchase…" = "Confirmando sua compra…";
 "Connecting your lesson feed…" = "Conectando seu feed de aulas…";
@@ -62,7 +62,7 @@
 "Delete folder" = "Apagar pasta";
 "After deletion" = "Depois de apagar";
 "Folder contains items" = "A pasta contém itens";
-"The empty folder will be removed from Glamo." = "A pasta vazia será apagada do Glamo.";
+"The empty folder will be removed from Vifol." = "A pasta vazia será apagada do Vifol.";
 "Dismiss message" = "Fechar mensagem";
 "Edit" = "Editar";
 "Edit a local video" = "Editar vídeo local";
@@ -213,7 +213,7 @@
 "Terms of Use" = "Termos de Uso";
 "Test ads require Google's sample iOS App ID." = "Anúncios de teste exigem o ID de app iOS de exemplo do Google.";
 "The ad finished, but its reward could not be saved. %@" = "O anúncio terminou, mas a recompensa não pôde ser salva. %@";
-"The copy in Glamo will be removed. The original in Photos or Files will stay untouched." = "A cópia no Glamo será removida. O original em Fotos ou Arquivos será preservado.";
+"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "A cópia no Vifol será removida. O original em Fotos ou Arquivos será preservado.";
 "The document was interrupted. Please try again." = "O documento foi interrompido. Tente novamente.";
 "The export finished but could not be added to your library. %@" = "A exportação terminou, mas não pôde ser adicionada à biblioteca. %@";
 "The request could not be completed." = "Não foi possível concluir a solicitação.";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "Assista a este anúncio até o fim para ter visualizações ilimitadas hoje.";
 "Connect to refresh your allowance." = "Conecte-se para atualizar sua cota.";
 
-// Glamo lesson link entry.
-"Glamo link or lesson code" = "Link do Glamo ou código da aula";
+// Vifol lesson link entry.
+"Vifol link or lesson code" = "Link do Vifol ou código da aula";
 "Paste" = "Colar";
-"Use a lesson link or code shared through Glamo." = "Use um link ou código de aula compartilhado pelo Glamo.";
-"Copy a Glamo link or lesson code first, then tap Paste." = "Copie um link do Glamo ou código de aula e toque em Colar.";
-"1. Copy a Glamo link" = "1. Copie um link do Glamo";
+"Use a lesson link or code shared through Vifol." = "Use um link ou código de aula compartilhado pelo Vifol.";
+"Copy a Vifol link or lesson code first, then tap Paste." = "Copie um link do Vifol ou código de aula e toque em Colar.";
+"1. Copy a Vifol link" = "1. Copie um link do Vifol";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "Toque em Colar ou digite o código da aula exatamente como recebido. Os códigos diferenciam maiúsculas de minúsculas.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "Toque em Abrir aula para encontrar aulas correspondentes e deslize para assistir.";
 
@@ -357,7 +357,7 @@
 "Web search" = "Pesquisa na web";
 "Opening page…" = "Abrindo página…";
 
-/* Glamo Plus */
+/* Vifol Plus */
 "Plus benefits" = "Benefícios do Plus";
 "MP4 export up to 1080p" = "Exportação MP4 até 1080p";
 "M4A audio export" = "Exportação de áudio M4A";
@@ -366,11 +366,11 @@
 "Subscribe to Plus" = "Subscrever o Plus";
 
 /* App startup and video links */
-"Opening Glamo…" = "Abrindo o Glamo…";
-"Couldn’t connect to Glamo" = "Não foi possível conectar ao Glamo";
-"Connecting to Glamo…" = "Conectando ao Glamo…";
+"Opening Vifol…" = "Abrindo o Vifol…";
+"Couldn’t connect to Vifol" = "Não foi possível conectar ao Vifol";
+"Connecting to Vifol…" = "Conectando ao Vifol…";
 "Ad privacy choices" = "Privacidade dos anúncios";
-"Couldn’t open the Glamo website. Try again." = "Não foi possível abrir o site do Glamo. Tente novamente.";
+"Couldn’t open the Vifol website. Try again." = "Não foi possível abrir o site do Vifol. Tente novamente.";
 "No match found" = "Nenhum resultado encontrado";
 "Check the URL with the person who shared it." = "Confira a URL com quem a compartilhou.";
 "Search the web" = "Buscar na web";
@@ -394,8 +394,8 @@
 "Once it opens, swipe up or down to browse videos." = "Depois de abrir, deslize para cima ou para baixo para ver outros vídeos.";
 "There’s no playable video here." = "Não há vídeo disponível para reprodução.";
 "Copy a video URL, then try pasting again." = "Copie a URL de um vídeo e tente colar novamente.";
-"Connect to Glamo, then try opening the URL again." = "Conecte-se ao Glamo e tente abrir a URL novamente.";
-"This deletes the file from Glamo. Any original in Photos or Files stays there." = "O ficheiro será apagado do Glamo. O original em Fotos ou Ficheiros será mantido.";
+"Connect to Vifol, then try opening the URL again." = "Conecte-se ao Vifol e tente abrir a URL novamente.";
+"This deletes the file from Vifol. Any original in Photos or Files stays there." = "O ficheiro será apagado do Vifol. O original em Fotos ou Ficheiros será mantido.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ itens";
 "Export a video or audio file from Tools to save it here." = "Exporte um vídeo ou áudio em Ferramentas para salvá-lo aqui.";
@@ -564,3 +564,23 @@
 "Keep just the soundtrack as an M4A file." = "Guarde apenas a faixa de áudio num ficheiro M4A.";
 "Share files" = "Partilhar ficheiros";
 "Send an original file or an export to another app." = "Envie um ficheiro original ou uma exportação para outra app.";
+
+/* Recent, Files and Profile */
+"All Files" = "Todos os arquivos";
+"Profile" = "Perfil";
+"No recent activity" = "Nenhuma atividade recente";
+"Account ID · %@" = "ID da conta · %@";
+"Recents" = "Recentes";
+"Saved History" = "Histórico de arquivos salvos";
+"View History" = "Histórico de reprodução";
+"Viewed" = "Visualizados";
+"Browse files" = "Explorar arquivos";
+"Files you save or open will appear here." = "Os arquivos que você salvar ou abrir aparecerão aqui.";
+"No files yet" = "Ainda não há arquivos";
+"Add your first file to keep everything in one place." = "Adicione o primeiro arquivo para manter tudo em um só lugar.";
+"Add files" = "Adicionar arquivos";
+"Upgrade" = "Fazer upgrade";
+"Get Premium" = "Obtenha Premium";
+"Maybe Later" = "Talvez mais tarde";
+"Upgrade Now" = "Fazer upgrade agora";
+"Vifol Plus" = "Vifol Plus";
