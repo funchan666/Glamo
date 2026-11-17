@@ -345,7 +345,8 @@ struct AccountSettingsSection: View {
                             if hasPolicyLinks { rowDivider }
                             Button { Task { await ads.privacyOptions() } } label: {
                                 AccountMenuRow(title: "Ad privacy choices")
-                            }
+                            }.disabled(!ads.canOpenPrivacyOptions)
+                                .accessibilityIdentifier("account.adPrivacyChoices")
                         }
                     }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
                         .buttonStyle(PressStyle()).disabled(unavailable)
@@ -386,19 +387,32 @@ private struct AccountMenuRow: View {
     var destructive = false
     @Environment(\.layoutDirection) private var layoutDirection
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                LocalizedText(title).font(.glam(.subheadline, weight: .medium))
-                    .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
-                if let detail {
-                    LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+        let rowTitle = LocalizedText(title).font(.glam(.subheadline, weight: .medium))
+            .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
+            .fixedSize(horizontal: false, vertical: true)
+        return HStack(spacing: 12) {
+            if let detail {
+                let value = LocalizedText(detail).font(.glam(.footnote))
+                    .foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        rowTitle
+                        Spacer(minLength: 0)
+                        value
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        rowTitle
+                        value
+                    }
                 }
-            }.fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                rowTitle.frame(maxWidth: .infinity, alignment: .leading)
+            }
             Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
                 .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
                 .frame(width: 20, height: 24)
-                .allowsHitTesting(false)
+                .allowsHitTesting(false).accessibilityHidden(true)
         }.padding(.horizontal, 16).padding(.vertical, 11)
             .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
             .contentShape(.interaction, Rectangle())

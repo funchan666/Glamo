@@ -106,7 +106,8 @@ struct LinkedVideoView: View {
     let search: String
     let onSearchResult: (String, LessonClip) -> Void
     @State private var visible = false
-    @State private var finishedInitialLoad = false
+    @State private var loadedFeedOwner: String?
+    @State private var watchOptionsPresented = false
     @State private var activeID: String?
     @State private var recordedQuery: String?
     @State private var openedBrowserSearchID: UUID?
@@ -137,6 +138,7 @@ struct LinkedVideoView: View {
                                                      controlInsets: container.safeAreaInsets, playback: playback,
                                                      didStartPlaying: { players.prepareNext(after: entry.id) },
                                                      didStopPlaying: { if activeID == entry.id { players.suspend() } },
+                                                     showWatchOptions: { watchOptionsPresented = true },
                                                      onSwipeExit: exitPlayer)
                                         } else {
                                             PlayerPoster(url: clip.coverURL)
@@ -166,15 +168,20 @@ struct LinkedVideoView: View {
         }.glamoScreenBackground(showingClips ? .black : GlamoStyle.background)
             .foregroundStyle(showingClips ? .white : GlamoStyle.ink)
             .preferredColorScheme(showingClips ? .dark : .light)
-            .modifier(PlayerPagingAccess(entries: feed.entries, selectedID: $activeID, tailID: morePageID, players: players))
+            .modifier(PlayerPagingAccess(entries: feed.entries, selectedID: $activeID,
+                                         watchOptionsPresented: $watchOptionsPresented, tailID: morePageID, players: players))
             .onAppear { visible = true; players.update(entries: feed.entries, selectedID: activeID) }
             .task(id: api.session?.userId.value) {
-                finishedInitialLoad = false
-                guard api.session != nil else { return }
+                guard let owner = api.session?.userId.value else {
+                    loadedFeedOwner = nil
+                    return
+                }
+                guard loadedFeedOwner != owner else { return }
+                loadedFeedOwner = nil
                 await feed.load(api: api, search: search)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, api.session?.userId.value == owner else { return }
                 activeID = feed.entries.first?.id
-                finishedInitialLoad = true
+                loadedFeedOwner = owner
             }
             .onChange(of: activeID) { _, id in
                 guard visible, api.session != nil,
@@ -192,7 +199,17 @@ struct LinkedVideoView: View {
                     onSearchResult(feed.query, first)
                 }
             }
-            .onDisappear { visible = false; feed.invalidatePendingLoad(); players.releaseAll() }
+            .onDisappear {
+                // A rewarded ad or the Plus page can temporarily cover the active player.
+                if watchOptionsPresented {
+                    players.suspend()
+                    return
+                }
+                visible = false
+                loadedFeedOwner = nil
+                feed.invalidatePendingLoad()
+                players.releaseAll()
+            }
             .fullScreenCover(item: $browserSearch) { document in
                 PolicyBrowser(document: document, webSearch: true)
             }
@@ -204,7 +221,7 @@ struct LinkedVideoView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in players.trimMemory() }
     }
     @ViewBuilder private var feedStatus: some View {
-        if !finishedInitialLoad || feed.loading {
+        if loadedFeedOwner != api.session?.userId.value || feed.loading {
             AccountLoadingIndicator(title: "Opening link…")
                 .frame(maxWidth: .infinity)
         } else if let request = feed.emptySearch {
@@ -261,13 +278,14 @@ private extension EnvironmentValues {
 private struct PlayerPagingAccess: ViewModifier {
     let entries: [PlaybackQueueEntry]
     @Binding var selectedID: String?
+    @Binding var watchOptionsPresented: Bool
     let tailID: String
     @ObservedObject var players: PlaybackPool
     @EnvironmentObject private var quota: QuotaStore
     @EnvironmentObject private var commerce: CommerceStore
     @State private var admittedID: String?
     @State private var requestedID: String?
-    @State private var showingReward = false
+    @State private var showingMembership = false
     @State private var swipeOrigin: String?
     @State private var trackingSwipe = false
     @State private var swipeEnded: UUID?
@@ -275,9 +293,9 @@ private struct PlayerPagingAccess: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .environment(\.playbackGatePresented, showingReward)
+            .environment(\.playbackGatePresented, watchOptionsPresented)
             .simultaneousGesture(DragGesture(minimumDistance: 12).onChanged { value in
-                guard !showingReward, abs(value.translation.height) > abs(value.translation.width) else { return }
+                guard !watchOptionsPresented, abs(value.translation.height) > abs(value.translation.width) else { return }
                 if !trackingSwipe { trackingSwipe = true; swipeOrigin = admittedID; swipeEnded = nil }
             }.onEnded { _ in swipeEnded = UUID() })
             .task(id: swipeEnded) {
@@ -287,8 +305,17 @@ private struct PlayerPagingAccess: ViewModifier {
             }
             .onAppear { admit(selectedID) }
             .onChange(of: selectedID) { _, value in admit(value) }
-            .sheet(isPresented: $showingReward, onDismiss: finishReward) {
-                MembershipView(rewardKind: .watch)
+            .allowsHitTesting(!watchOptionsPresented)
+            .accessibilityHidden(watchOptionsPresented)
+            .overlay {
+                if watchOptionsPresented {
+                    WatchLimitPrompt(showingMembership: $showingMembership, finish: finishWatchOptions)
+                }
+            }
+            .fullScreenCover(isPresented: $showingMembership, onDismiss: {
+                if commerce.premium { finishWatchOptions() }
+            }) {
+                MembershipView(requiredBenefit: .unlimitedViewing)
             }
     }
     private func canWatch(_ id: String) -> Bool {
@@ -296,7 +323,7 @@ private struct PlayerPagingAccess: ViewModifier {
         return clip.playbackURL.isFileURL || quota.mayWatch(clip.id, premium: commerce.premium)
     }
     private func admit(_ id: String?) {
-        guard !showingReward, let id else { return }
+        guard !watchOptionsPresented, let id else { return }
         if let admittedID, !entries.contains(where: { $0.id == admittedID }) { self.admittedID = nil }
         let isTail = id == tailID
         if canWatch(id) || (isTail && !quota.canRequestReward(for: .watch, premium: commerce.premium)) {
@@ -314,16 +341,17 @@ private struct PlayerPagingAccess: ViewModifier {
         players.suspend()
         if let admittedID, admittedID != id {
             // A new deliberate swipe may prompt again; dismissal itself never does.
-            showingReward = true
+            watchOptionsPresented = true
             selectedID = admittedID
         } else {
             admittedID = id
-            if quota.claimWatchLimitPrompt(premium: commerce.premium) { showingReward = true }
+            if quota.claimWatchLimitPrompt(premium: commerce.premium) { watchOptionsPresented = true }
         }
     }
-    private func finishReward() {
+    private func finishWatchOptions() {
         if let requestedID, canWatch(requestedID) { selectedID = requestedID }
         requestedID = nil
+        watchOptionsPresented = false
     }
 }
 
@@ -415,13 +443,13 @@ private struct ClipPage: View {
     @ObservedObject var playback: PlaybackController
     var didStartPlaying: () -> Void = {}
     var didStopPlaying: () -> Void = {}
+    let showWatchOptions: () -> Void
     var onSwipeExit: () -> Void = {}
     @State private var visible = false
     @State private var firstFrameReady = false
     @State private var accessChecked = false
     @State private var resumeAfterSheet = false
     @State private var resumeAfterInterruption = false
-    @State private var gate = false
     @State private var options = false
     @State private var editor = false
     @State private var recorded = false
@@ -446,7 +474,7 @@ private struct ClipPage: View {
             // unless the completed gesture is decisively leftward.
             .simultaneousGesture(DragGesture(minimumDistance: 32).onEnded { value in
                 guard active, visible, phase == .active, !ads.isPresenting,
-                      !pagingGate, !gate, !options, !editor, !scrubbing,
+                      !pagingGate, !options, !editor, !scrubbing,
                       value.translation.width < -90,
                       abs(value.translation.width) > abs(value.translation.height) * 1.7 else { return }
                 onSwipeExit()
@@ -470,18 +498,18 @@ private struct ClipPage: View {
                 }.padding(.top, controlInsets.top + 60).padding(.horizontal, 16)
             }
             PlayerSwipeHint(eligible: active && visible && playback.error == nil &&
-                            !pagingGate && !gate && !options && !editor && !ads.isPresenting)
+                            !pagingGate && !options && !editor && !ads.isPresenting)
                 .padding(.top, controlInsets.top + 64)
                 .padding(.bottom, controlInsets.bottom + 150)
                 .padding(.leading, controlInsets.leading + 20)
                 .padding(.trailing, controlInsets.trailing + 72)
-            if active, visible, !pagingGate, !gate, !options, !editor {
+            if active, visible, !pagingGate, !options, !editor {
                 if accessChecked, !allowed {
                     VStack(spacing: 16) {
                         LocalizedText(quota.canRequestReward(for: .watch, premium: commerce.premium)
                                       ? "Daily viewing limit reached" : "Playback unavailable")
                             .font(.glam(.title3, weight: .semibold, editorial: true))
-                        ActionButton(title: "Get more views") { gate = true }
+                        ActionButton(title: "Get more views", action: showWatchOptions)
                     }.padding(20).frame(maxWidth: 320)
                         .foregroundStyle(GlamoStyle.ink)
                         .glamoCard(radius: 24, fill: GlamoStyle.paper).padding(24)
@@ -520,11 +548,9 @@ private struct ClipPage: View {
                 if presenting { interruptPlayback() } else { resumeIfNeeded() }
             }
             .onDisappear { visible = false; resumeAfterInterruption = false; playback.pause() }
-            .onChange(of: gate) { _, presented in if presented { playback.pause() } }
             .onChange(of: pagingGate) { _, presented in
                 if presented { playback.pause() } else if active { activate() }
             }
-            .sheet(isPresented: $gate, onDismiss: { if active { activate() } }) { MembershipView(rewardKind: .watch) }
             .sheet(isPresented: $options, onDismiss: resumeAfterControls) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
@@ -652,7 +678,7 @@ private struct ClipPage: View {
     }
     private func activate(reload: Bool = false) {
         guard active, visible, phase == .active, !ads.isPresenting, !pagingGate,
-              !gate, !options, !editor else { return }
+              !options, !editor else { return }
         recorded = false
         accessChecked = true
         allowed = clip.playbackURL.isFileURL || quota.mayWatch(clip.id, premium: commerce.premium)
@@ -669,7 +695,7 @@ private struct ClipPage: View {
     }
     private func resumeAfterControls() {
         guard resumeAfterSheet, active, visible, phase == .active,
-              !ads.isPresenting, !gate, !options, !editor else { return }
+              !ads.isPresenting, !pagingGate, !options, !editor else { return }
         resumeAfterSheet = false
         activate()
     }
@@ -679,7 +705,7 @@ private struct ClipPage: View {
     }
     private func resumeIfNeeded() {
         guard resumeAfterInterruption || resumeAfterSheet, active, visible, phase == .active,
-              !ads.isPresenting, !gate, !options, !editor else { return }
+              !ads.isPresenting, !pagingGate, !options, !editor else { return }
         resumeAfterInterruption = false
         resumeAfterSheet = false
         activate()
@@ -717,9 +743,29 @@ struct PlayerProgressControl: View {
     let canResume: Bool
     @Binding var scrubbing: Bool
     var tint: Color = .white
+    var showsInlineTimes = false
     @State private var scrubPosition: Double = 0
     @State private var resumeAfterScrub = false
+
     var body: some View {
+        if showsInlineTimes {
+            VStack(spacing: 0) {
+                inlineTimes
+                scrubber
+            }
+        } else {
+            scrubber.overlay(alignment: .top) {
+                if scrubbing {
+                    Text(verbatim: "\(durationLabel(scrubPosition)) / \(durationLabel(timeline.duration))")
+                        .environment(\.layoutDirection, .leftToRight)
+                        .font(.caption.monospacedDigit()).foregroundStyle(tint).offset(y: -8)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+    }
+
+    private var scrubber: some View {
         GlamoScrubber(value: Binding(
                 get: { scrubbing ? scrubPosition : timeline.elapsed },
                 set: {
@@ -745,14 +791,39 @@ struct PlayerProgressControl: View {
                 }
             })
             .disabled(!enabled || timeline.duration <= 0 || playback.error != nil)
-            .overlay(alignment: .top) {
-                if scrubbing {
-                    Text(verbatim: "\(durationLabel(scrubPosition)) / \(durationLabel(timeline.duration))")
-                        .environment(\.layoutDirection, .leftToRight)
-                        .font(.caption.monospacedDigit()).foregroundStyle(tint).offset(y: -8)
-                        .allowsHitTesting(false)
-                }
+    }
+
+    private var inlineTimes: some View {
+        let total = durationLabel(timeline.duration)
+        let position = durationLabel(scrubbing ? scrubPosition : timeline.elapsed)
+        let positionTime = ZStack(alignment: .leading) {
+            // Reserve the width of the longest timestamp so dragging keeps the layout steady.
+            Text(verbatim: total).hidden()
+            Text(verbatim: position)
+        }
+        .font(.glam(.subheadline, weight: .semibold).monospacedDigit())
+        .foregroundStyle(scrubbing ? tint : GlamoStyle.ink)
+        .environment(\.layoutDirection, .leftToRight)
+        .accessibilityHidden(true) // The slider already announces this value.
+
+        let totalTime = LocalizedText("Duration · %@", total)
+            .font(.glam(.caption, weight: .medium).monospacedDigit())
+            .foregroundStyle(GlamoStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                positionTime
+                Spacer(minLength: 0)
+                totalTime
             }
+            VStack(alignment: .leading, spacing: 4) {
+                positionTime
+                totalTime
+            }
+        }
+        .padding(.horizontal, 2)
+        .allowsHitTesting(false)
     }
 }
 

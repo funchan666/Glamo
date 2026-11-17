@@ -143,22 +143,27 @@ struct GlamoRootView: View {
     @SceneStorage("drive.tab") private var tab: GlamoTab = .files
     @StateObject private var player = DrivePlaybackSession()
     @State private var searching = false
+    @State private var activityFilter = DriveActivityFilter.all
 
     var body: some View {
         GeometryReader { container in
             let floating = usesFloatingTabs(in: container)
             let visibility: Visibility = floating ? .hidden : .automatic
             let pane = drivePaneMargins(in: container)
+            let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
             TabView(selection: $tab) {
                 DriveBrowser(isSearching: $searching, play: open, pausePlayback: player.pause,
-                             showActivity: { tab = .activity })
+                             showActivity: {
+                                 activityFilter = .imports
+                                 tab = .activity
+                             })
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
                 DriveRecentView(play: open, browse: { tab = .files })
                     .padding(pane)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.recent) }.tag(GlamoTab.recent)
-                DriveActivityView(play: open, browse: { tab = .files })
+                DriveActivityView(filter: $activityFilter, play: open, browse: { tab = .files })
                     .padding(pane)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.activity) }.tag(GlamoTab.activity)
@@ -170,9 +175,9 @@ struct GlamoRootView: View {
             .modifier(GlamoTabBarAppearance())
             .toolbarColorScheme(.light, for: .tabBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !searching || tab != .files {
+                if (!searching || tab != .files), floating || dockedMovie != nil {
                     VStack(spacing: 5) {
-                        if !player.expanded, let movie = library.movies.first(where: { $0.id == player.currentID }) {
+                        if let movie = dockedMovie {
                             DriveMiniPlayer(playback: player.playback, movie: movie,
                                             expand: { player.expanded = true }, close: player.stop)
                                 .pageHorizontalMargins()
@@ -220,7 +225,7 @@ struct GlamoRootView: View {
     private func usesFloatingTabs(in container: GeometryProxy) -> Bool {
         guard environment.horizontalSizeClass == .compact,
               environment.verticalSizeClass == .regular,
-              !environment.dynamicTypeSize.isAccessibilitySize,
+              environment.dynamicTypeSize <= .xxLarge,
               container.size.width >= 300 else { return false }
         if #available(iOS 27.1, *) {
             if environment.toolbarVerticalEdge != nil { return false }
@@ -258,20 +263,23 @@ private struct GlamoTabDock: View {
                 Button { selection = item } label: {
                     VStack(spacing: 3) {
                         Image(item.symbol.assetName).renderingMode(.template).resizable().scaledToFit()
-                            .frame(width: 24, height: 24)
+                            .frame(width: 22, height: 22)
                             .accessibilityHidden(true)
-                        LocalizedText(item.name).font(.glam(.caption, weight: .semibold))
+                        LocalizedText(item.name).font(.glam(.caption, weight: selected ? .semibold : .medium))
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 4)
-                    .padding(.vertical, 7)
-                    .frame(minWidth: 44, maxWidth: .infinity, minHeight: 52)
-                    .foregroundStyle(selected ? GlamoStyle.onAccent : GlamoStyle.ink)
+                    .padding(.vertical, 5)
+                    .frame(minWidth: 44, maxWidth: .infinity, minHeight: 48)
+                    .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.secondary)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 14).fill(GlamoStyle.accent)
+                            let shape = RoundedRectangle(cornerRadius: 14)
+                            shape.fill(GlamoStyle.paperMuted)
+                                .overlay { shape.strokeBorder(GlamoStyle.accent.opacity(0.22)) }
                                 .matchedGeometryEffect(id: "selected", in: indicator)
+                                .allowsHitTesting(false).accessibilityHidden(true)
                         }
                     }
                     .contentShape(.interaction, Rectangle())
@@ -281,7 +289,7 @@ private struct GlamoTabDock: View {
                 .accessibilityIdentifier("tab.\(item.name.lowercased())")
             }
         }
-        .padding(5)
+        .padding(4)
         .frame(maxWidth: 400)
         .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.surface)
         .frame(maxWidth: .infinity)

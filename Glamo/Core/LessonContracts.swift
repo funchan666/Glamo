@@ -131,17 +131,9 @@ struct IOSBillingConfiguration: Codable {
 }
 struct QuotaConfiguration: Decodable {
     let dailyWatchLimit: Int?
-    // Backend field names are misleading; the confirmed API comments define their roles.
-    let dailyDownloadLimit: Int?
-    let downloadRewardCount: Int?
     let firstAdRewardWatchCount: Int?
     let secondAdRewardWatchCount: Int?
     let thirdAdRewardWatchCount: Int?
-    private enum CodingKeys: String, CodingKey {
-        case dailyWatchLimit, firstAdRewardWatchCount, secondAdRewardWatchCount, thirdAdRewardWatchCount
-        case dailyDownloadLimit = "unlimitedAfterAdCount"
-        case downloadRewardCount = "favoriteBaseLimit"
-    }
 }
 struct AdConfiguration: Decodable {
     let adType: Int
@@ -156,6 +148,20 @@ struct AdConfiguration: Decodable {
         advertiser = try values.decodeIfPresent(String.self, forKey: .advertiser)
         config = try values.decode(AdUnitConfiguration.self, forKey: .config)
         displayInterval = try values.decodeMediaNumber(forKey: .displayInterval)
+    }
+}
+
+private extension KeyedDecodingContainer {
+    // The ad service sends the interval as a JSON number or a numeric string.
+    func decodeMediaNumber(forKey key: Key) throws -> Double? {
+        guard contains(key) else { return nil }
+        if try decodeNil(forKey: key) { return nil }
+        if let value = try? decode(Double.self, forKey: key), value.isFinite { return value }
+        let text = try decode(String.self, forKey: key).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Double(text), value.isFinite else {
+            throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Expected a finite media number.")
+        }
+        return value
     }
 }
 
@@ -256,9 +262,7 @@ struct CommerceConfiguration: Decodable {
     let products: [Product]
     let rewardedAdType: Int
     let unlimitedAfterCompletedAds: Int
-    let favoriteReward: Int
     let dailyWatchLimit: Int
-    let dailyFavoriteLimit: Int
     let watchRewards: [Int]
     static func load() throws -> Self {
         guard let url = Bundle.main.url(forResource: "Commerce", withExtension: "json") else { throw GlamoError.configuration }

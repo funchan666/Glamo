@@ -275,7 +275,7 @@ final class CommerceStore: NSObject, ObservableObject {
         }
         guard SKPaymentQueue.canMakePayments() else { error = "Purchases are not allowed on this device."; return }
         guard !SKPaymentQueue.default().transactions.contains(where: { $0.transactionState != .failed }) else {
-            error = "An earlier purchase still needs to finish. Use Retry purchase confirmation."; return
+            error = "A previous purchase is still pending. Wait for it to finish."; return
         }
         busy = true
         error = nil
@@ -479,7 +479,7 @@ extension CommerceStore: SKProductsRequestDelegate, SKRequestDelegate, SKPayment
             message = nil
             if (error as? SKError)?.code == .paymentCancelled {
                 self.error = nil
-                message = "Restore canceled."
+                message = "Restore cancelled."
             } else {
                 self.error = "Apple couldn’t restore purchases. Sign in to your Apple account and try again."
             }

@@ -14,8 +14,7 @@ import Foundation
 @main enum QuotaContractChecks {
     @MainActor static func main() throws {
         let policy = CommerceConfiguration(products: [], rewardedAdType: 5,
-            unlimitedAfterCompletedAds: 4, favoriteReward: 5, dailyWatchLimit: 5,
-            dailyFavoriteLimit: 5, watchRewards: [3, 4, 6])
+            unlimitedAfterCompletedAds: 4, dailyWatchLimit: 5, watchRewards: [3, 4, 6])
         func store(_ user: String = "test", remote: QuotaConfiguration? = nil) -> QuotaStore {
             let value = QuotaStore()
             value.configure(userID: user, policy: policy, remote: remote)
@@ -25,7 +24,7 @@ import Foundation
         precondition(!quota.canRequestReward(for: .watch, premium: false))
         precondition(tryValue { try quota.rewardNoFill(UUID(), owner: "test", kind: .watch) } == nil)
         for n in 0..<5 { precondition(quota.recordWatch("watch-\(n)", premium: false)) }
-        precondition(quota.watchesLeft == 0 && quota.downloadsLeft == 5)
+        precondition(quota.watchesLeft == 0)
         precondition(quota.recordWatch("watch-0", premium: false))
         precondition(!quota.mayWatch("new", premium: false))
         precondition(quota.canRequestReward(for: .watch, premium: false))
@@ -43,6 +42,11 @@ import Foundation
             precondition(!quota.claimWatchLimitPrompt(premium: false))
             precondition(tryValue { try quota.rewardNoFill(id, owner: "test", kind: .watch) } == nil)
         }
+        do { _ = try quota.rewardNoFill(UUID(), owner: "other", kind: .watch); fatalError("Gift owner bypassed") } catch { }
+        SecureStorage.failWrites = true
+        do { _ = try quota.rewardNoFill(UUID(), owner: "test", kind: .watch); fatalError("Unsaved gift accepted") } catch { }
+        precondition(quota.watchesLeft == 0 && quota.completedAds(.watch) == 0)
+        SecureStorage.failWrites = false
         do { try quota.reward(UUID(), owner: "other", kind: .watch); fatalError("Owner bypassed") } catch { }
         for n in 0..<3 {
             try quota.reward(UUID(), owner: "test", kind: .watch)
@@ -54,37 +58,13 @@ import Foundation
         let fourth = UUID()
         try quota.reward(fourth, owner: "test", kind: .watch)
         try quota.reward(fourth, owner: "test", kind: .watch)
-        precondition(quota.unlimited && !quota.downloadsUnlimited && quota.completedAds(.watch) == 4)
-        precondition(quota.downloadsLeft == 5)
-        for n in 0..<5 { try quota.recordDownload("download-\(n)", owner: "test", premium: false) }
-        precondition(quota.downloadsLeft == 0)
-        try quota.recordDownload("download-0", owner: "test", premium: false)
-        precondition(quota.downloadsLeft == 0)
-        precondition(!quota.mayDownload("new", premium: false))
-        precondition(quota.canRequestReward(for: .download, premium: false))
-        let downloadGift = UUID()
-        _ = try quota.rewardNoFill(downloadGift, owner: "test", kind: .download)
-        precondition(quota.downloadsLeft == 5 && quota.completedAds(.download) == 0)
-        for n in 0..<5 { try quota.recordDownload("gift-download-\(n)", owner: "test", premium: false) }
-        precondition(quota.downloadsLeft == 0)
-        precondition(tryValue { try quota.rewardNoFill(downloadGift, owner: "test", kind: .download) } == nil)
-        precondition(quota.downloadsLeft == 0 && quota.completedAds(.download) == 0)
-        do { _ = try quota.rewardNoFill(UUID(), owner: "other", kind: .download); fatalError("Gift owner bypassed") } catch { }
-        SecureStorage.failWrites = true
-        do { _ = try quota.rewardNoFill(UUID(), owner: "test", kind: .download); fatalError("Unsaved gift accepted") } catch { }
-        precondition(quota.downloadsLeft == 0 && quota.completedAds(.download) == 0)
-        SecureStorage.failWrites = false
-        for _ in 0..<4 { try quota.reward(UUID(), owner: "test", kind: .download) }
-        precondition(quota.downloadsUnlimited && store().downloadsUnlimited)
-        // UTC day rollover resets both counters but preserves downloaded identities.
+        precondition(quota.unlimited && quota.completedAds(.watch) == 4 && store().unlimited)
+        // UTC day rollover resets the allowance and completed-ad count.
         var saved = quota.usage!
         saved.day = Date().addingTimeInterval(-2 * 86_400)
         try SecureStorage.write(JSONEncoder().encode(saved), key: "quota.test")
         let reset = store()
-        precondition(!reset.unlimited && !reset.downloadsUnlimited)
-        precondition(reset.watchesLeft == 5 && reset.downloadsLeft == 5)
-        try reset.recordDownload("download-0", owner: "test", premium: false)
-        precondition(reset.downloadsLeft == 5)
+        precondition(!reset.unlimited && reset.watchesLeft == 5)
         var utc = Calendar(identifier: .gregorian); utc.timeZone = TimeZone(secondsFromGMT: 0)!
         precondition(utc.component(.hour, from: reset.usage!.day) == 5)
         // Watching during membership must still be remembered when membership expires.
@@ -92,20 +72,9 @@ import Foundation
         precondition(reset.recordWatch("premium-view", premium: false) && reset.watchesLeft == 5)
         // Failure to save never publishes a charge or reward.
         SecureStorage.failWrites = true
-        do { try reset.recordDownload("write-fail", owner: "test", premium: false); fatalError("Failed write accepted") } catch { }
-        precondition(reset.downloadsLeft == 5 && reset.usage?.downloaded?.contains("write-fail") == false)
+        precondition(!reset.recordWatch("write-fail", premium: false))
+        precondition(reset.watchesLeft == 5 && reset.usage?.watched.contains("write-fail") == false)
         SecureStorage.failWrites = false
-        // Unequal values expose swapped field mapping; old names now mean downloads.
-        let remote = try JSONDecoder().decode(QuotaConfiguration.self, from:
-            Data(#"{"unlimitedAfterAdCount":11,"favoriteBaseLimit":2}"#.utf8))
-        let configured = store("remote", remote: remote)
-        precondition(configured.downloadsLeft == 11)
-        try configured.reward(UUID(), owner: "remote", kind: .download)
-        precondition(configured.downloadsLeft == 13 && configured.watchesLeft == 5)
-        let zero = try JSONDecoder().decode(QuotaConfiguration.self, from: Data(#"{"favoriteBaseLimit":0}"#.utf8))
-        let fallback = store("fallback", remote: zero)
-        try fallback.reward(UUID(), owner: "fallback", kind: .download)
-        precondition(fallback.downloadsLeft == 5)
         // A live configuration changes ad rewards now, but cannot refill a spent base.
         let oldAllowance = try JSONDecoder().decode(QuotaConfiguration.self, from:
             Data(#"{"dailyWatchLimit":5,"unlimitedAfterAdCount":5,"firstAdRewardWatchCount":3,"favoriteBaseLimit":2}"#.utf8))
@@ -113,42 +82,36 @@ import Foundation
             Data(#"{"dailyWatchLimit":20,"unlimitedAfterAdCount":10,"firstAdRewardWatchCount":7,"favoriteBaseLimit":4}"#.utf8))
         let daily = store("daily", remote: oldAllowance)
         precondition(daily.recordWatch("daily-view", premium: false))
-        try daily.recordDownload("daily-download", owner: "daily", premium: false)
         daily.configure(userID: "daily", policy: policy, remote: newAllowance)
-        precondition(daily.watchesLeft == 4 && daily.downloadsLeft == 4)
+        precondition(daily.watchesLeft == 4)
         // Both the freeze and pending values survive process recreation / a missing refresh.
         let reloaded = store("daily")
-        precondition(reloaded.watchesLeft == 4 && reloaded.downloadsLeft == 4)
+        precondition(reloaded.watchesLeft == 4)
         reloaded.configure(userID: "daily", policy: policy, remote: newAllowance)
         try reloaded.reward(UUID(), owner: "daily", kind: .watch)
-        try reloaded.reward(UUID(), owner: "daily", kind: .download)
-        precondition(reloaded.watchesLeft == 11 && reloaded.downloadsLeft == 8)
+        precondition(reloaded.watchesLeft == 11)
         var priorDay = reloaded.usage!
         priorDay.day = Date().addingTimeInterval(-2 * 86_400)
         try SecureStorage.write(JSONEncoder().encode(priorDay), key: "quota.daily")
         let nextDay = store("daily")
-        precondition(nextDay.watchesLeft == 20 && nextDay.downloadsLeft == 10)
-        precondition(nextDay.completedAds(.watch) == 0 && nextDay.completedAds(.download) == 0)
-        try nextDay.recordDownload("daily-download", owner: "daily", premium: false)
-        precondition(nextDay.downloadsLeft == 10)
-        // Untouched bases may refresh today; watch/download locks are independent.
+        precondition(nextDay.watchesLeft == 20 && nextDay.completedAds(.watch) == 0)
+        // An explicit zero reward still applies while the day's spent base stays locked.
         let separate = store("separate", remote: oldAllowance)
         precondition(separate.recordWatch("used-watch", premium: false))
         separate.configure(userID: "separate", policy: policy, remote: newAllowance)
-        precondition(separate.watchesLeft == 4 && separate.downloadsLeft == 10)
+        precondition(separate.watchesLeft == 4)
         let noBase = try JSONDecoder().decode(QuotaConfiguration.self, from:
             Data(#"{"dailyWatchLimit":0,"unlimitedAfterAdCount":0,"firstAdRewardWatchCount":0,"favoriteBaseLimit":0}"#.utf8))
         separate.configure(userID: "separate", policy: policy, remote: noBase)
-        precondition(separate.watchesLeft == 4 && separate.downloadsLeft == 0)
+        precondition(separate.watchesLeft == 4)
         try separate.reward(UUID(), owner: "separate", kind: .watch)
         precondition(separate.watchesLeft == 4) // Explicit zero reward is not replaced by a fallback.
-        // Old favorite spend is not a download; existing watch history survives migration.
-        var legacy = DailyUsage(day: Date())
-        legacy.watched = ["already-watched"]; legacy.favoritesUsed = 4; legacy.extraFavorites = 10
-        try SecureStorage.write(JSONEncoder().encode(legacy), key: "quota.legacy")
+        // The legacy keys are ignored while existing viewing spend and rewards survive migration.
+        let legacy = Data(#"{"day":0,"watched":["already-watched"],"favoritesUsed":4,"completedRewardIDs":[],"extraWatches":2,"extraFavorites":10}"#.utf8)
+        try SecureStorage.write(legacy, key: "quota.legacy")
         let migrated = store("legacy")
-        precondition(migrated.watchesLeft == 4 && migrated.downloadsLeft == 5)
-        print("PASS: independent quotas, repeat deduplication, UTC rollover, no-fill, ownership, persistence and migration")
+        precondition(migrated.watchesLeft == 6)
+        print("PASS: repeat deduplication, UTC rollover, no-fill, ownership, persistence and migration")
     }
     static func tryValue<T>(_ operation: () throws -> T) -> T { try! operation() }
 }

@@ -10,6 +10,8 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     @Published private(set) var busy = false
     @Published private(set) var isPresenting = false
     @Published private(set) var privacyOptionsRequired = false
+    @Published private var isPresentingPrivacyForm = false
+    @Published private var consentTask: Task<Void, Never>?
     @Published var error: String?
     @Published var message: String?
     @Published var luckyReward: LuckyRewardNotice?
@@ -17,20 +19,21 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     private var startupStarted = false
     @Published private(set) var isPreparingAppOpen = false
     private var appOpenTask: Task<Void, Never>?
-    private var appOpenPreloadTask: Task<AppOpenAd, Error>?
+    private var appOpenPreloadTask: Task<Void, Error>?
     private var preloadUnitID: String?
     private var preloadRequestID: UUID?
     private var preparedAppOpen: AppOpenAd?
     private var preparedAppOpenDate: Date?
     private var preparedUnitID: String?
-    private var presentedUnitID: String?
+    private var presentedPlacement: GoogleAdPlacement?
     private let appOpenLog = Logger(subsystem: "com.glamo.video", category: "AppOpen")
     private var appOpenStage = "idle"
     private var appOpenDeadline: Task<Void, Never>?
     private var appOpenAttempt: UUID?
     private var appOpenHistoryKey: String?
     private var returnedFromBackground = false
-    private var appOpenConsentPresented = false
+    private var consentInfoUpdated = false
+    private var consentSetupFinished = false
     private var appOpenAd: AppOpenAd?
     private var rewarded: RewardedAd?
     private var unavailableReward: (() -> Void)?
@@ -38,8 +41,18 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     private var rewardAttempt: UUID?
     @Published private(set) var completedReward: UUID?
     private var started = false
+
+    var canOpenPrivacyOptions: Bool {
+        privacyOptionsRequired && consentTask == nil && !isPresentingPrivacyForm
+            && !busy && !isPreparingAppOpen && !isPresenting
+    }
+
+    private var packagedAppID: String? {
+        Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
+    }
+
     func watch(commerce: CommerceStore, quota: QuotaStore, kind: AllowanceKind) async {
-        guard !Task.isCancelled, !busy, !isPresenting, !isPreparingAppOpen else { return }
+        guard !Task.isCancelled, !busy, !isPresenting, !isPreparingAppOpen, !isPresentingPrivacyForm else { return }
         quota.resetIfNeeded()
         guard quota.canRequestReward(for: kind, premium: commerce.premium) else { return }
         guard commerce.rightsVerified, let policy = commerce.policy, let owner = commerce.api.session?.userId.value else {
@@ -56,40 +69,43 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         luckyReward = nil
         rewardGranted = false
         unavailableReward = nil
-        let packagedAppID = Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
         guard let placement = commerce.release?.googlePlacement(for: policy.rewardedAdType, packagedAppID: packagedAppID) else {
             appOpenLog.error("Rewarded ad configuration missing, invalid or inconsistent with the packaged App ID")
             grantUnavailableReward(attemptID, owner: owner, commerce: commerce, quota: quota, kind: kind)
             return
         }
-        let unitID = placement.unitID
-        let demoMode = placement.isOfficialDemo
         var timeout: Task<Void, Never>?
         func armDeadline() {
             timeout?.cancel()
             timeout = Task { [weak self] in
                 do { try await Task.sleep(for: .seconds(12)) } catch { return }
-                guard let self, self.rewardAttempt == attemptID, !self.isPresenting else { return }
+                guard let self, self.rewardAttempt == attemptID,
+                      !self.isPresenting, !self.isPresentingPrivacyForm else { return }
                 self.rewardAttempt = nil
                 self.busy = false
                 self.grantUnavailableReward(attemptID, owner: owner, commerce: commerce, quota: quota, kind: kind)
             }
         }
-        // Include SDK preparation in the wait budget. Only the real privacy
-        // consent surface may pause it; loading can always be cancelled.
         armDeadline()
         defer { timeout?.cancel() }
         do {
-            try await prepareSDK(demoMode: demoMode, mayPresentConsent: true,
-                                 mayContinue: { self.rewardAttempt == attemptID }) { presenting in
-                if presenting { timeout?.cancel() }
-                else { armDeadline() }
+            if !placement.isOfficialDemo {
+                if !ConsentInformation.shared.canRequestAds {
+                    beginConsentIfNeeded { [weak self] in
+                        self?.rewardAttempt == attemptID && !commerce.busy && !commerce.preparingPurchase
+                    }
+                }
+                await consentTask?.value
             }
             try Task.checkCancellation()
             guard rewardAttempt == attemptID else { return }
-            let ad = try await RewardedAd.load(with: unitID, request: Request())
+            try prepareSDK(for: placement)
+            // Give ad loading its own budget after the user leaves the consent form.
+            armDeadline()
+            let ad = try await RewardedAd.load(with: placement.unitID, request: Request())
             try Task.checkCancellation()
             guard rewardAttempt == attemptID, UIApplication.shared.applicationState == .active else { return }
+            guard canRequestAds(for: placement) else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
             try ad.canPresent(from: nil)
             guard commerce.api.session?.userId.value == owner, !commerce.premium else { throw GlamoError.unauthorized }
             rewarded = ad
@@ -104,7 +120,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                 do {
                     try quota.reward(rewardID, owner: owner, kind: kind)
                     self.rewardGranted = true
-                    self.message = kind == .watch ? "Your viewing allowance has been updated." : "Your download allowance has been updated."
+                    self.message = "Your viewing allowance has been updated."
                 } catch { self.error = "The ad finished, but its reward could not be saved. \(error.localizedDescription)" }
             }
         } catch {
@@ -138,37 +154,50 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         } catch { self.error = error.localizedDescription }
     }
 
-    private func prepareSDK(demoMode: Bool, mayPresentConsent: Bool,
-                            mayContinue: () -> Bool = { true },
-                            consentPresentation: ((Bool) -> Void)? = nil) async throws {
-        try Task.checkCancellation()
-        guard mayContinue() else { throw CancellationError() }
-        if !demoMode {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters()) { error in
-                    if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+    private func beginConsentIfNeeded(mayPresent: @escaping () -> Bool) {
+        // The official demo App ID has no publisher-managed Glamo messages.
+        guard let appID = packagedAppID,
+              appID.range(of: #"^ca-app-pub-[0-9]{16}~[0-9]{10}$"#, options: .regularExpression) != nil,
+              appID != GoogleDemoAds.appID,
+              !consentSetupFinished, consentTask == nil, !isPresentingPrivacyForm, !isPresenting else { return }
+        discardAppOpenInventory()
+        consentTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.privacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+                self.consentTask = nil
+            }
+            do {
+                if !self.consentInfoUpdated {
+                    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                        ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters()) { error in
+                            if let error { continuation.resume(throwing: error) }
+                            else { continuation.resume() }
+                        }
+                    }
+                    self.consentInfoUpdated = true
                 }
+                guard UIApplication.shared.applicationState == .active, mayPresent() else { return }
+                self.isPresentingPrivacyForm = true
+                self.returnedFromBackground = false
+                defer { self.isPresentingPrivacyForm = false }
+                try await ConsentForm.loadAndPresentIfRequired(from: nil)
+                self.consentSetupFinished = true
+            } catch {
+                let failure = error as NSError
+                self.appOpenLog.info("UMP consent setup failed; domain=\(failure.domain, privacy: .public), code=\(failure.code)")
             }
-            privacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
-            try Task.checkCancellation()
-            guard mayContinue() else { throw CancellationError() }
-            if mayPresentConsent, ConsentInformation.shared.consentStatus == .required {
-                let form = try await ConsentForm.load()
-                try Task.checkCancellation()
-                guard mayContinue() else { throw CancellationError() }
-                consentPresentation?(true)
-                defer { consentPresentation?(false) }
-                try await form.present(from: nil)
-            }
-            guard ConsentInformation.shared.canRequestAds else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
-        } else {
-            // Google's demo app has no Glamo-owned UMP message configuration.
-            // Reached only with the exact official demo App ID and demo ad unit
-            // (build test mode, or an identical demo pair returned by getV2).
-            privacyOptionsRequired = false
         }
-        try Task.checkCancellation()
-        guard mayContinue() else { throw CancellationError() }
+    }
+
+    private func canRequestAds(for placement: GoogleAdPlacement) -> Bool {
+        guard !isPresentingPrivacyForm, consentTask == nil else { return false }
+        // UMP owns the consent state, including a prior session after an update error.
+        return placement.isOfficialDemo || ConsentInformation.shared.canRequestAds
+    }
+
+    private func prepareSDK(for placement: GoogleAdPlacement) throws {
+        guard canRequestAds(for: placement) else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
         startSDKIfNeeded()
     }
 
@@ -182,27 +211,42 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         }
     }
 
-    private func preloadAppOpen(unitID: String) async throws -> AppOpenAd {
-        if preparedUnitID == unitID, let ad = preparedAppOpen, let date = preparedAppOpenDate,
-           Date().timeIntervalSince(date) >= 0, Date().timeIntervalSince(date) < 4 * 60 * 60 {
-            appOpenLog.info("Using preloaded app-open ad")
-            return ad
-        }
-        if let task = appOpenPreloadTask, preloadUnitID == unitID { return try await task.value }
+    private func discardAppOpenInventory() {
         appOpenPreloadTask?.cancel()
+        appOpenPreloadTask = nil
+        preloadUnitID = nil
+        preloadRequestID = nil
         preparedAppOpen = nil
         preparedAppOpenDate = nil
         preparedUnitID = nil
+    }
+
+    private func preloadAppOpen(for placement: GoogleAdPlacement) async throws {
+        guard canRequestAds(for: placement) else { throw CancellationError() }
+        let unitID = placement.unitID
+        if preparedUnitID == unitID, preparedAppOpen != nil, let date = preparedAppOpenDate,
+           Date().timeIntervalSince(date) >= 0, Date().timeIntervalSince(date) < 4 * 60 * 60 {
+            appOpenLog.info("Using preloaded app-open ad")
+            return
+        }
+        if let task = appOpenPreloadTask, preloadUnitID == unitID {
+            try await task.value
+            return
+        }
+        discardAppOpenInventory()
         preloadUnitID = unitID
         let requestID = UUID()
         preloadRequestID = requestID
-        // This task belongs to the inventory cache, not a splash-screen deadline.
-        let task = Task { @MainActor [weak self] () throws -> AppOpenAd in
+        // The shared task signals completion. The ad stays in the main-actor cache.
+        let task = Task { @MainActor [weak self] () throws -> Void in
+            guard let self else { throw CancellationError() }
             let began = ContinuousClock.now
             do {
+                try Task.checkCancellation()
+                guard self.preloadRequestID == requestID, self.canRequestAds(for: placement) else { throw CancellationError() }
                 let ad = try await AppOpenAd.load(with: unitID, request: Request())
                 try Task.checkCancellation()
-                guard let self, self.preloadRequestID == requestID else { throw CancellationError() }
+                guard self.preloadRequestID == requestID, self.canRequestAds(for: placement) else { throw CancellationError() }
                 self.preparedAppOpen = ad
                 self.preparedAppOpenDate = Date()
                 self.preparedUnitID = unitID
@@ -210,9 +254,8 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                 self.preloadUnitID = nil
                 self.preloadRequestID = nil
                 self.appOpenLog.info("App-open inventory ready after \(began.duration(to: .now).description, privacy: .public)")
-                return ad
             } catch {
-                if let self, self.preloadRequestID == requestID {
+                if self.preloadRequestID == requestID {
                     self.appOpenPreloadTask = nil
                     self.preloadUnitID = nil
                     self.preloadRequestID = nil
@@ -223,11 +266,12 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
             }
         }
         appOpenPreloadTask = task
-        return try await task.value
+        try await task.value
     }
 
     // Cold start includes pre-login guest preparation. Foreground returns use the same gate.
     func beginStartup(commerce: CommerceStore, accountAccess: AccountAccessFlow) {
+        beginConsentIfNeeded { !commerce.busy && !commerce.preparingPurchase && !accountAccess.isBusy }
         guard !startupStarted else { return }
         startupStarted = true
         requestAppOpen(commerce: commerce, accountAccess: accountAccess, coldStart: true)
@@ -235,18 +279,21 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
 
     func didEnterBackground() {
         // An ad or SDK consent browser returning to the app must not recursively trigger an ad.
-        returnedFromBackground = !isPresenting && !busy && !appOpenConsentPresented
-        if isPreparingAppOpen, !appOpenConsentPresented { finishAppOpen(reason: "background", preservePreparation: true) }
+        returnedFromBackground = !isPresenting && !busy && !isPresentingPrivacyForm
+        if isPreparingAppOpen { finishAppOpen(reason: "background", preservePreparation: true) }
     }
 
     func didBecomeActive(commerce: CommerceStore, accountAccess: AccountAccessFlow) {
+        if !busy {
+            beginConsentIfNeeded { !commerce.busy && !commerce.preparingPurchase && !accountAccess.isBusy }
+        }
         guard returnedFromBackground else { return }
         returnedFromBackground = false
         requestAppOpen(commerce: commerce, accountAccess: accountAccess, coldStart: false)
     }
 
     private func requestAppOpen(commerce: CommerceStore, accountAccess: AccountAccessFlow, coldStart: Bool) {
-        guard appOpenAttempt == nil, !busy, !isPresenting,
+        guard appOpenAttempt == nil, !busy, !isPresenting, !isPresentingPrivacyForm,
               !commerce.busy, !commerce.preparingPurchase, !accountAccess.isBusy else {
             if coldStart { startupFinished = true }
             return
@@ -262,7 +309,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         scheduleAppOpenDeadline(attempt: attempt, seconds: waitingBudget)
         appOpenTask = Task { [weak self] in
             guard let self else { return }
-            let packagedAppID = Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
+            let packagedAppID = self.packagedAppID
             do {
                 try await commerce.api.prepareVisitor()
                 try Task.checkCancellation()
@@ -282,48 +329,35 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                     self.finishAppOpen(attempt: attempt, reason: "ad-configuration-unavailable"); return
                 }
                 let interval = commerce.release?.appOpenInterval(packagedAppID: packagedAppID)
-                let unitID = placement.unitID
                 let key = "glamo.app-open.last-impression.\(commerce.api.configuration.servicePackageName).\(commerce.api.configuration.apiBaseURL?.host ?? "none").\(placement.isOfficialDemo ? "demo" : "production")"
                 self.appOpenLog.info("App-open rights/configuration ready; intervalMinutes=\(interval ?? -1)")
                 if self.appOpenAttempt == attempt { self.appOpenStage = "ad-preparation" }
-                // Late inventory may be retained, but consent/presentation may not interrupt Home.
-                let mayPresentConsent = self.appOpenAttempt == attempt
-                try await self.prepareSDK(demoMode: placement.isOfficialDemo,
-                    mayPresentConsent: mayPresentConsent,
-                    mayContinue: { !mayPresentConsent || self.appOpenAttempt == attempt },
-                    consentPresentation: { [weak self] presenting in
-                        guard let self, self.appOpenAttempt == attempt else { return }
-                        self.appOpenConsentPresented = presenting
-                        if presenting { self.appOpenDeadline?.cancel() }
-                        else { self.scheduleAppOpenDeadline(attempt: attempt, seconds: waitingBudget) }
-                    })
+                // Consent can finish independently of this app-open presentation opportunity.
+                if !placement.isOfficialDemo { await self.consentTask?.value }
+                try Task.checkCancellation()
+                try self.prepareSDK(for: placement)
                 guard AppOpenTiming.isDue(intervalMinutes: interval,
                     lastShown: UserDefaults.standard.object(forKey: key) as? Date) else {
-                    Task { try? await self.preloadAppOpen(unitID: unitID) }
+                    Task { _ = try? await self.preloadAppOpen(for: placement) }
                     self.finishAppOpen(attempt: attempt, reason: "interval-not-due")
                     return
                 }
-                let ad = try await self.preloadAppOpen(unitID: unitID)
+                try await self.preloadAppOpen(for: placement)
                 try Task.checkCancellation()
-                guard self.appOpenAttempt == attempt, commerce.api.session?.userId.value == owner,
+                guard self.appOpenAttempt == attempt,
+                      self.preparedUnitID == placement.unitID, let ad = self.preparedAppOpen,
+                      commerce.api.session?.userId.value == owner,
                       !commerce.premium, UIApplication.shared.applicationState == .active,
                       !self.busy, !self.isPresenting, !commerce.busy, !commerce.preparingPurchase,
-                      !accountAccess.isBusy,
+                      !accountAccess.isBusy, self.canRequestAds(for: placement),
                       AppOpenTiming.isDue(intervalMinutes: interval,
                         lastShown: UserDefaults.standard.object(forKey: key) as? Date) else {
                     self.finishAppOpen(attempt: attempt); return
                 }
                 do { try ad.canPresent(from: nil) }
-                catch {
-                    self.preparedAppOpen = nil
-                    self.preparedAppOpenDate = nil
-                    self.preparedUnitID = nil
-                    throw error
-                }
-                self.preparedAppOpen = nil
-                self.preparedAppOpenDate = nil
-                self.preparedUnitID = nil
-                self.presentedUnitID = unitID
+                catch { self.discardAppOpenInventory(); throw error }
+                self.discardAppOpenInventory()
+                self.presentedPlacement = placement
                 self.appOpenStage = "presenting"
                 self.appOpenLog.info("App-open ad ready; presenting")
                 self.appOpenAd = ad
@@ -362,6 +396,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         if !preservePreparation { appOpenTask?.cancel() }
         appOpenTask = nil
         appOpenAd = nil
+        presentedPlacement = nil
         appOpenHistoryKey = nil
         isPreparingAppOpen = false
         isPresenting = false
@@ -375,15 +410,23 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     }
 
     func privacyOptions() async {
+        guard canOpenPrivacyOptions, UIApplication.shared.applicationState == .active else { return }
+        error = nil
+        isPresentingPrivacyForm = true
+        returnedFromBackground = false
+        discardAppOpenInventory()
+        defer {
+            privacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+            isPresentingPrivacyForm = false
+        }
         do { try await ConsentForm.presentPrivacyOptionsForm(from: nil) }
         catch { self.error = error.localizedDescription }
     }
     func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         if let current = appOpenAd, ad === current {
-            let unitID = presentedUnitID
-            presentedUnitID = nil
+            let placement = presentedPlacement
             finishAppOpen()
-            if let unitID { Task { try? await self.preloadAppOpen(unitID: unitID) } }
+            if let placement { Task { _ = try? await self.preloadAppOpen(for: placement) } }
             return
         }
         guard let current = rewarded, ad === current else { return }

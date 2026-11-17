@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D71000000000000000000001 /* Glamo/Features/DriveBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71000000000000000000002 /* Glamo/Features/DriveBrowser.swift */; };
-		D71000000000000000000003 /* Glamo/Features/DrivePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */; };
-		ED1700000000000000000001 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */; };
-		ED1700000000000000000003 /* InstrumentSerif-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000004 /* InstrumentSerif-OFL.txt */; };
 		0A80A0B8549C3D5AB3BBC1FC /* Glamo/Resources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 47A27C0CD55779B5085CB27B /* Glamo/Resources/Assets.xcassets */; };
 		16EB816FD26D57C86FA63242 /* Glamo/Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B01A9BEACE5275588553E5AD /* Glamo/Resources/PrivacyInfo.xcprivacy */; };
 		1AC010000000000000000002 /* Glamo/App/AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC010000000000000000001 /* Glamo/App/AppLanguage.swift */; };
@@ -36,13 +32,13 @@
 		C71000000000000000000001 /* Glamo/App/GlamTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C71000000000000000000002 /* Glamo/App/GlamTypography.swift */; };
 		C7F5D928DE552FB7782E6664 /* Glamo/Core/LessonContracts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5C66D3BCB0711DB84F1A3B /* Glamo/Core/LessonContracts.swift */; };
 		D0DFDA960A87B68556723DA1 /* Glamo/Features/LinkedVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B7ED2C47711EEDC253A7BD /* Glamo/Features/LinkedVideoView.swift */; };
+		D71000000000000000000001 /* Glamo/Features/DriveBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71000000000000000000002 /* Glamo/Features/DriveBrowser.swift */; };
+		D71000000000000000000003 /* Glamo/Features/DrivePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */; };
+		ED1700000000000000000001 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000002 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf */; };
+		ED1700000000000000000003 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		D71000000000000000000002 /* Glamo/Features/DriveBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/DriveBrowser.swift; sourceTree = SOURCE_ROOT; };
-		D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/DrivePlayer.swift; sourceTree = SOURCE_ROOT; };
-		ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf"; sourceTree = SOURCE_ROOT; };
-		ED1700000000000000000004 /* InstrumentSerif-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Glamo/Resources/Fonts/InstrumentSerif-OFL.txt"; sourceTree = SOURCE_ROOT; };
 		17682BB59D393EEB797E5420 /* Glamo/Features/PracticeVideoWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/PracticeVideoWorkspace.swift; sourceTree = SOURCE_ROOT; };
 		1983D2A3DA5E7E885A18C42A /* Glamo/Core/LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/LibraryStore.swift; sourceTree = SOURCE_ROOT; };
 		198C628051C30B581DC8DE92 /* Glamo/Features/VideoLinkComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/VideoLinkComposer.swift; sourceTree = SOURCE_ROOT; };
@@ -76,9 +72,13 @@
 		B01A9BEACE5275588553E5AD /* Glamo/Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Glamo/Resources/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
 		B2E822DCE2A437F4FCB346A9 /* Glamo/Core/QuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/QuotaStore.swift; sourceTree = SOURCE_ROOT; };
 		C71000000000000000000002 /* Glamo/App/GlamTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/App/GlamTypography.swift; sourceTree = SOURCE_ROOT; };
+		D71000000000000000000002 /* Glamo/Features/DriveBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/DriveBrowser.swift; sourceTree = SOURCE_ROOT; };
+		D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/DrivePlayer.swift; sourceTree = SOURCE_ROOT; };
 		E3B808EADBFC1086054EA47A /* Glamo/Core/APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/APIClient.swift; sourceTree = SOURCE_ROOT; };
 		E4BD89A549F49134CAB0C817 /* Glamo/App/DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/App/DesignSystem.swift; sourceTree = SOURCE_ROOT; };
 		EC62DF084BD6179B0CD0BFAA /* Glamo/Features/MembershipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/MembershipView.swift; sourceTree = SOURCE_ROOT; };
+		ED1700000000000000000002 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf"; sourceTree = SOURCE_ROOT; };
+		ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Glamo/Resources/Fonts/InstrumentSerif-OFL.txt"; sourceTree = SOURCE_ROOT; };
 		EFC3AA166887DDAA8FB0EBD0 /* Glamo/Core/CommerceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/CommerceStore.swift; sourceTree = SOURCE_ROOT; };
 		F2CDBB4A80FB9A168C05E16E /* Glamo/Core/PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/PlaybackController.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -129,8 +129,8 @@
 				EC62DF084BD6179B0CD0BFAA /* Glamo/Features/MembershipView.swift */,
 				ACCE55100000000000000002 /* Glamo/Features/AccountAccessViews.swift */,
 				47A27C0CD55779B5085CB27B /* Glamo/Resources/Assets.xcassets */,
-				ED1700000000000000000002 /* InstrumentSerif-Regular.ttf */,
-				ED1700000000000000000004 /* InstrumentSerif-OFL.txt */,
+				ED1700000000000000000002 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf */,
+				ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */,
 				1E86FD4AD3FF9F970DB0B719 /* Glamo/Resources/Commerce.json */,
 				B01A9BEACE5275588553E5AD /* Glamo/Resources/PrivacyInfo.xcprivacy */,
 				86E8C246447DD4C5D9405F57 /* Glamo/Resources/Info.plist */,
@@ -214,8 +214,8 @@
 				1AC0100000000000000000C9 /* InfoPlist.strings in Resources */,
 				1AC010000000000000000065 /* Localizable.strings in Resources */,
 				0A80A0B8549C3D5AB3BBC1FC /* Glamo/Resources/Assets.xcassets in Resources */,
-				ED1700000000000000000001 /* InstrumentSerif-Regular.ttf in Resources */,
-				ED1700000000000000000003 /* InstrumentSerif-OFL.txt in Resources */,
+				ED1700000000000000000001 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf in Resources */,
+				ED1700000000000000000003 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt in Resources */,
 				445B4DAFB0E123A139308F4D /* Glamo/Resources/Commerce.json in Resources */,
 				16EB816FD26D57C86FA63242 /* Glamo/Resources/PrivacyInfo.xcprivacy in Resources */,
 				A09B10000000000000000001 /* Glamo/Resources/LaunchScreen.storyboard in Resources */,

@@ -7,6 +7,7 @@ enum GlamoStyle {
     static let surface = Color(red: 1, green: 0.997, blue: 0.984)
     static let raised = Color(red: 0.910, green: 0.921, blue: 0.933)
     static let accent = Color(red: 0.153, green: 0.271, blue: 0.666)
+    static let playbackProgress = Color(red: 0.68, green: 0.28, blue: 0.11)
     static let onAccent = Color(red: 0.992, green: 0.985, blue: 0.961)
     static let ink = Color(red: 0.098, green: 0.137, blue: 0.204)
     static let secondary = Color(red: 0.302, green: 0.349, blue: 0.429)
@@ -44,7 +45,7 @@ struct AssetMask: View {
 
 enum GlamoGlyph: String, CaseIterable {
     case feed, edit, link, search
-    case play, pause, close, back, sound, mute, folder
+    case play, pause, close, back, sound, folder
     case driveFolder, driveRecent, driveActivity, driveSettings, driveGrid, driveList, driveAdd, driveMore, driveExpand, driveShare
     var assetName: String { "Glyph" + rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
     var fallback: String {
@@ -57,8 +58,7 @@ enum GlamoGlyph: String, CaseIterable {
         case .pause: "Pause"
         case .close: "Close"
         case .back: "Back"
-        case .sound: "Sound"
-        case .mute: "Mute"
+        case .sound: "Audio"
         case .folder: "Folder"
         case .driveFolder: "Files"
         case .driveRecent: "Recent"

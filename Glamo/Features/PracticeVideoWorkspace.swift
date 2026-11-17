@@ -109,7 +109,7 @@ struct VideoImportControls: View {
         }.buttonStyle(GlamoActionStyle(fillsWidth: fillsWidth))
             .accessibilityIdentifier("video.importFiles")
         Button { error = nil; showPhotos = true } label: {
-            Label { LocalizedText("Choose from Photos") } icon: {
+            Label { LocalizedText("Import from Photos") } icon: {
                 Glyph(symbol: .feed, size: 17, tint: GlamoStyle.accent)
             }
         }.buttonStyle(GlamoActionStyle(primary: false, fillsWidth: fillsWidth))
@@ -157,16 +157,14 @@ struct EditorSheet: View {
     var body: some View {
         GeometryReader { container in
             VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    IconButton(symbol: .close, label: "Close", glass: true) {
-                        departure.request { dismiss() }
-                    }.disabled(library.importingVideo)
+                SheetHeading(title: initialTool == .studio ? "Video editor" : initialTool.title, inset: false) {
+                    departure.request { dismiss() }
                 }
                 .pageHorizontalMargins().padding(.top, 8)
+                .disabled(library.importingVideo)
                 EditorWorkspace(initialMovie: initialMovie, initialTool: initialTool)
             }
-            .padding(drivePaneMargins(in: container))
+            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
         }.glamoScreenBackground()
             .environmentObject(departure)
             .modifier(ExportDepartureProtection(departure: departure, additionalDismissalLock: library.importingVideo))
@@ -180,6 +178,7 @@ struct EditorWorkspace: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.locale) private var locale
+    @Environment(\.layoutDirection) private var layoutDirection
     var initialMovie: PracticeRecording? = nil
     var initialTool: VideoTool = .studio
     @StateObject private var editor = VideoEditor()
@@ -198,6 +197,8 @@ struct EditorWorkspace: View {
     @State private var didOpenInitialMovie = false
     private let tools = ["Trim", "Frame", "Speed", "Audio"]
     private static let exportCancelledMessage = "Export cancelled. Your original video is unchanged."
+
+    private enum ExportScrollTarget: Hashable { case export, result }
 
     private enum ExportFormat: String {
         case mp4 = "MP4"
@@ -226,35 +227,43 @@ struct EditorWorkspace: View {
     }
     var body: some View {
         GeometryReader { container in
-            let wide = container.size.width >= 820 && !typeSize.isAccessibilitySize && !driveHasReservedRegion(container)
+            let short = container.size.height < 520
+            let wide = container.size.width >= (short ? 660 : 820) && !typeSize.isAccessibilitySize
+                && !driveHasReservedRegion(container)
             let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 20))
                               : AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
-            let previewAspect: CGFloat = container.size.height < 520 ? 16.0 / 9.0 : 4.0 / 3.0
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let selected {
-                        layout {
-                            previewPanel(selected, aspect: previewAspect)
-                                .frame(maxWidth: wide ? 580 : .infinity)
-                            editingPanel(selected)
-                                .frame(maxWidth: wide ? 440 : .infinity)
-                        }
-                    } else {
-                        GlamoEmptyState(title: "Choose a video", message: initialTool.detail) {
-                            VideoImportControls(onImport: choose)
-                        }
-                        let availableVideos = library.movies.filter { !$0.isAudio }
-                        if !availableVideos.isEmpty {
-                            SectionLabel(title: "Video files")
-                            ForEach(availableVideos) { movie in
-                                Button { choose(movie) } label: { LocalMediaLabel(movie: movie) }
-                                    .buttonStyle(PressStyle()).disabled(library.importingVideo)
+            let previewAspect: CGFloat = short ? 16.0 / 9.0 : 4.0 / 3.0
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let selected {
+                            layout {
+                                previewPanel(selected, aspect: previewAspect)
+                                    .frame(maxWidth: wide ? 580 : .infinity)
+                                editingPanel(selected)
+                                    .frame(maxWidth: wide ? 440 : .infinity)
+                            }
+                        } else {
+                            GlamoEmptyState(title: "Choose a video", message: initialTool.detail) {
+                                VideoImportControls(onImport: choose)
+                            }
+                            let availableVideos = library.movies.filter { !$0.isAudio }
+                            if !availableVideos.isEmpty {
+                                SectionLabel(title: "Video files")
+                                ForEach(availableVideos) { movie in
+                                    Button { choose(movie) } label: { LocalMediaLabel(movie: movie) }
+                                        .buttonStyle(PressStyle()).disabled(library.importingVideo)
+                                }
                             }
                         }
                     }
+                    .pageHorizontalMargins().padding(.top, 12).padding(.bottom, 24)
+                    .frame(maxWidth: wide && selected != nil ? 1060 : 680).frame(maxWidth: .infinity, alignment: .top)
                 }
-                .pageHorizontalMargins().padding(.top, 12).padding(.bottom, 24)
-                .frame(maxWidth: wide && selected != nil ? 1060 : 680).frame(maxWidth: .infinity, alignment: .top)
+                .scrollBounceBehavior(.basedOnSize)
+                .onChange(of: exportScrollTarget) { _, target in
+                    if let target { scroll.scrollTo(target, anchor: .top) }
+                }
             }
         }.glamoScreenBackground()
             .onReceive(editor.preview.$error) { message in
@@ -266,7 +275,7 @@ struct EditorWorkspace: View {
                     exportSharePresentation?.outcome = outcome
                 })
             }
-            .sheet(isPresented: $showingExportMembership) { MembershipView(requiredBenefit: .mediaExport) }
+            .fullScreenCover(isPresented: $showingExportMembership) { MembershipView(requiredBenefit: .mediaExport) }
             .task {
                 guard !didOpenInitialMovie, selected == nil, let initialMovie else { return }
                 didOpenInitialMovie = true
@@ -287,24 +296,33 @@ struct EditorWorkspace: View {
         departure.running || editor.isExporting || editor.isLoading || editor.isPreparingPreview
     }
 
+    private var showsExportResult: Bool {
+        !departure.running && (completedExport != nil || cancelledExportFormat != nil || exportFailure != nil)
+    }
+
+    private var exportScrollTarget: ExportScrollTarget? {
+        guard selected != nil else { return nil }
+        if departure.running { return .export }
+        if showsExportResult, shareURL == nil { return .result }
+        return nil
+    }
+
     private func previewPanel(_ movie: PracticeRecording, aspect: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: 22)
-        let headingLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
-                                                         : AnyLayout(HStackLayout(spacing: 10))
+        let title = Text(verbatim: movie.title)
+            .font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
+            .lineLimit(2).truncationMode(.middle).fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
         return VStack(spacing: 0) {
-            headingLayout {
-                Text(verbatim: movie.title)
-                    .font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityAddTraits(.isHeader)
-                if !departure.running, !editor.isExporting, !editor.isPreparingPreview {
-                    Button("Change video") {
-                        self.selected = nil
-                        openTask?.cancel()
-                        editor.close()
-                    }
-                    .buttonStyle(CompactActionStyle()).disabled(library.importingVideo || exportShareTask != nil)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    title
+                    changeVideoButton
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    title
+                    changeVideoButton
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -315,28 +333,56 @@ struct EditorWorkspace: View {
             .aspectRatio(aspect, contentMode: .fit)
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    PreviewButton(playback: editor.preview)
-                    Spacer(minLength: 0)
-                    if !departure.running {
-                        ActionButton(title: "Preview changes", primary: false) {
-                            Task { await editor.applyPreview() }
-                        }
-                        .disabled(previewOrExportDisabled)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        previewPlaybackControls
+                        Spacer(minLength: 0)
+                        applyPreviewButton
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        previewPlaybackControls
+                        applyPreviewButton
                     }
                 }
-                if editor.isLoading {
-                    LocalizedText("Preparing your video…")
-                        .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
-                }
-                if editor.isPreparingPreview {
-                    AccountLoadingIndicator(title: "Preparing preview…").frame(maxWidth: .infinity)
+                if editor.isLoading || editor.isPreparingPreview {
+                    HStack(spacing: 8) {
+                        Image("GlamoLoadingMark").resizable().scaledToFit()
+                            .frame(width: 26, height: 5).accessibilityHidden(true)
+                        LocalizedText(editor.isPreparingPreview ? "Preparing preview…" : "Preparing your video…")
+                            .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
         }
         .clipShape(shape)
         .glamoGlass(in: shape, tint: GlamoStyle.paper, mediaBackdrop: true)
+    }
+
+    @ViewBuilder private var changeVideoButton: some View {
+        if !departure.running, !editor.isExporting, !editor.isPreparingPreview {
+            Button("Change video") {
+                selected = nil
+                openTask?.cancel()
+                editor.close()
+            }
+            .buttonStyle(CompactActionStyle()).disabled(library.importingVideo || exportShareTask != nil)
+        }
+    }
+
+    private var previewPlaybackControls: some View {
+        HStack(spacing: 8) {
+            PreviewButton(playback: editor.preview)
+            DrivePlayerTimes(timeline: editor.preview.timeline, compact: true)
+        }
+    }
+
+    @ViewBuilder private var applyPreviewButton: some View {
+        if !departure.running {
+            Button("Preview changes") { Task { await editor.applyPreview() } }
+                .buttonStyle(CompactActionStyle()).disabled(previewOrExportDisabled)
+        }
     }
 
     private func editingPanel(_ movie: PracticeRecording) -> some View {
@@ -349,8 +395,10 @@ struct EditorWorkspace: View {
                cancelledExportFormat == nil || error != Self.exportCancelledMessage {
                 ErrorNote(message: error)
             }
-            exportFeedback(movie)
-            exportPanel(movie)
+            if showsExportResult {
+                exportFeedback(movie).id(ExportScrollTarget.result)
+            }
+            exportPanel(movie).id(ExportScrollTarget.export)
         }
     }
 
@@ -388,7 +436,8 @@ struct EditorWorkspace: View {
     }
 
     private func exportPanel(_ movie: PracticeRecording) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let language = AppLanguage.from(locale)
+        return VStack(alignment: .leading, spacing: 12) {
             SectionLabel(title: "Export").accessibilityAddTraits(.isHeader)
             if departure.running {
                 exportProgress
@@ -408,7 +457,9 @@ struct EditorWorkspace: View {
                     }
                 }
             }
-            LocalizedText("Find finished files under Activity › Exports.")
+            LocalizedText("Find exported files in %@ › %@.",
+                          L10n.text("Activity", language: language),
+                          L10n.text("Exports", language: language))
                 .font(.glam(.footnote)).foregroundStyle(GlamoStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -462,17 +513,13 @@ struct EditorWorkspace: View {
     }
 
     @ViewBuilder private func exportFeedback(_ movie: PracticeRecording) -> some View {
-        if !departure.running {
-            if let cancelledExportFormat {
-                exportRecoveryCard(cancelledExportFormat, movie: movie,
-                                   title: completedExport == nil ? "Export cancelled" : "Sharing cancelled")
-            }
-            if let completedExport {
-                exportResultCard(completedExport)
-            } else if cancelledExportFormat == nil, let exportFailure {
-                exportRecoveryCard(exportFailure.format, movie: movie, title: "Export failed",
-                                   reason: exportFailure.message)
-            }
+        if let completedExport {
+            exportResultCard(completedExport)
+        } else if let cancelledExportFormat {
+            exportRecoveryCard(cancelledExportFormat, movie: movie, title: "Export cancelled")
+        } else if let exportFailure {
+            exportRecoveryCard(exportFailure.format, movie: movie, title: "Export failed",
+                               reason: exportFailure.message)
         }
     }
 
@@ -509,7 +556,7 @@ struct EditorWorkspace: View {
             } label: {
                 LocalizedText("Export %@ again", format.rawValue)
             }
-            .buttonStyle(GlamoActionStyle(primary: completedExport == nil))
+            .buttonStyle(GlamoActionStyle())
             .disabled(previewOrExportDisabled || exportShareTask != nil)
         }
         .multilineTextAlignment(.leading)
@@ -567,8 +614,9 @@ struct EditorWorkspace: View {
             .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 12))
         } else {
             let finishedPresentation = shareURL == nil ? exportSharePresentation : nil
-            let outcome = finishedPresentation?.outcome
-            if exportShareError != nil || finishedPresentation != nil {
+            let cancelledAfterSaving: ShareSheet.Outcome? = cancelledExportFormat == nil ? nil : .cancelled
+            let outcome = finishedPresentation?.outcome ?? cancelledAfterSaving
+            if exportShareError != nil || finishedPresentation != nil || outcome != nil {
                 VStack(alignment: .leading, spacing: 8) {
                     if let exportShareError {
                         exportIssue(title: "Share preparation failed", message: exportShareError)
@@ -586,13 +634,9 @@ struct EditorWorkspace: View {
                 }
             }
 
-            let actionTitle: String
-            if exportShareError != nil {
-                actionTitle = "Retry sharing"
-            } else if case .some(.failed(_)) = outcome {
-                actionTitle = "Retry sharing"
-            } else {
-                actionTitle = finishedPresentation == nil ? "Share file" : "Share again"
+            let actionTitle = switch (exportShareError, outcome) {
+            case (.some(_), _), (_, .some(.failed(_))): "Retry sharing"
+            default: finishedPresentation == nil && outcome == nil ? "Share file" : "Share again"
             }
             Button {
                 shareExport(file)
@@ -679,7 +723,7 @@ struct EditorWorkspace: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Glyph(symbol: .back, size: 14, tint: primary ? GlamoStyle.onAccent : GlamoStyle.accent)
-                    .rotationEffect(.degrees(180))
+                    .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
                     .frame(width: 38, height: 38)
                     .background(primary ? GlamoStyle.accent : GlamoStyle.surface, in: Circle())
             }
@@ -689,7 +733,7 @@ struct EditorWorkspace: View {
         }
         .buttonStyle(PressStyle())
         .disabled(previewOrExportDisabled || exportShareTask != nil)
-        .accessibilityLabel(Text(LocalizedStringKey(audio ? "Export M4A" : "Export video")))
+        .accessibilityLabel(Text(LocalizedStringKey(audio ? "Export M4A" : "Export MP4")))
         .accessibilityHint(Text(LocalizedStringKey(detail)))
     }
     @ViewBuilder private var controls: some View {
@@ -725,8 +769,25 @@ struct EditorWorkspace: View {
     }
 
     private var trimControls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(title: "Trim video").accessibilityAddTraits(.isHeader)
+        let heading = LocalizedText("Trim video").font(.glam(.title3, weight: .semibold))
+            .accessibilityAddTraits(.isHeader)
+        let duration = LocalizedText("Final duration · %@",
+                                     durationLabel((editor.recipe.end - editor.recipe.start) / editor.recipe.speed))
+            .font(.glam(.footnote, weight: .semibold)).monospacedDigit()
+            .foregroundStyle(GlamoStyle.accent)
+            .fixedSize(horizontal: false, vertical: true)
+        return VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    heading
+                    Spacer(minLength: 0)
+                    duration
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    heading
+                    duration
+                }
+            }
             if !editor.thumbnails.isEmpty { trimFilmstrip }
 
             VStack(spacing: 2) {
@@ -742,10 +803,6 @@ struct EditorWorkspace: View {
                     set: { editor.recipe.end = max($0, editor.recipe.start + 0.1) }
                 ))
             }
-            LocalizedText("Final duration · \(durationLabel((editor.recipe.end - editor.recipe.start) / editor.recipe.speed))")
-                .font(.glam(.footnote, weight: .semibold)).monospacedDigit()
-                .foregroundStyle(GlamoStyle.accent)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1015,20 +1072,29 @@ final class ExportDeparture: ObservableObject {
 struct ExportDepartureProtection: ViewModifier {
     @ObservedObject var departure: ExportDeparture
     var additionalDismissalLock = false
+    @AccessibilityFocusState private var confirmationFocused: Bool
+
     func body(content: Content) -> some View {
         content.interactiveDismissDisabled(departure.running || additionalDismissalLock)
+            .allowsHitTesting(!departure.confirming)
             .accessibilityHidden(departure.confirming)
             .overlay {
                 if departure.confirming {
                     GeometryReader { container in
+                        let pane = drivePaneMargins(in: container, includesHorizontalFold: true)
                         ScrollView {
                             confirmationCard
                                 .padding(20)
-                                .frame(maxWidth: .infinity, minHeight: container.size.height)
-                                .padding(drivePaneMargins(in: container))
-                        }.background(GlamoStyle.ink.opacity(0.66))
-                            .accessibilityAddTraits(.isModal)
+                                .frame(maxWidth: .infinity, minHeight: max(0, container.size.height - pane.top - pane.bottom))
+                        }
+                        .scrollBounceBehavior(.basedOnSize)
+                        .padding(pane)
                     }
+                    .background(GlamoStyle.ink.opacity(0.66).ignoresSafeArea())
+                    .accessibilityElement(children: .contain)
+                    .accessibilityAddTraits(.isModal)
+                    .accessibilityAction(.escape) { departure.keepWorking() }
+                    .onAppear { confirmationFocused = true }
                 }
             }
     }
@@ -1038,7 +1104,8 @@ struct ExportDepartureProtection: ViewModifier {
             VStack(alignment: .leading, spacing: 6) {
                 LocalizedText("Stop this export?")
                     .font(.glam(.title3, weight: .semibold)).accessibilityAddTraits(.isHeader)
-                LocalizedText("Stopping cancels this export. Your source video stays in the library.")
+                    .accessibilityFocused($confirmationFocused)
+                LocalizedText("Your original video will stay in your library.")
                     .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
             }
             .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
