@@ -532,6 +532,12 @@
 "Now playing" = "Em reprodução";
 "Current file" = "Ficheiro atual";
 "Locate current file" = "Ir para o ficheiro atual";
+"Recent searches" = "Pesquisas recentes";
+"Clear recent searches" = "Limpar pesquisas recentes";
+"Recently saved" = "Guardados recentemente";
+"Failed" = "Falhas";
+"No failed imports" = "Não há importações com falhas";
+"Failures from the latest Files import appear here." = "As falhas da última importação a partir de Ficheiros aparecem aqui.";
 "Duration · %@" = "Duração · %@";
 "Expanded" = "Expandida";
 "Collapsed" = "Recolhida";

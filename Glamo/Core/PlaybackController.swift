@@ -324,6 +324,7 @@ struct VideoSurface: UIViewRepresentable {
     let player: AVPlayer
     var fill = true
     var onReadyForDisplay: ((Bool) -> Void)?
+    var preferredGravity: AVLayerVideoGravity?
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIView(context: Context) -> PlayerLayerView {
         let view = PlayerLayerView()
@@ -341,6 +342,7 @@ struct VideoSurface: UIViewRepresentable {
         context.coordinator.onReadyForDisplay = onReadyForDisplay
         if view.playerLayer.player !== player { view.playerLayer.player = player }
         view.prefersFill = fill
+        view.preferredGravity = preferredGravity
     }
     static func dismantleUIView(_ view: PlayerLayerView, coordinator: Coordinator) {
         coordinator.observation = nil
@@ -356,6 +358,7 @@ final class PlayerLayerView: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
     var prefersFill = true { didSet { if prefersFill != oldValue { updateGravity() } } }
+    var preferredGravity: AVLayerVideoGravity? { didSet { if preferredGravity != oldValue { updateGravity() } } }
     // Portrait lessons fill a tall container. On a wide container (iPhone Duo inner
     // display, split view) fill would crop the face and hands, so fit instead.
     // Decided from the live bounds, never from device model or orientation.
@@ -366,7 +369,7 @@ final class PlayerLayerView: UIView {
     private func updateGravity() {
         let size = bounds.size
         let tall = size.height > 0 && size.width / size.height < 0.8
-        let gravity: AVLayerVideoGravity = prefersFill && tall ? .resizeAspectFill : .resizeAspect
+        let gravity = preferredGravity ?? (prefersFill && tall ? .resizeAspectFill : .resizeAspect)
         if playerLayer.videoGravity != gravity { playerLayer.videoGravity = gravity }
     }
 }

@@ -114,7 +114,6 @@ struct MembershipView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, compact ? 8 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 24), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
     }
 
     private var heroCopy: some View {
@@ -280,20 +279,45 @@ struct MembershipView: View {
         let price = commerce.price(product)
         let copy = planCopy(product)
         let shape = RoundedRectangle(cornerRadius: 16)
+        let title = Text(verbatim: copy.title)
+            .font(.glam(.subheadline, weight: .semibold))
+            .fixedSize(horizontal: false, vertical: true)
+        let priceLabel = Text(verbatim: price).environment(\.layoutDirection, .leftToRight)
+            .font(.glam(.title2, weight: .semibold)).monospacedDigit()
+            .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.ink)
+            .fixedSize(horizontal: sideBySide, vertical: true)
+        let billing = Text(verbatim: copy.billing).font(.glam(.footnote))
+            .foregroundStyle(GlamoStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
         return Button { selectedID = product.productIdentifier } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: copy.title)
-                    .font(.glam(.subheadline, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: price).environment(\.layoutDirection, .leftToRight)
-                    .font(.glam(.title2, weight: .semibold)).monospacedDigit()
-                    .foregroundStyle(selected ? GlamoStyle.accent : GlamoStyle.ink)
-                    .fixedSize(horizontal: sideBySide, vertical: true)
-                Text(verbatim: copy.billing).font(.glam(.footnote))
-                    .foregroundStyle(GlamoStyle.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !sideBySide, selected {
-                    selectedLabel
+            Group {
+                if sideBySide {
+                    VStack(alignment: .leading, spacing: 3) {
+                        title
+                        priceLabel
+                        billing
+                    }
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                title
+                                billing
+                            }
+                            Spacer(minLength: 0)
+                            VStack(alignment: .trailing, spacing: 3) {
+                                priceLabel
+                                if selected { selectedLabel }
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            title
+                            priceLabel
+                            billing
+                            if selected { selectedLabel }
+                        }
+                    }
                 }
             }.padding(.horizontal, 12).padding(.vertical, 9)
                 .frame(minWidth: sideBySide ? 120 : nil, maxWidth: .infinity,
@@ -514,6 +538,8 @@ struct AccountView: View {
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var library: LibraryStore
     @State private var paywall = false
+    let browse: () -> Void
+    let showActivity: () -> Void
 
     var body: some View {
         ScrollView {
@@ -521,7 +547,7 @@ struct AccountView: View {
                 DrivePageTitle(title: "Settings")
                 PlusEntry(isMember: commerce.premium) { paywall = true }
                     .accessibilityIdentifier("account.membership")
-                AccountSettingsSection(localItemCount: library.movies.count)
+                AccountSettingsSection(localItemCount: library.movies.count, browse: browse, showActivity: showActivity)
                 LocalizedText("Version \(api.configuration.version)")
                     .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
                     .frame(maxWidth: .infinity)

@@ -739,16 +739,21 @@ private struct PlayerExitButton: View {
 struct PlayerProgressControl: View {
     @ObservedObject var playback: PlaybackController
     @ObservedObject var timeline: PlaybackTimeline
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.locale) private var locale
     let enabled: Bool
     let canResume: Bool
     @Binding var scrubbing: Bool
     var tint: Color = .white
     var showsInlineTimes = false
+    var overVideo = false
     @State private var scrubPosition: Double = 0
     @State private var resumeAfterScrub = false
 
     var body: some View {
-        if showsInlineTimes {
+        if overVideo {
+            videoTimeline
+        } else if showsInlineTimes {
             VStack(spacing: 0) {
                 inlineTimes
                 scrubber
@@ -765,6 +770,40 @@ struct PlayerProgressControl: View {
         }
     }
 
+    private var videoTimeline: some View {
+        let total = durationLabel(timeline.duration)
+        let position = durationLabel(scrubbing ? scrubPosition : timeline.elapsed)
+        let elapsedTime = ZStack(alignment: .leading) {
+            Text(verbatim: total).hidden()
+            Text(verbatim: position)
+        }
+        .accessibilityHidden(true)
+        let totalTime = Text(verbatim: total)
+            .accessibilityLabel(Text(verbatim: L10n.format("Duration · %@", [total], language: AppLanguage.from(locale))))
+        let stacksTimes = typeSize.isAccessibilitySize
+        let layout = stacksTimes ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 8))
+
+        return layout {
+            if stacksTimes {
+                HStack(spacing: 6) {
+                    elapsedTime
+                    Spacer(minLength: 0)
+                    totalTime
+                }
+            } else {
+                elapsedTime
+            }
+            scrubber.frame(minWidth: 56)
+            if !stacksTimes { totalTime }
+        }
+        .font(.glam(.caption, weight: .semibold).monospacedDigit())
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .environment(\.layoutDirection, .leftToRight)
+        .padding(.top, stacksTimes ? 6 : 0)
+    }
+
     private var scrubber: some View {
         GlamoScrubber(value: Binding(
                 get: { scrubbing ? scrubPosition : timeline.elapsed },
@@ -774,7 +813,8 @@ struct PlayerProgressControl: View {
                     if !scrubbing { playback.seek($0) }
                 }
             ), range: 0...max(1, timeline.duration), label: "Playback position",
-                         tint: tint, trackTint: tint.opacity(0.3), trackHeight: scrubbing ? 5 : 2,
+                         tint: tint, trackTint: overVideo ? Color.white.opacity(0.42) : tint.opacity(0.3),
+                         trackHeight: scrubbing ? 5 : 2,
                          onEditingChanged: { editing in
                 if editing {
                     scrubPosition = timeline.elapsed

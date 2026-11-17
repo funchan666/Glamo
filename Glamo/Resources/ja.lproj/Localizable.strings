@@ -532,6 +532,12 @@
 "Now playing" = "再生中";
 "Current file" = "現在のファイル";
 "Locate current file" = "現在のファイルへ移動";
+"Recent searches" = "最近の検索";
+"Clear recent searches" = "最近の検索を消去";
+"Recently saved" = "最近保存したファイル";
+"Failed" = "失敗";
+"No failed imports" = "失敗した読み込みはありません";
+"Failures from the latest Files import appear here." = "「ファイル」からの前回の読み込みで発生したエラーがここに表示されます。";
 "Duration · %@" = "再生時間 · %@";
 "Expanded" = "展開中";
 "Collapsed" = "折りたたみ中";

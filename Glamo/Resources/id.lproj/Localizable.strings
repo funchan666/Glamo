@@ -532,6 +532,12 @@
 "Now playing" = "Sedang diputar";
 "Current file" = "File saat ini";
 "Locate current file" = "Lompat ke file saat ini";
+"Recent searches" = "Pencarian terbaru";
+"Clear recent searches" = "Hapus pencarian terbaru";
+"Recently saved" = "Baru disimpan";
+"Failed" = "Gagal";
+"No failed imports" = "Tidak ada impor yang gagal";
+"Failures from the latest Files import appear here." = "Kegagalan impor terakhir dari app File ditampilkan di sini.";
 "Duration · %@" = "Durasi · %@";
 "Expanded" = "Diperluas";
 "Collapsed" = "Diciutkan";

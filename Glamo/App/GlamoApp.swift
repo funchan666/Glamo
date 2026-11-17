@@ -91,23 +91,51 @@ struct GlamoStartupView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        Image("GlamoLaunchMark")
-            .resizable().scaledToFit().frame(width: 108, height: 108)
-            .overlay(alignment: .bottom) {
-                Image("GlamoLoadingMark")
-                    .resizable().scaledToFill().frame(width: 40, height: 5).clipped()
-                    .phaseAnimator([false, true]) { content, dimmed in
-                        content.opacity(reduceMotion || scenePhase != .active ? 1 : (dimmed ? 0.35 : 1))
-                    } animation: { _ in
-                        reduceMotion || scenePhase != .active ? nil : .easeInOut(duration: 0.6)
-                    }
-                    .offset(y: 32)
+        GeometryReader { container in
+            let pane = drivePaneMargins(in: container, includesHorizontalFold: true)
+            let width = max(0, container.size.width - pane.leading - pane.trailing)
+            let height = max(0, container.size.height - pane.top - pane.bottom)
+            let loadingSize: CGFloat = 32
+            let spacing: CGFloat = 18
+            let margin: CGFloat = 8
+            // Match LaunchScreen's preferred icon size, center and minimum margins.
+            let iconSize = max(0, min(108, width - 2 * margin, height - 2 * margin - spacing - loadingSize))
+            let stackHeight = iconSize + spacing + loadingSize
+            let centerY = min(height / 2 + (spacing + loadingSize) / 2, height - margin - stackHeight / 2)
+
+            VStack(spacing: spacing) {
+                Image("GlamoLaunchMark")
+                    .resizable().scaledToFit()
+                    .frame(width: iconSize, height: iconSize)
+                loadingMark
+                    .frame(width: loadingSize, height: loadingSize)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.container, edges: .all)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Opening Glamo…")
-            .background(Color("LaunchBackground").ignoresSafeArea())
+            .position(x: width / 2, y: centerY)
+            .frame(width: width, height: height)
+            .padding(pane)
+        }
+        .background(Color("LaunchBackground").ignoresSafeArea())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Opening Glamo…")
+    }
+
+    private var loadingMark: some View {
+        let artwork = Image("GlamoLaunchLoading").renderingMode(.template).resizable().scaledToFit()
+
+        return artwork.foregroundStyle(Color("LaunchLoadingTint"))
+            .overlay {
+                if !reduceMotion && scenePhase == .active {
+                    Color.clear.phaseAnimator([false, true]) { content, passed in
+                        content.overlay {
+                            LinearGradient(colors: [.clear, GlamoStyle.accent, .clear],
+                                           startPoint: .top, endPoint: .bottom)
+                                .frame(height: 14)
+                                .offset(y: passed ? 24 : -24)
+                        }
+                    } animation: { _ in .easeInOut(duration: 0.72) }
+                    .mask { artwork }
+                }
+            }
     }
 }
 
@@ -143,6 +171,7 @@ struct GlamoRootView: View {
     @SceneStorage("drive.tab") private var tab: GlamoTab = .files
     @StateObject private var player = DrivePlaybackSession()
     @State private var searching = false
+    @State private var searchRequested = false
     @State private var activityFilter = DriveActivityFilter.all
 
     var body: some View {
@@ -152,14 +181,15 @@ struct GlamoRootView: View {
             let pane = drivePaneMargins(in: container)
             let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
             TabView(selection: $tab) {
-                DriveBrowser(isSearching: $searching, play: open, pausePlayback: player.pause,
+                DriveBrowser(isSearching: $searching, searchRequested: $searchRequested,
+                             play: open, pausePlayback: player.pause,
                              showActivity: {
                                  activityFilter = .imports
                                  tab = .activity
                              })
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
-                DriveRecentView(play: open, browse: { tab = .files })
+                DriveRecentView(play: open, browse: { tab = .files }, search: openFileSearch, showActivity: openActivity)
                     .padding(pane)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.recent) }.tag(GlamoTab.recent)
@@ -167,7 +197,7 @@ struct GlamoRootView: View {
                     .padding(pane)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.activity) }.tag(GlamoTab.activity)
-                AccountView()
+                AccountView(browse: { tab = .files }, showActivity: openActivity)
                     .padding(pane)
                     .toolbar(visibility, for: .tabBar)
                     .tabItem { tabLabel(.settings) }.tag(GlamoTab.settings)
@@ -243,6 +273,16 @@ struct GlamoRootView: View {
 
     private func open(_ file: PracticeRecording, _ files: [PracticeRecording]) {
         player.open(file, among: files, library: library)
+    }
+
+    private func openFileSearch() {
+        tab = .files
+        searchRequested = true
+    }
+
+    private func openActivity() {
+        activityFilter = .all
+        tab = .activity
     }
 
     private func tabLabel(_ item: GlamoTab) -> some View {

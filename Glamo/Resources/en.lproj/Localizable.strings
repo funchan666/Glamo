@@ -532,6 +532,12 @@
 "Now playing" = "Now playing";
 "Current file" = "Current file";
 "Locate current file" = "Locate current file";
+"Recent searches" = "Recent searches";
+"Clear recent searches" = "Clear recent searches";
+"Recently saved" = "Recently saved";
+"Failed" = "Failed";
+"No failed imports" = "No failed imports";
+"Failures from the latest Files import appear here." = "Failures from the latest Files import appear here.";
 "Duration · %@" = "Duration · %@";
 "Expanded" = "Expanded";
 "Collapsed" = "Collapsed";

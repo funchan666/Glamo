@@ -289,8 +289,11 @@ struct PolicyWebView: UIViewRepresentable {
 
 struct AccountSettingsSection: View {
     let localItemCount: Int
+    let browse: () -> Void
+    let showActivity: () -> Void
     @Environment(\.openURL) private var openURL
     @Environment(\.locale) private var locale
+    @Environment(\.layoutDirection) private var layoutDirection
     @State private var websiteError: String?
     @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
     @State private var languagePicker = false
@@ -307,10 +310,17 @@ struct AccountSettingsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(spacing: 0) {
-                localLibrary
+                Button(action: browse) {
+                    localLibrary
+                }.buttonStyle(PressStyle())
+                rowDivider
+                Button(action: showActivity) {
+                    AccountMenuRow(title: "Activity", symbol: .driveActivity)
+                }.buttonStyle(PressStyle())
                 rowDivider
                 Button { languagePicker = true } label: {
-                    AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system")
+                    AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system",
+                                   symbol: .driveSettings)
                 }.buttonStyle(PressStyle())
                     .accessibilityIdentifier("account.language")
             }.glamoGlass(in: RoundedRectangle(cornerRadius: 18), tint: GlamoStyle.surface)
@@ -362,6 +372,8 @@ struct AccountSettingsSection: View {
     private var localLibrary: some View {
         HStack(spacing: 10) {
             Glyph(symbol: .driveFolder, size: 22, tint: GlamoStyle.accent)
+                .frame(width: 32, height: 32)
+                .background(GlamoStyle.paperMuted, in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 3) {
                 LocalizedText("On this device").font(.glam(.subheadline, weight: .semibold))
                 LocalizedText(localItemCount == 1 ? "%@ item" : "%@ items",
@@ -369,9 +381,14 @@ struct AccountSettingsSection: View {
                     .font(.glam(.caption)).monospacedDigit()
                     .foregroundStyle(GlamoStyle.secondary)
             }.fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
+                .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
+                .frame(width: 20, height: 24)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
@@ -385,12 +402,18 @@ private struct AccountMenuRow: View {
     let title: String
     var detail: String? = nil
     var destructive = false
+    var symbol: GlamoGlyph? = nil
     @Environment(\.layoutDirection) private var layoutDirection
     var body: some View {
         let rowTitle = LocalizedText(title).font(.glam(.subheadline, weight: .medium))
             .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.ink)
             .fixedSize(horizontal: false, vertical: true)
         return HStack(spacing: 12) {
+            if let symbol {
+                Glyph(symbol: symbol, size: 18, tint: GlamoStyle.accent)
+                    .frame(width: 32, height: 32)
+                    .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 8))
+            }
             if let detail {
                 let value = LocalizedText(detail).font(.glam(.footnote))
                     .foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)

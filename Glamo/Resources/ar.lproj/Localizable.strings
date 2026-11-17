@@ -532,6 +532,12 @@
 "Now playing" = "قيد التشغيل";
 "Current file" = "الملف الحالي";
 "Locate current file" = "انتقل إلى الملف الحالي";
+"Recent searches" = "عمليات البحث الأخيرة";
+"Clear recent searches" = "مسح عمليات البحث الأخيرة";
+"Recently saved" = "المحفوظة مؤخرًا";
+"Failed" = "الفاشلة";
+"No failed imports" = "لا توجد عمليات استيراد فاشلة";
+"Failures from the latest Files import appear here." = "تظهر هنا أخطاء آخر استيراد من تطبيق الملفات.";
 "Duration · %@" = "المدة · %@";
 "Expanded" = "موسّع";
 "Collapsed" = "مطوي";
