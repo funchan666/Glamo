@@ -676,3 +676,28 @@
 "Your videos, saved copies and resume positions will stay available." = "동영상, 저장된 사본, 재생 위치는 계속 사용할 수 있어요.";
 "This folder has no videos yet." = "이 폴더에는 아직 동영상이 없어요.";
 "Remove search" = "검색 기록에서 삭제";
+
+"Choose a video from the list to play. Open a folder to see its videos." = "목록에서 동영상을 선택하면 재생돼요. 폴더를 열면 안에 있는 동영상을 볼 수 있어요.";
+
+"Duration unavailable" = "재생 시간을 확인할 수 없어요";
+
+// Search-result video actions
+"Video saved" = "저장됨";
+"Not saved" = "저장 안 됨";
+"Saves a copy for offline playback." = "오프라인 재생용 사본을 저장합니다.";
+"Save this video first." = "먼저 이 영상을 저장하세요.";
+"Saves the video before moving it." = "영상을 저장한 후 이동합니다.";
+"Removes the saved copy only." = "저장된 사본만 삭제합니다.";
+"No saved copy to remove." = "삭제할 저장된 사본이 없습니다.";
+"Download video" = "영상 다운로드";
+"Saves the video before downloading." = "영상을 저장한 후 다운로드합니다.";
+
+// One field for library searches, video links and codes
+"Files, video URLs or codes" = "파일, 영상 URL 또는 코드";
+"Search files, video URLs or codes" = "파일, 영상 URL 또는 코드 검색";
+"How to search" = "검색 방법";
+"Connect to Vifol, then search again." = "Vifol에 연결한 후 다시 검색하세요.";
+"Try another file name, or search a video URL or code." = "다른 파일 이름을 입력하거나 영상 URL 또는 코드를 검색하세요.";
+"Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "검색창에 영상 URL 또는 코드를 붙여넣고 검색을 누르세요. 공유된 텍스트의 대소문자를 그대로 유지하세요.";
+"Search your files" = "내 파일 검색";
+"Enter a file or folder name to filter your library as you type." = "파일이나 폴더 이름을 입력하면 입력하는 동안 라이브러리가 필터링됩니다.";

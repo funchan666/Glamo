@@ -191,15 +191,17 @@ struct GlamoRootView: View {
             let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
             let isMainPage = destinations.isEmpty && (tab != .files || !folderOpen)
             let hidesMiniPlayer = destinations.last == .search && searching
-            NavigationStack(path: $destinations) {
-                tabs
-                    .navigationDestination(for: Destination.self) { destination in
-                        destinationView(destination)
-                            .toolbar(.hidden, for: .navigationBar)
-                    }
-                    .toolbar(.hidden, for: .navigationBar)
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Reserve the dock's actual height outside the navigation/tab hosts.
+            // Their scroll views must end above both the dock and mini player.
+            VStack(spacing: 0) {
+                NavigationStack(path: $destinations) {
+                    tabs
+                        .navigationDestination(for: Destination.self) { destination in
+                            destinationView(destination)
+                                .toolbar(.hidden, for: .navigationBar)
+                        }
+                        .toolbar(.hidden, for: .navigationBar)
+                }
                 if isMainPage || (dockedMovie != nil && !hidesMiniPlayer) {
                     VStack(spacing: 5) {
                         if let movie = dockedMovie, !hidesMiniPlayer {

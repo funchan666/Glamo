@@ -676,3 +676,28 @@
 "Your videos, saved copies and resume positions will stay available." = "Seus vídeos, cópias salvas e posições de reprodução continuarão disponíveis.";
 "This folder has no videos yet." = "Esta pasta ainda não tem vídeos.";
 "Remove search" = "Remover busca";
+
+"Choose a video from the list to play. Open a folder to see its videos." = "Escolha um vídeo da lista para reproduzir. Abra uma pasta para ver os vídeos dela.";
+
+"Duration unavailable" = "Duração indisponível";
+
+// Search-result video actions
+"Video saved" = "Salvo";
+"Not saved" = "Não salvo";
+"Saves a copy for offline playback." = "Salva uma cópia para assistir sem conexão.";
+"Save this video first." = "Salve este vídeo primeiro.";
+"Saves the video before moving it." = "Salva o vídeo antes de movê-lo.";
+"Removes the saved copy only." = "Remove apenas a cópia salva.";
+"No saved copy to remove." = "Não há cópia salva para remover.";
+"Download video" = "Baixar vídeo";
+"Saves the video before downloading." = "Salva o vídeo antes de baixá-lo.";
+
+// One field for library searches, video links and codes
+"Files, video URLs or codes" = "Arquivos, URLs de vídeos ou códigos";
+"Search files, video URLs or codes" = "Buscar arquivos, URLs de vídeos ou códigos";
+"How to search" = "Como buscar";
+"Connect to Vifol, then search again." = "Conecte-se ao Vifol e busque novamente.";
+"Try another file name, or search a video URL or code." = "Tente outro nome de arquivo ou busque uma URL de vídeo ou um código.";
+"Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Cole a URL do vídeo ou o código no campo de busca e toque em Buscar. Mantenha as letras maiúsculas e minúsculas exatamente como no texto compartilhado.";
+"Search your files" = "Busque seus arquivos";
+"Enter a file or folder name to filter your library as you type." = "Digite o nome de um arquivo ou pasta para filtrar sua biblioteca enquanto digita.";

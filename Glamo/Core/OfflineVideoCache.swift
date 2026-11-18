@@ -145,7 +145,7 @@ final class OfflineVideoCache: ObservableObject {
                 if let url = library.offlineURL(for: record) {
                     let asset = AVURLAsset(url: url)
                     let playable = (try? await asset.load(.isPlayable)) == true
-                    let cached = try? await asset.load(.assetCache)
+                    let cached = asset.assetCache
                     let offlineComplete = url.pathExtension != "movpkg" || cached?.isPlayableOffline == true
                     if playable && offlineComplete {
                         try? library.updateSavedVideo(record.id) { $0.state = .ready; $0.failure = nil }

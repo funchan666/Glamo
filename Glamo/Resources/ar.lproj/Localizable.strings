@@ -676,3 +676,28 @@
 "Your videos, saved copies and resume positions will stay available." = "ستظل الفيديوهات والنسخ المحفوظة ومواضع استئناف التشغيل متاحة.";
 "This folder has no videos yet." = "لا توجد فيديوهات في هذا المجلد بعد.";
 "Remove search" = "إزالة البحث";
+
+"Choose a video from the list to play. Open a folder to see its videos." = "اختر فيديو من القائمة لتشغيله. افتح المجلد لعرض فيديوهاته.";
+
+"Duration unavailable" = "المدة غير متاحة";
+
+// Search-result video actions
+"Video saved" = "محفوظ";
+"Not saved" = "غير محفوظ";
+"Saves a copy for offline playback." = "يحفظ نسخة للمشاهدة دون اتصال.";
+"Save this video first." = "احفظ هذا الفيديو أولاً.";
+"Saves the video before moving it." = "يحفظ الفيديو قبل نقله.";
+"Removes the saved copy only." = "يزيل النسخة المحفوظة فقط.";
+"No saved copy to remove." = "لا توجد نسخة محفوظة لإزالتها.";
+"Download video" = "تنزيل الفيديو";
+"Saves the video before downloading." = "يحفظ الفيديو قبل تنزيله.";
+
+// One field for library searches, video links and codes
+"Files, video URLs or codes" = "ملفات أو روابط فيديو أو رموز";
+"Search files, video URLs or codes" = "البحث عن ملفات أو روابط فيديو أو رموز";
+"How to search" = "كيفية البحث";
+"Connect to Vifol, then search again." = "اتصل بـ Vifol، ثم حاول البحث مجددًا.";
+"Try another file name, or search a video URL or code." = "جرّب اسم ملف آخر، أو ابحث برابط فيديو أو رمز.";
+"Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "ألصق رابط الفيديو أو الرمز في حقل البحث، ثم اضغط على بحث. حافظ على الأحرف الكبيرة والصغيرة كما تمت مشاركتها تمامًا.";
+"Search your files" = "ابحث في ملفاتك";
+"Enter a file or folder name to filter your library as you type." = "أدخل اسم ملف أو مجلد لتصفية مكتبتك أثناء الكتابة.";

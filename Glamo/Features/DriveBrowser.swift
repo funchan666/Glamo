@@ -25,6 +25,10 @@ struct DriveBrowser: View {
     @SceneStorage("home.linkDraft") private var linkDraft = ""
     @State private var currentFolderID: UUID?
     @State private var query = ""
+    @State private var searchRequest: VideoSearchRequest?
+    @State private var searchError: String?
+    @State private var needsSearchConnection = false
+    @State private var showingSearchGuide = false
     @State private var showingAllVideos = false
     @State private var choosingImportSource = false
     @State private var importSource: ImportSource?
@@ -36,7 +40,6 @@ struct DriveBrowser: View {
     @State private var showingPlus = false
     @State private var options: DriveItem?
     @FocusState private var searchFocused: Bool
-    @FocusState private var linkFocused: Bool
     let surface: Surface
     @Binding var isSearching: Bool
     let play: (PracticeRecording, [PracticeRecording]) -> Void
@@ -107,7 +110,14 @@ struct DriveBrowser: View {
             .padding(pane)
         }
         .driveScreenBackground()
-        .onChange(of: searchFocused || linkFocused) { _, focused in isSearching = focused }
+        .onChange(of: searchFocused) { _, focused in isSearching = focused }
+        .onChange(of: query) { _, value in
+            if case .search = surface { linkDraft = value }
+            searchError = nil
+        }
+        .onChange(of: api.session == nil) { _, missing in
+            if !missing { needsSearchConnection = false; searchError = nil }
+        }
         .onChange(of: folder?.id, initial: true) { _, id in
             if id == nil { currentFolderID = nil }
             folderVisibility(id != nil)
@@ -140,6 +150,12 @@ struct DriveBrowser: View {
         }
         .sheet(item: $editingPhoto) { EditorSheet(initialMovie: $0) }
         .fullScreenCover(isPresented: $showingPlus) { MembershipView() }
+        .fullScreenCover(item: $searchRequest) { request in
+            VideoSearchResultsView(search: request.query) { query, clip in
+                library.record(link: query, title: clip.title)
+            }
+        }
+        .sheet(isPresented: $showingSearchGuide) { VideoSearchGuideSheet() }
     }
 
     private func searchWorkspace(folders: [VideoFolder], movies: [PracticeRecording],
@@ -158,14 +174,9 @@ struct DriveBrowser: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if showsLibrary {
-                        if let folder {
-                            filesFolderHeader(folder)
-                        } else {
-                            VideoLinkComposer(link: $linkDraft, focused: $linkFocused, willOpen: pausePlayback)
-                                .disabled(library.importingVideo)
-                        }
-                    }
+                    if let searchError { ErrorNote(message: searchError) }
+                    if needsSearchConnection, api.session == nil { ConnectionPanel() }
+                    if showsLibrary, let folder { filesFolderHeader(folder) }
                     importStatus
                     if !searchTerm.isEmpty {
                         if hasItems { itemList(folders: folders, movies: movies) }
@@ -198,7 +209,8 @@ struct DriveBrowser: View {
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
         }
-        .dismissKeyboardOnOutsideTap($linkFocused, scope: "home-link-input")
+        .onAppear { query = linkDraft }
+        .dismissKeyboardOnOutsideTap($searchFocused, scope: "drive-search-input")
         .accessibilityAction(.escape, close)
     }
 
@@ -445,7 +457,6 @@ struct DriveBrowser: View {
 
     private var plusButton: some View {
         PlusShortcut(isMember: commerce.premium) {
-            linkFocused = false
             searchFocused = false
             showingPlus = true
         }
@@ -482,7 +493,6 @@ struct DriveBrowser: View {
 
     private func openImportSources() {
         searchFocused = false
-        linkFocused = false
         choosingImportSource = true
     }
 
@@ -596,39 +606,63 @@ struct DriveBrowser: View {
     }
 
     private func searchBar(compact: Bool, close: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
-            searchField(compact: compact)
-            Button(action: close) {
-                Glyph(symbol: .close, size: 14, tint: DriveStyle.ink)
-                    .frame(width: 46, height: 46)
-                    .glamoGlass(in: Circle(), tint: .white, interactive: true)
-                    .contentShape(Circle())
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                searchField(compact: compact)
+                if !compact, !searchTerm.isEmpty {
+                    IconButton(symbol: .search, label: "Search videos", tint: .white, glyphSize: 17,
+                               action: submitSearch)
+                        .background(DriveStyle.link, in: Circle())
+                        .disabled(!canSubmitSearch)
+                        .accessibilityIdentifier("drive.search.submit")
+                }
+                Button(action: close) {
+                    Glyph(symbol: .close, size: 14, tint: DriveStyle.ink)
+                        .frame(width: 46, height: 46)
+                        .glamoGlass(in: Circle(), tint: .white, interactive: true)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(PressStyle())
+                .accessibilityLabel("Close")
+                .accessibilityIdentifier("drive.search.close")
             }
-            .buttonStyle(PressStyle())
-            .accessibilityLabel("Close")
-            .accessibilityIdentifier("drive.search.close")
+            if compact, !searchTerm.isEmpty {
+                ActionButton(title: "Search videos", action: submitSearch)
+                    .disabled(!canSubmitSearch)
+                    .accessibilityIdentifier("drive.search.submit")
+            }
+            if searchTerm.isEmpty {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        searchPasteButton.fixedSize()
+                        Spacer(minLength: 8)
+                        searchHelpButton.fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 0) { searchPasteButton; searchHelpButton }
+                }
+            }
         }
+        .keyboardInputRegion("drive-search-input")
     }
 
     private func searchField(compact: Bool) -> some View {
-        let prompt = compact ? "Search" : "Search files and folders"
+        let prompt = compact ? "Search" : "Files, video URLs or codes"
         let shape = Capsule()
         return HStack(spacing: 9) {
             Glyph(symbol: .search, size: 17, tint: DriveStyle.ink)
                 .padding(.leading, 13)
-            TextField("Search files and folders", text: $query,
+            TextField("Search files, video URLs or codes", text: $query,
                       prompt: Text(LocalizedStringKey(prompt)).foregroundColor(DriveStyle.secondary))
                 .focused($searchFocused)
                 .driveFont(15, relativeTo: .subheadline).submitLabel(.search)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-                .onSubmit {
-                    rememberSearch()
-                    searchFocused = false
-                }
+                .onSubmit(submitSearch)
                 .frame(minHeight: 44)
+                .accessibilityLabel("Search files, video URLs or codes")
             if !query.isEmpty {
                 IconButton(symbol: .close, label: "Clear search", tint: DriveStyle.secondary, glyphSize: 12) {
                     query = ""
+                    searchFocused = true
                 }
             }
         }
@@ -640,6 +674,54 @@ struct DriveBrowser: View {
                 .allowsHitTesting(false)
         }
         .accessibilityIdentifier("drive.search")
+    }
+
+    private var searchPasteButton: some View {
+        Button(action: pasteSearch) {
+            LocalizedText("Paste").font(.glam(.footnote, weight: .semibold))
+                .foregroundStyle(DriveStyle.link).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8).frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle()).disabled(library.importingVideo)
+        .accessibilityIdentifier("home.pasteLink")
+    }
+
+    private var searchHelpButton: some View {
+        Button { showingSearchGuide = true } label: {
+            LocalizedText("How to search").font(.glam(.footnote, weight: .medium))
+                .foregroundStyle(DriveStyle.link).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8).frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityIdentifier("home.linkHelp")
+    }
+
+    private var canSubmitSearch: Bool { !searchTerm.isEmpty && searchRequest == nil && !library.importingVideo }
+
+    private func pasteSearch() {
+        guard let text = UIPasteboard.general.string, text.nilIfBlank != nil else {
+            searchError = "Copy a video URL, then try pasting again."
+            return
+        }
+        query = text
+        searchFocused = true
+    }
+
+    private func submitSearch() {
+        guard let text = query.nilIfBlank, canSubmitSearch else { return }
+        searchFocused = false
+        rememberSearch()
+        guard api.session != nil else {
+            needsSearchConnection = true
+            searchError = "Connect to Vifol, then search again."
+            return
+        }
+        searchError = nil
+        // The existing results flow owns link/code resolution and pagination.
+        pausePlayback()
+        searchRequest = VideoSearchRequest(query: text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private var recentSearchHistory: some View {
@@ -890,7 +972,7 @@ struct DriveBrowser: View {
             LocalizedText("No matching files")
                 .driveFont(20, relativeTo: .title3, weight: .semibold)
                 .accessibilityAddTraits(.isHeader)
-            LocalizedText("Try a different name or file extension.")
+            LocalizedText("Try another file name, or search a video URL or code.")
                 .driveFont(15, relativeTo: .subheadline)
                 .foregroundStyle(DriveStyle.secondary)
         }

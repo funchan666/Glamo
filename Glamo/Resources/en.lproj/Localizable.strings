@@ -676,3 +676,28 @@
 "Your videos, saved copies and resume positions will stay available." = "Your videos, saved copies and resume positions will stay available.";
 "This folder has no videos yet." = "This folder has no videos yet.";
 "Remove search" = "Remove search";
+
+"Choose a video from the list to play. Open a folder to see its videos." = "Choose a video from the list to play. Open a folder to see its videos.";
+
+"Duration unavailable" = "Duration unavailable";
+
+// Search-result video actions
+"Video saved" = "Saved";
+"Not saved" = "Not saved";
+"Saves a copy for offline playback." = "Saves a copy for offline playback.";
+"Save this video first." = "Save this video first.";
+"Saves the video before moving it." = "Saves the video before moving it.";
+"Removes the saved copy only." = "Removes the saved copy only.";
+"No saved copy to remove." = "No saved copy to remove.";
+"Download video" = "Download video";
+"Saves the video before downloading." = "Saves the video before downloading.";
+
+// One field for library searches, video links and codes
+"Files, video URLs or codes" = "Files, video URLs or codes";
+"Search files, video URLs or codes" = "Search files, video URLs or codes";
+"How to search" = "How to search";
+"Connect to Vifol, then search again." = "Connect to Vifol, then search again.";
+"Try another file name, or search a video URL or code." = "Try another file name, or search a video URL or code.";
+"Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared.";
+"Search your files" = "Search your files";
+"Enter a file or folder name to filter your library as you type." = "Enter a file or folder name to filter your library as you type.";

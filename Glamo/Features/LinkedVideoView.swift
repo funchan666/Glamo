@@ -17,6 +17,13 @@ private struct BrowserLessonSearch: Identifiable, Equatable {
     }
 }
 
+struct SearchPlaybackContinuation {
+    let query: String
+    let feedID: String?
+    let cursor: String?
+    let hasMore: Bool
+}
+
 @MainActor
 private final class FeedStore: ObservableObject {
     @Published private(set) var entries: [PlaybackQueueEntry] = []
@@ -24,13 +31,67 @@ private final class FeedStore: ObservableObject {
     @Published private(set) var hasMore = true
     @Published var error: String?
     @Published private(set) var emptySearch: BrowserLessonSearch?
+    @Published private(set) var resolvedFolder: DriveCollection?
     private var feedID: String?
     private var cursor: String?
     private var roundVideoIDs = Set<String>()
     private var requestQuery = ""
     private(set) var query = ""
     private var generation = UUID()
+    private var resultsRequest = UUID()
     private var collectionPage = 1
+
+    var playbackContinuation: SearchPlaybackContinuation? {
+        guard resolvedFolder == nil, !entries.contains(where: { $0.clip.isDirect == true }) else { return nil }
+        return SearchPlaybackContinuation(query: query, feedID: feedID, cursor: cursor, hasMore: hasMore)
+    }
+
+    func configureSearch(_ continuation: SearchPlaybackContinuation) {
+        query = continuation.query
+        requestQuery = continuation.query
+        feedID = continuation.feedID
+        cursor = continuation.cursor
+        hasMore = continuation.hasMore
+        roundVideoIDs = Set(entries.map { $0.clip.id })
+    }
+
+    func loadResults(api: APIClient, search: String, refresh: Bool) async {
+        guard refresh || !loading else { return }
+        let request = UUID()
+        resultsRequest = request
+        let owner = api.session?.userId.value
+        await load(api: api, search: refresh ? search : nil, allowsNewRounds: false)
+        guard refresh, resultsRequest == request, !Task.isCancelled, api.session?.userId.value == owner,
+              entries.isEmpty, let link = sharedLinkID(search) else { return }
+        let token = generation
+        loading = true
+        defer { if generation == token { loading = false } }
+        do {
+            let resource = try await api.sharedResource(link: link)
+            try Task.checkCancellation()
+            guard generation == token, api.session?.userId.value == owner else { return }
+            if resource.isFolder {
+                resolvedFolder = resource
+                hasMore = false
+            } else if let clip = resource.clip {
+                install([clip])
+            }
+            emptySearch = nil
+            error = nil
+        } catch is CancellationError { }
+        catch {
+            // An unmatched share keeps the search response and its existing
+            // recovery action; a fallback must not erase a useful search error.
+        }
+    }
+
+    private func sharedLinkID(_ search: String) -> String? {
+        let input = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: input), let id = DriveCollection.incomingLinkID(url) { return id }
+        if WebAddress.media(input) != nil { return DriveCollection.linkID(input).nilIfBlank }
+        if input.range(of: #"^[A-Za-z0-9]{6}$"#, options: .regularExpression) != nil { return input }
+        return nil
+    }
 
     func install(_ clips: [LessonClip]) {
         invalidatePendingLoad()
@@ -63,6 +124,7 @@ private final class FeedStore: ObservableObject {
 
     func invalidatePendingLoad() {
         generation = UUID()
+        resultsRequest = UUID()
         loading = false
     }
 
@@ -71,12 +133,13 @@ private final class FeedStore: ObservableObject {
         return index >= entries.count - 3
     }
 
-    func load(api: APIClient, search: String? = nil) async {
+    func load(api: APIClient, search: String? = nil, allowsNewRounds: Bool = true) async {
         if let search {
             generation = UUID()
             entries = []; feedID = nil; cursor = nil; hasMore = true; loading = false
             query = search; requestQuery = search; roundVideoIDs = []
             emptySearch = nil
+            resolvedFolder = nil
             if let url = WebAddress.media(search.trimmingCharacters(in: .whitespacesAndNewlines)),
                ["mp4", "mov", "m4v", "m3u8"].contains(url.pathExtension.lowercased()) {
                 let id = SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
@@ -87,7 +150,7 @@ private final class FeedStore: ObservableObject {
                 return
             }
         }
-        guard !loading else { return }
+        guard !loading, allowsNewRounds || hasMore else { return }
         let current = generation
         loading = true
         error = nil
@@ -96,6 +159,7 @@ private final class FeedStore: ObservableObject {
             // Skip a few duplicate/invalid pages, but never spin on an empty service.
             for _ in 0..<3 {
                 if !hasMore {
+                    guard allowsNewRounds else { break }
                     // Do not replace an unmatched explicit query with recommendations.
                     if entries.isEmpty, requestQuery.nilIfBlank != nil { break }
                     feedID = nil; cursor = nil; roundVideoIDs = []
@@ -123,13 +187,138 @@ private final class FeedStore: ObservableObject {
             if entries.isEmpty, requestQuery.nilIfBlank != nil {
                 emptySearch = BrowserLessonSearch(query: requestQuery)
             }
-            if !entries.isEmpty { error = "No more videos are available right now. Try again." }
+            if !entries.isEmpty, allowsNewRounds || hasMore {
+                error = "No more videos are available right now. Try again."
+            }
         } catch is CancellationError {
             // Leaving a screen/search is not a service failure.
         } catch {
             if current == generation, !Task.isCancelled { self.error = error.localizedDescription }
         }
     }
+}
+
+struct VideoSearchResultsView: View {
+    let search: String
+    var onSearchResult: (String, LessonClip) -> Void = { _, _ in }
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
+    @EnvironmentObject private var api: APIClient
+    @EnvironmentObject private var library: LibraryStore
+    @StateObject private var results = FeedStore()
+    @State private var loadedOwner: String?
+    @State private var recordedResult = false
+    @State private var browserSearch: PolicyDocument?
+
+    var body: some View {
+        GeometryReader { container in
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, DriveStyle.pageInset).padding(.vertical, 8)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        if api.session == nil {
+                            ConnectionPanel()
+                        } else if results.entries.isEmpty, results.resolvedFolder == nil {
+                            emptyResults
+                        } else {
+                            if let folder = results.resolvedFolder {
+                                DriveCollectionRows(collections: [folder], fileListStyle: true)
+                            }
+                            if !results.entries.isEmpty {
+                                DriveRemoteVideoRows(clips: results.entries.map(\.clip),
+                                                     searchContinuation: results.playbackContinuation, fileListStyle: true)
+                            }
+                            if let error = results.error {
+                                ErrorNote(message: error)
+                                ActionButton(title: "Try again", primary: false) { loadMore() }
+                            } else if results.loading {
+                                AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
+                            } else if results.hasMore {
+                                ActionButton(title: "Load more", primary: false) { loadMore() }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, DriveStyle.pageInset).padding(.top, 12).padding(.bottom, 24)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .refreshable {
+                    guard api.session != nil else { return }
+                    await results.loadResults(api: api, search: search, refresh: true)
+                }
+            }
+            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
+        }
+        .driveScreenBackground()
+        .task(id: api.session?.userId.value) {
+            guard let owner = api.session?.userId.value, loadedOwner != owner else { return }
+            await results.loadResults(api: api, search: search, refresh: true)
+            guard !Task.isCancelled, api.session?.userId.value == owner else { return }
+            loadedOwner = owner
+        }
+        .onChange(of: results.entries) { _, entries in
+            guard !recordedResult, let clip = entries.first?.clip else { return }
+            recordedResult = true
+            onSearchResult(search, clip)
+        }
+        .onChange(of: results.resolvedFolder) { _, folder in
+            guard !recordedResult, let folder else { return }
+            recordedResult = true
+            library.record(link: search, title: folder.title)
+        }
+        .onDisappear { results.invalidatePendingLoad() }
+        .fullScreenCover(item: $browserSearch) { PolicyBrowser(document: $0, webSearch: true) }
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 10) {
+            IconButton(symbol: .back, label: "Back", tint: DriveStyle.ink, glass: true) { dismiss() }
+            VStack(alignment: .leading, spacing: 5) {
+                if !results.entries.isEmpty || results.resolvedFolder != nil {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) { resultTitle.fixedSize(); Spacer(minLength: 0); resultCount.fixedSize() }
+                        VStack(alignment: .leading, spacing: 4) { resultTitle; resultCount }
+                    }
+                } else {
+                    resultTitle
+                }
+                Text(verbatim: search).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                    .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(DriveStyle.ink)
+    }
+
+    private var resultTitle: some View {
+        LocalizedText("Search results").font(.glam(.headline)).accessibilityAddTraits(.isHeader)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+    private var resultCount: some View {
+        let count = results.entries.count + (results.resolvedFolder == nil ? 0 : 1)
+        return LocalizedText(count == 1 ? "%@ item" : "%@ items", count.formatted(.number.locale(locale)))
+            .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary).monospacedDigit()
+    }
+
+    @ViewBuilder private var emptyResults: some View {
+        if loadedOwner != api.session?.userId.value || results.loading {
+            AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
+        } else if let error = results.error {
+            MessagePanel(title: "Couldn’t load videos", message: error, actionTitle: "Try again", action: refresh)
+        } else {
+            GlamoEmptyState(title: "No match found", message: "Check the URL with the person who shared it.", art: "DriveShelf") {
+                ActionButton(title: "Try again", primary: false, action: refresh)
+                ActionButton(title: "Search the web") {
+                    if let url = BrowserLessonSearch(query: search).url { browserSearch = PolicyDocument(title: "Web search", url: url) }
+                }
+            }
+        }
+    }
+
+    private func refresh() { Task { await results.loadResults(api: api, search: search, refresh: true) } }
+    private func loadMore() { Task { await results.loadResults(api: api, search: search, refresh: false) } }
 }
 
 struct LinkedVideoView: View {
@@ -147,6 +336,7 @@ struct LinkedVideoView: View {
     var initialCollection: DriveCollection? = nil
     var collectionNextPage = 1
     var collectionHasMore = false
+    var initialSearchPage: SearchPlaybackContinuation? = nil
     var onSearchResult: (String, LessonClip) -> Void = { _, _ in }
     @State private var visible = false
     @State private var loadedFeedOwner: String?
@@ -195,7 +385,7 @@ struct LinkedVideoView: View {
                                         }
                                     }.frame(width: geometry.size.width, height: geometry.size.height).clipped().id(entry.id)
                                 }
-                                if !feed.entries.isEmpty, initialClips == nil || (initialCollection != nil && feed.hasMore) {
+                                if !feed.entries.isEmpty, initialClips == nil || initialSearchPage != nil || (initialCollection != nil && feed.hasMore) {
                                     VStack(spacing: 16) {
                                         HStack {
                                             PlayerExitButton(action: exitPlayer)
@@ -237,6 +427,7 @@ struct LinkedVideoView: View {
                     guard feed.entries.isEmpty else { return }
                     feed.install(initialClips)
                     if initialCollection != nil { feed.configureCollection(nextPage: collectionNextPage, hasMore: collectionHasMore) }
+                    if let initialSearchPage { feed.configureSearch(initialSearchPage) }
                     activeID = feed.entries.first(where: { $0.clip.id == selectedClipID })?.id ?? feed.entries.first?.id
                     return
                 }
@@ -252,7 +443,7 @@ struct LinkedVideoView: View {
                 loadedFeedOwner = owner
             }
             .onChange(of: activeID) { _, id in
-                guard initialClips == nil || initialCollection != nil, visible, api.session != nil,
+                guard initialClips == nil || initialCollection != nil || initialSearchPage != nil, visible, api.session != nil,
                       id == morePageID || feed.isNearEnd(id) else { return }
                 Task { guard visible else { return }; await loadMore() }
             }

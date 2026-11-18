@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+@preconcurrency import AVFoundation
 
 private struct LocalPlaybackPauseKey: EnvironmentKey { static let defaultValue: () -> Void = {} }
 extension EnvironmentValues {
@@ -15,6 +16,185 @@ struct RemotePlaybackRequest: Identifiable {
     let selectedID: String
 }
 
+private struct DriveRemoteListLabel<Preview: View, Metadata: View>: View {
+    let title: String
+    let preview: Preview
+    let metadata: Metadata
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    init(title: String, @ViewBuilder preview: () -> Preview, @ViewBuilder metadata: () -> Metadata) {
+        self.title = title
+        self.preview = preview()
+        self.metadata = metadata()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            preview.frame(width: 64, height: 52).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(verbatim: title).driveFont(15, relativeTo: .subheadline, weight: .medium)
+                    .foregroundStyle(DriveStyle.ink)
+                    .lineLimit(typeSize.isAccessibilitySize ? 4 : 2).truncationMode(.middle)
+                    .fixedSize(horizontal: false, vertical: true)
+                metadata.font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
+        }
+        .multilineTextAlignment(.leading)
+        .padding(.leading, 12).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct DriveRemoteFolderRow: View {
+    let folder: DriveCollection
+    let open: () -> Void
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        Button(action: open) {
+            HStack(spacing: 4) {
+                DriveRemoteListLabel(title: folder.title) {
+                    Glyph(symbol: .folder, size: 30, tint: DriveStyle.folder)
+                } metadata: {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) { details }
+                        VStack(alignment: .leading, spacing: 3) { details }
+                    }
+                }
+                Glyph(symbol: .back, size: 11, tint: DriveStyle.secondary)
+                    .rotationEffect(.degrees(180))
+                    .frame(width: 44, height: 44).padding(.trailing, 8)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var details: some View {
+        LocalizedText("Folder")
+        if let date = folder.addedAt {
+            Text(verbatim: date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale)))
+        }
+    }
+}
+
+@MainActor
+private enum DriveRemoteDurationCache {
+    static let values: NSCache<NSURL, NSNumber> = {
+        let cache = NSCache<NSURL, NSNumber>()
+        cache.countLimit = 128
+        return cache
+    }()
+}
+
+@MainActor
+private struct DriveRemoteVideoRow: View {
+    let clip: LessonClip
+    var viewingHistory = false
+    let play: () -> Void
+    @EnvironmentObject private var library: LibraryStore
+    @State private var measuredDuration: Double?
+    @State private var measuringDuration = false
+
+    private var title: String { library.favorites.first { $0.id == clip.id }?.title ?? clip.title }
+    private var source: URL { library.playbackURL(for: clip) }
+    private var position: FileViewingPosition? { library.remotePlayback.first { $0.id == clip.id }?.viewing }
+    private var suppliedDuration: Double? {
+        [library.savedVideo(clip.id)?.duration, clip.duration, position?.duration]
+            .compactMap { $0 }.first { $0.isFinite && $0 > 0 }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button(action: play) {
+                DriveRemoteListLabel(title: title) {
+                    thumbnail
+                } metadata: {
+                    metadata
+                }
+            }
+            .buttonStyle(PressStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+
+            DriveRemoteMoreButton(clip: clip).padding(.trailing, 8)
+        }
+        .task(id: source) { await readDuration() }
+    }
+
+    private var thumbnail: some View {
+        AsyncImage(url: clip.coverURL) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFill()
+            } else {
+                Glyph(symbol: .feed, size: 25, tint: GlamoStyle.accent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(GlamoStyle.paper)
+            }
+        }
+        .frame(width: 64, height: 52)
+        .overlay(alignment: .bottomLeading) {
+            Glyph(symbol: .play, size: 13, tint: .white)
+                .frame(width: 24, height: 24)
+                .background(.black.opacity(0.50), in: Circle()).padding(4)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var metadata: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { metadataItems }
+                VStack(alignment: .leading, spacing: 3) { metadataItems }
+            }
+            if viewingHistory, let position, position.duration > 0 {
+                DriveMeter(value: position.seconds / position.duration, tint: DriveStyle.accent)
+            }
+        }
+    }
+
+    @ViewBuilder private var metadataItems: some View {
+        if viewingHistory, let position {
+            Text(verbatim: DriveRemoteVideoRows.time(position.seconds) + " / " + DriveRemoteVideoRows.time(position.duration))
+                .monospacedDigit().environment(\.layoutDirection, .leftToRight)
+        } else if let duration = suppliedDuration ?? measuredDuration {
+            LocalizedText("Duration · %@", DriveRemoteVideoRows.time(duration)).monospacedDigit()
+        } else {
+            LocalizedText(measuringDuration ? "Loading…" : "Duration unavailable")
+        }
+        if let record = library.savedVideo(clip.id) {
+            LocalizedText(record.state.title)
+                .foregroundStyle(record.state == .failed ? GlamoStyle.danger : GlamoStyle.secondary)
+        }
+    }
+
+    private func readDuration() async {
+        measuredDuration = nil
+        measuringDuration = false
+        guard suppliedDuration == nil else { return }
+        let url = source
+        if let cached = DriveRemoteDurationCache.values.object(forKey: url as NSURL) {
+            measuredDuration = cached.doubleValue
+            return
+        }
+        measuringDuration = true
+        defer { if !Task.isCancelled { measuringDuration = false } }
+        let asset = AVURLAsset(url: url)
+        let seconds = try? await withTaskCancellationHandler {
+            try await asset.load(.duration).seconds
+        } onCancel: { asset.cancelLoading() }
+        guard !Task.isCancelled, source == url, let seconds, seconds.isFinite, seconds > 0 else { return }
+        measuredDuration = seconds
+        DriveRemoteDurationCache.values.setObject(NSNumber(value: seconds), forKey: url as NSURL)
+    }
+}
+
 struct DriveRemoteVideoRows: View {
     let clips: [LessonClip]
     var viewingHistory = false
@@ -22,56 +202,81 @@ struct DriveRemoteVideoRows: View {
     var collection: DriveCollection? = nil
     var nextPage = 1
     var hasMore = false
+    var searchContinuation: SearchPlaybackContinuation? = nil
+    var fileListStyle = false
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.locale) private var locale
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var playing: RemotePlaybackRequest?
-    @State private var options: LessonClip?
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(clips) { clip in
-                if clip.id != clips.first?.id { Divider().padding(.leading, 76) }
-                HStack(spacing: 4) {
-                    Button {
-                        var queue = playbackQueue ?? clips
-                        if !queue.contains(where: { $0.id == clip.id }) { queue.insert(clip, at: 0) }
-                        playing = .init(clips: queue, selectedID: clip.id)
-                    } label: {
-                        HStack(spacing: 12) {
-                            thumbnail(clip)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(verbatim: library.favorites.first(where: { $0.id == clip.id })?.title ?? clip.title)
-                                    .driveFont(15, relativeTo: .subheadline, weight: .medium)
-                                    .lineLimit(typeSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
-                                if viewingHistory, let position = library.remotePlayback.first(where: { $0.id == clip.id })?.viewing {
-                                    Text(verbatim: Self.time(position.seconds) + " / " + Self.time(position.duration))
-                                        .driveFont(12, relativeTo: .caption).monospacedDigit()
-                                        .foregroundStyle(DriveStyle.secondary)
-                                    DriveMeter(value: position.seconds / max(1, position.duration), tint: DriveStyle.accent)
-                                } else if let record = library.savedVideo(clip.id) {
-                                    LocalizedText(record.state.title).driveFont(12, relativeTo: .caption)
-                                        .foregroundStyle(record.state == .failed ? GlamoStyle.danger : DriveStyle.secondary)
-                                    if let duration = record.duration ?? clip.duration {
-                                        Text(verbatim: Self.time(duration)).font(.glam(.caption)).monospacedDigit()
-                                            .foregroundStyle(DriveStyle.secondary)
-                                    }
-                                }
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }.multilineTextAlignment(.leading).padding(.vertical, 12).padding(.leading, 12)
-                            .contentShape(Rectangle())
-                    }.buttonStyle(PressStyle())
-                    IconButton(symbol: .driveMore, label: "Video options", tint: DriveStyle.secondary) { options = clip }
-                }
-            }
+        Group {
+            if fileListStyle { LazyVStack(spacing: 0) { rows } }
+            else { VStack(spacing: 0) { rows } }
         }
         .foregroundStyle(DriveStyle.ink)
         .glamoGlass(in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius), tint: .white)
         .fullScreenCover(item: $playing) { request in
-            LinkedVideoView(search: "", initialClips: request.clips, selectedClipID: request.selectedID,
-                            initialCollection: collection, collectionNextPage: nextPage, collectionHasMore: hasMore)
+            LinkedVideoView(search: searchContinuation?.query ?? "", initialClips: request.clips, selectedClipID: request.selectedID,
+                            initialCollection: collection, collectionNextPage: nextPage, collectionHasMore: hasMore,
+                            initialSearchPage: searchContinuation)
         }
-        .sheet(item: $options) { DriveRemoteVideoActions(clip: $0) }
+    }
+
+    private var rows: some View {
+        Group {
+            ForEach(clips) { clip in
+                if clip.id != clips.first?.id {
+                    Divider().overlay(DriveStyle.separator)
+                        .padding(.leading, fileListStyle ? 88 : 76).padding(.trailing, fileListStyle ? 12 : 0)
+                }
+                if fileListStyle {
+                    DriveRemoteVideoRow(clip: clip, viewingHistory: viewingHistory, play: {
+                        var queue = playbackQueue ?? clips
+                        if !queue.contains(where: { $0.id == clip.id }) { queue.insert(clip, at: 0) }
+                        playing = .init(clips: queue, selectedID: clip.id)
+                    })
+                } else {
+                    HStack(spacing: 4) {
+                        Button {
+                            var queue = playbackQueue ?? clips
+                            if !queue.contains(where: { $0.id == clip.id }) { queue.insert(clip, at: 0) }
+                            playing = .init(clips: queue, selectedID: clip.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                thumbnail(clip)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(verbatim: library.favorites.first(where: { $0.id == clip.id })?.title ?? clip.title)
+                                        .driveFont(15, relativeTo: .subheadline, weight: .medium)
+                                        .lineLimit(typeSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
+                                    if viewingHistory, let position = library.remotePlayback.first(where: { $0.id == clip.id })?.viewing {
+                                        Text(verbatim: Self.time(position.seconds) + " / " + Self.time(position.duration))
+                                            .driveFont(12, relativeTo: .caption).monospacedDigit()
+                                            .foregroundStyle(DriveStyle.secondary)
+                                        DriveMeter(value: position.seconds / max(1, position.duration), tint: DriveStyle.accent)
+                                    } else if let record = library.savedVideo(clip.id) {
+                                        LocalizedText(record.state.title).driveFont(12, relativeTo: .caption)
+                                            .foregroundStyle(record.state == .failed ? GlamoStyle.danger : DriveStyle.secondary)
+                                        if let duration = record.duration ?? clip.duration {
+                                            Text(verbatim: Self.time(duration)).font(.glam(.caption)).monospacedDigit()
+                                                .foregroundStyle(DriveStyle.secondary)
+                                        }
+                                    } else {
+                                        LocalizedText("Video").font(.glam(.caption)).foregroundStyle(DriveStyle.secondary)
+                                        if let duration = clip.duration {
+                                            Text(verbatim: Self.time(duration)).font(.glam(.caption)).monospacedDigit()
+                                                .foregroundStyle(DriveStyle.secondary)
+                                        }
+                                    }
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                            }.multilineTextAlignment(.leading).padding(.vertical, 12).padding(.leading, 12)
+                                .contentShape(Rectangle())
+                        }.buttonStyle(PressStyle())
+                        DriveRemoteMoreButton(clip: clip)
+                    }
+                }
+            }
+        }
     }
 
     private func thumbnail(_ clip: LessonClip) -> some View {
@@ -91,9 +296,37 @@ struct DriveRemoteVideoRows: View {
     }
 }
 
+private struct DriveRemoteMoreButton: View {
+    let clip: LessonClip
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @State private var showingMenu = false
+    @State private var showingSheet = false
+
+    private var title: String { library.favorites.first { $0.id == clip.id }?.title ?? clip.title }
+
+    var body: some View {
+        IconButton(symbol: .driveMore, label: "Video options", tint: DriveStyle.ink, glass: true, glyphSize: 16) {
+            if typeSize >= .xxLarge || verticalSizeClass == .compact { showingSheet = true }
+            else { showingMenu = true }
+        }
+        .frame(width: 44, height: 44).fixedSize()
+        .accessibilityValue(Text(verbatim: title))
+        .popover(isPresented: $showingMenu, attachmentAnchor: .rect(.bounds), arrowEdge: nil) {
+            DriveRemoteVideoActions(clip: clip, compactMenu: true)
+                .presentationBackground(.regularMaterial)
+                .presentationCompactAdaptation(.popover)
+        }
+        .sheet(isPresented: $showingSheet) { DriveRemoteVideoActions(clip: clip) }
+    }
+}
+
 struct DriveRemoteVideoActions: View {
     let clip: LessonClip
+    var compactMenu = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var quota: QuotaStore
@@ -109,35 +342,16 @@ struct DriveRemoteVideoActions: View {
     private var title: String { library.favorites.first { $0.id == clip.id }?.title ?? clip.title }
 
     var body: some View {
-        GeometryReader { container in
-            VStack(spacing: 0) {
-                SheetHeading(title: "Video options") { dismiss() }
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(verbatim: title).font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
-                        if let record = library.savedVideo(clip.id) {
-                            LocalizedText(record.state.title).font(.glam(.subheadline)).foregroundStyle(DriveStyle.secondary)
-                            if let failure = record.failure { ErrorNote(message: failure) }
-                        }
-                        ActionButton(title: "Export video") { exporting = true }
-                        if !saved {
-                            ActionButton(title: "Save video", primary: false) { save(moveAfter: false) }
-                            ActionButton(title: "Move to folder", primary: false) { save(moveAfter: true) }
-                        }
-                        if saved {
-                            ActionButton(title: "Rename", primary: false) { renaming = true }
-                            ActionButton(title: "Move to folder", primary: false) { moving = true }
-                            if library.savedVideo(clip.id)?.state != .ready {
-                                ActionButton(title: "Download again", primary: false) { library.offline.enqueue(clip.id) }
-                            }
-                            ActionButton(title: "Remove saved video", primary: false) { deleting = true }
-                        }
-                        if let error { ErrorNote(message: error) }
-                    }.padding(20).frame(maxWidth: 560).frame(maxWidth: .infinity)
-                }.scrollBounceBehavior(.basedOnSize)
-            }.padding(drivePaneMargins(in: container, includesHorizontalFold: true))
+        Group {
+            if compactMenu { compactPanel }
+            else { sheetPanel }
         }
-        .driveScreenBackground()
+        .foregroundStyle(DriveStyle.ink)
+        .preferredColorScheme(.light)
+        .presentationBackground(.regularMaterial)
+        .presentationDetents(typeSize >= .xxLarge ? [.large] : [.height(360), .large])
+        .presentationDragIndicator(.hidden)
+        .accessibilityAction(.escape) { dismiss() }
         .sheet(isPresented: $renaming) {
             DriveNameSheet(title: "Rename", startingName: title) { try library.renameSavedVideo(clip.id, to: $0) }
         }
@@ -159,6 +373,122 @@ struct DriveRemoteVideoActions: View {
             }
         }
     }
+
+    private var compactPanel: some View {
+        VStack(spacing: 6) {
+            fileSummary(compact: true)
+            menuDivider
+            ScrollView { menuActions }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(idealHeight: 252, maxHeight: 280)
+        }
+        .padding(10)
+        .frame(idealWidth: 316, maxWidth: 360)
+        // Existing confirmation and allowance overlays keep room for their actions.
+        .frame(minHeight: collectionPrompt ? 520 : deleting ? 360 : nil)
+    }
+
+    private var sheetPanel: some View {
+        ZStack {
+            Color.clear.contentShape(Rectangle()).onTapGesture { dismiss() }
+                .accessibilityHidden(true)
+            GeometryReader { container in
+                let margins = drivePaneMargins(in: container, includesHorizontalFold: true)
+                VStack(spacing: 8) {
+                    fileSummary(compact: container.size.height - margins.top - margins.bottom < 400)
+                    menuDivider
+                    ViewThatFits(in: .vertical) {
+                        menuActions.fixedSize(horizontal: false, vertical: true)
+                        ScrollView { menuActions }.scrollBounceBehavior(.basedOnSize)
+                    }
+                }
+                .padding(10)
+                .background {
+                    Color.clear.contentShape(RoundedRectangle(cornerRadius: 26)).onTapGesture {}
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: 460)
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(margins)
+            }
+        }
+    }
+    private func fileSummary(compact: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            if !compact, !typeSize.isAccessibilitySize {
+                AsyncImage(url: clip.coverURL) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() }
+                    else {
+                        Glyph(symbol: .feed, size: 24, tint: GlamoStyle.accent)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(GlamoStyle.paper)
+                    }
+                }
+                .frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 10))
+                .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(verbatim: title).font(.glam(.subheadline, weight: .semibold))
+                    .lineLimit(2).truncationMode(.middle)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityLabel(Text(verbatim: title))
+                LocalizedText(saved ? "Video saved" : "Not saved")
+                    .font(.glam(.caption, weight: .medium))
+                    .foregroundStyle(saved ? GlamoStyle.accent : GlamoStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading).layoutPriority(1)
+            IconButton(symbol: .close, label: "Close", glyphSize: 13) { dismiss() }
+                .frame(width: 44, height: 44).fixedSize()
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.leading, 8).padding(.top, 6).padding(.bottom, 4)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var menuActions: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: typeSize >= .xxLarge ? 1 : 2)
+        return VStack(spacing: 2) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+                DriveRemoteMenuOption(title: saved ? "Video saved" : "Save video",
+                                      hint: saved ? nil : "Saves a copy for offline playback.",
+                                      image: saved ? "PlayerSaved" : "PlayerSave", selected: saved,
+                                      action: saved ? nil : { save(moveAfter: false) })
+                DriveRemoteDownloadOption(clipID: clip.id, record: library.savedVideo(clip.id),
+                                          saved: saved, cache: library.offline) { save(moveAfter: false) }
+            }
+            if let record = library.savedVideo(clip.id), record.state == .failed {
+                ErrorNote(message: record.failure ?? "Download failed").padding(.horizontal, 8)
+            }
+            DriveRemoteMenuOption(title: "Export video", hint: "MP4 and M4A export", glyph: .driveShare) {
+                exporting = true
+            }
+            menuDivider.padding(.vertical, 5)
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+                DriveRemoteMenuOption(title: "Rename", hint: saved ? nil : "Save this video first.",
+                                      glyph: .edit) { renaming = true }.disabled(!saved)
+                DriveRemoteMenuOption(title: "Move to folder", hint: saved ? nil : "Saves the video before moving it.",
+                                      glyph: .driveFolder) {
+                    if saved { moving = true } else { save(moveAfter: true) }
+                }
+            }
+            menuDivider.padding(.vertical, 5)
+            DriveRemoteMenuOption(title: "Delete", detail: saved ? "Removes the saved copy only." : nil,
+                                  hint: saved ? nil : "No saved copy to remove.",
+                                  glyph: .close, tint: GlamoStyle.danger, role: .destructive) {
+                deleting = true
+            }.disabled(!saved)
+            if let error { ErrorNote(message: error).padding(.horizontal, 10) }
+        }
+    }
+
+    private var menuDivider: some View {
+        Divider().overlay(GlamoStyle.line).padding(.horizontal, 10)
+            .accessibilityHidden(true)
+    }
+
     private func save(moveAfter: Bool) {
         moveAfterSaving = moveAfter
         guard quota.mayCollect(premium: commerce.premium) else { collectionPrompt = true; return }
@@ -181,31 +511,156 @@ struct DriveRemoteVideoActions: View {
     }
 }
 
+private struct DriveRemoteMenuOption: View {
+    let title: String
+    var detail: String? = nil
+    var hint: String? = nil
+    var glyph: GlamoGlyph = .feed
+    var image: String? = nil
+    var tint: Color = GlamoStyle.accent
+    var selected = false
+    var progress: Double? = nil
+    var role: ButtonRole? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        Group {
+            if let action {
+                Button(role: role, action: action) { label }.buttonStyle(PressStyle())
+            } else {
+                label.accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .accessibilityHint(LocalizedStringKey(hint ?? ""))
+    }
+
+    private var label: some View {
+        HStack(spacing: 8) {
+            Group {
+                if let image { Image(image).resizable().scaledToFit() }
+                else {
+                    Glyph(symbol: glyph, size: 16, tint: tint)
+                        .frame(width: 28, height: 28)
+                        .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            .frame(width: 28, height: 28).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                LocalizedText(title).driveFont(14, relativeTo: .subheadline, weight: .medium)
+                    .foregroundStyle(role == .destructive || selected ? tint : DriveStyle.ink)
+                if let detail {
+                    LocalizedText(detail).font(.glam(.caption))
+                        .foregroundStyle(GlamoStyle.secondary)
+                }
+                if let progress {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) { downloadProgress(progress) }
+                        VStack(alignment: .leading, spacing: 5) { downloadProgress(progress) }
+                    }
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .multilineTextAlignment(.leading)
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .background(selected ? GlamoStyle.accent.opacity(0.09) : role == .destructive ? GlamoStyle.danger.opacity(0.05) : .clear,
+                    in: RoundedRectangle(cornerRadius: 10))
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private func downloadProgress(_ value: Double) -> some View {
+        DriveMeter(value: value, tint: tint, thickness: 3).frame(minWidth: 40)
+        Text(value, format: .percent.precision(.fractionLength(0)))
+            .font(.glam(.caption, weight: .medium)).monospacedDigit().foregroundStyle(GlamoStyle.secondary)
+            .fixedSize()
+    }
+}
+
+private struct DriveRemoteDownloadOption: View {
+    let clipID: String
+    let record: SavedVideo?
+    let saved: Bool
+    @ObservedObject var cache: OfflineVideoCache
+    let save: () -> Void
+
+    private var title: String {
+        switch record?.state {
+        case .downloading: "Downloading…"
+        case .paused: "Resume download"
+        case .ready: "Available offline"
+        case .failed: "Retry download"
+        default: "Download video"
+        }
+    }
+
+    private var detail: String? {
+        guard saved else { return nil }
+        if record?.state == .ready, let size = record?.byteCount, size > 0 {
+            return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        }
+        if record?.state == .queued { return record?.state.title }
+        return nil
+    }
+
+    private var progress: Double? {
+        guard record?.state == .downloading || record?.state == .paused,
+              let value = cache.progress[clipID], value.isFinite else { return nil }
+        return min(1, max(0, value))
+    }
+
+    var body: some View {
+        DriveRemoteMenuOption(title: title, detail: detail,
+                              hint: record?.state == .failed ? record?.failure : saved ? nil : "Saves the video before downloading.",
+                              glyph: .driveActivity,
+                              tint: Color(red: 0.70, green: 0.34, blue: 0.09), progress: progress,
+                              action: record?.state == .ready || record?.state == .downloading ? nil : {
+            if saved { cache.enqueue(clipID) } else { save() }
+        })
+    }
+}
+
 struct DriveCollectionRows: View {
     let collections: [DriveCollection]
+    var fileListStyle = false
+    var openFolder: ((DriveCollection) -> Void)? = nil
     @State private var opened: DriveCollection?
     @State private var playing: RemotePlaybackRequest?
     var body: some View {
         VStack(spacing: 0) {
             ForEach(collections) { collection in
-                if collection.id != collections.first?.id { Divider().padding(.leading, 54) }
-                Button {
-                    if let clip = collection.clip { playing = .init(clips: [clip], selectedID: clip.id) }
-                    else { opened = collection }
-                } label: {
-                    HStack(spacing: 12) {
-                        Glyph(symbol: collection.isFolder ? .driveFolder : .play, size: 26, tint: DriveStyle.accent)
-                        Text(verbatim: collection.title).font(.glam(.subheadline, weight: .medium))
-                            .lineLimit(2).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
-                        Glyph(symbol: .back, size: 12, tint: DriveStyle.secondary).rotationEffect(.degrees(180))
-                    }.multilineTextAlignment(.leading).padding(14).frame(minHeight: 60).contentShape(Rectangle())
-                }.buttonStyle(PressStyle())
+                if collection.id != collections.first?.id {
+                    Divider().overlay(DriveStyle.separator)
+                        .padding(.leading, fileListStyle ? 88 : 54).padding(.trailing, fileListStyle ? 12 : 0)
+                }
+                if fileListStyle, collection.isFolder {
+                    DriveRemoteFolderRow(folder: collection) { open(collection) }
+                } else if fileListStyle, let clip = collection.clip {
+                    DriveRemoteVideoRow(clip: clip, play: { open(collection) })
+                } else {
+                    Button { open(collection) } label: {
+                        HStack(spacing: 12) {
+                            Glyph(symbol: collection.isFolder ? .driveFolder : .play, size: 26, tint: DriveStyle.accent)
+                            Text(verbatim: collection.title).font(.glam(.subheadline, weight: .medium))
+                                .lineLimit(2).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
+                            Glyph(symbol: .back, size: 12, tint: DriveStyle.secondary).rotationEffect(.degrees(180))
+                        }.multilineTextAlignment(.leading).padding(14).frame(minHeight: 60).contentShape(Rectangle())
+                    }.buttonStyle(PressStyle())
+                }
             }
         }.foregroundStyle(DriveStyle.ink).glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: .white)
             .fullScreenCover(item: $opened) { DriveCollectionBrowser(initial: $0) }
             .fullScreenCover(item: $playing) {
                 LinkedVideoView(search: "", initialClips: $0.clips, selectedClipID: $0.selectedID)
             }
+    }
+
+    private func open(_ collection: DriveCollection) {
+        if let clip = collection.clip { playing = .init(clips: [clip], selectedID: clip.id) }
+        else if let openFolder { openFolder(collection) }
+        else { opened = collection }
     }
 }
 
@@ -220,7 +675,9 @@ struct DriveCollectionBrowser: View {
         }.toolbar(.hidden, for: .navigationBar)
     }
     private func contents(_ resource: DriveCollection) -> some View {
-        DriveCollectionContents(collection: resource, openFolder: { path.append($0) }, back: {
+        let index = path.firstIndex(where: { $0.id == resource.id })
+        let trail = [initial.title] + (index.map { Array(path.prefix($0 + 1)).map(\.title) } ?? [])
+        return DriveCollectionContents(collection: resource, trail: trail, openFolder: { path.append($0) }, back: {
             if path.isEmpty { dismiss() } else { path.removeLast() }
         })
         .toolbar(.hidden, for: .navigationBar)
@@ -275,6 +732,7 @@ struct IncomingSharedResourceView: View {
 
 private struct DriveCollectionContents: View {
     let collection: DriveCollection
+    let trail: [String]
     let openFolder: (DriveCollection) -> Void
     let back: () -> Void
     @EnvironmentObject private var api: APIClient
@@ -282,24 +740,32 @@ private struct DriveCollectionContents: View {
     var body: some View {
         GeometryReader { container in
             VStack(spacing: 0) {
-                HStack(spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
                     IconButton(symbol: .back, label: "Back", glass: true, action: back)
-                    Text(verbatim: collection.title).font(.glam(.headline)).lineLimit(2).truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
-                }.padding(.horizontal, 16).padding(.vertical, 8)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(verbatim: collection.title).font(.glam(.headline)).lineLimit(2).truncationMode(.middle)
+                            .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+                        if trail.count > 1 {
+                            Text(verbatim: trail.joined(separator: " / "))
+                                .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                                .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+                        } else {
+                            LocalizedText("Folder").font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, DriveStyle.pageInset).padding(.vertical, 8)
+                .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(store.items.filter(\.isFolder)) { folder in
-                            Button { openFolder(folder) } label: {
-                                HStack(spacing: 12) {
-                                    Glyph(symbol: .driveFolder, size: 24, tint: DriveStyle.accent)
-                                    Text(verbatim: folder.title).font(.glam(.subheadline)).frame(maxWidth: .infinity, alignment: .leading)
-                                }.padding(16).frame(minHeight: 56).contentShape(Rectangle())
-                            }.buttonStyle(PressStyle()).glamoCard(radius: 14)
+                        let folders = store.items.filter(\.isFolder)
+                        if !folders.isEmpty {
+                            DriveCollectionRows(collections: folders, fileListStyle: true, openFolder: openFolder)
                         }
                         let clips = store.items.compactMap(\.clip)
                         if !clips.isEmpty {
-                            DriveRemoteVideoRows(clips: clips, collection: collection, nextPage: store.page, hasMore: store.hasMore)
+                            DriveRemoteVideoRows(clips: clips, collection: collection, nextPage: store.page,
+                                                 hasMore: store.hasMore, fileListStyle: true)
                         }
                         if store.loading { AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity) }
                         if let error = store.error {
@@ -313,7 +779,9 @@ private struct DriveCollectionContents: View {
                             ActionButton(title: "Load more videos", primary: false) { load() }
                                 .onAppear { load() }
                         }
-                    }.padding(16).frame(maxWidth: 680).frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal, DriveStyle.pageInset).padding(.vertical, 12)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 }.refreshable { await store.load(collection, api: api, refresh: true) }
             }.padding(drivePaneMargins(in: container, includesHorizontalFold: true))
         }.driveScreenBackground()
