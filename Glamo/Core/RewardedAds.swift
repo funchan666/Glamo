@@ -89,23 +89,19 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         armDeadline()
         defer { timeout?.cancel() }
         do {
-            if !placement.isOfficialDemo {
-                if !ConsentInformation.shared.canRequestAds {
-                    beginConsentIfNeeded { [weak self] in
-                        self?.rewardAttempt == attemptID && !commerce.busy && !commerce.preparingPurchase
-                    }
-                }
-                await consentTask?.value
+            beginConsentIfNeeded { [weak self] in
+                self?.rewardAttempt == attemptID && !commerce.busy && !commerce.preparingPurchase
             }
+            await consentTask?.value
             try Task.checkCancellation()
             guard rewardAttempt == attemptID else { return }
-            try prepareSDK(for: placement)
+            try prepareSDK()
             // Give ad loading its own budget after the user leaves the consent form.
             armDeadline()
             let ad = try await RewardedAd.load(with: placement.unitID, request: Request())
             try Task.checkCancellation()
             guard rewardAttempt == attemptID, UIApplication.shared.applicationState == .active else { return }
-            guard canRequestAds(for: placement) else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
+            guard canRequestAds else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
             try ad.canPresent(from: nil)
             guard commerce.api.session?.userId.value == owner, !commerce.premium else { throw GlamoError.unauthorized }
             rewarded = ad
@@ -120,7 +116,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                 do {
                     try quota.reward(rewardID, owner: owner, kind: kind)
                     self.rewardGranted = true
-                    self.message = "Your viewing allowance has been updated."
+                    self.message = kind == .watch ? "Your viewing allowance has been updated." : "Your saving allowance has been updated."
                 } catch { self.error = "The ad finished, but its reward could not be saved. \(error.localizedDescription)" }
             }
         } catch {
@@ -155,10 +151,8 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     }
 
     private func beginConsentIfNeeded(mayPresent: @escaping () -> Bool) {
-        // The official demo App ID has no publisher-managed Glamo messages.
         guard let appID = packagedAppID,
               appID.range(of: #"^ca-app-pub-[0-9]{16}~[0-9]{10}$"#, options: .regularExpression) != nil,
-              appID != GoogleDemoAds.appID,
               !consentSetupFinished, consentTask == nil, !isPresentingPrivacyForm, !isPresenting else { return }
         discardAppOpenInventory()
         consentTask = Task { [weak self] in
@@ -190,19 +184,19 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         }
     }
 
-    private func canRequestAds(for placement: GoogleAdPlacement) -> Bool {
+    private var canRequestAds: Bool {
         guard !isPresentingPrivacyForm, consentTask == nil else { return false }
         // UMP owns the consent state, including a prior session after an update error.
-        return placement.isOfficialDemo || ConsentInformation.shared.canRequestAds
+        return ConsentInformation.shared.canRequestAds
     }
 
-    private func prepareSDK(for placement: GoogleAdPlacement) throws {
-        guard canRequestAds(for: placement) else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
+    private func prepareSDK() throws {
+        guard canRequestAds else { throw GlamoError.service("Ads are unavailable with your current privacy choices.") }
         startSDKIfNeeded()
     }
 
     private func startSDKIfNeeded() {
-        guard !started else { return }
+        guard canRequestAds, !started else { return }
         started = true
         // Google-only integration: start once, then request ads immediately, as
         // in Google's quick start. Adapter completion must not block the app.
@@ -222,7 +216,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     }
 
     private func preloadAppOpen(for placement: GoogleAdPlacement) async throws {
-        guard canRequestAds(for: placement) else { throw CancellationError() }
+        guard canRequestAds else { throw CancellationError() }
         let unitID = placement.unitID
         if preparedUnitID == unitID, preparedAppOpen != nil, let date = preparedAppOpenDate,
            Date().timeIntervalSince(date) >= 0, Date().timeIntervalSince(date) < 4 * 60 * 60 {
@@ -243,10 +237,10 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
             let began = ContinuousClock.now
             do {
                 try Task.checkCancellation()
-                guard self.preloadRequestID == requestID, self.canRequestAds(for: placement) else { throw CancellationError() }
+                guard self.preloadRequestID == requestID, self.canRequestAds else { throw CancellationError() }
                 let ad = try await AppOpenAd.load(with: unitID, request: Request())
                 try Task.checkCancellation()
-                guard self.preloadRequestID == requestID, self.canRequestAds(for: placement) else { throw CancellationError() }
+                guard self.preloadRequestID == requestID, self.canRequestAds else { throw CancellationError() }
                 self.preparedAppOpen = ad
                 self.preparedAppOpenDate = Date()
                 self.preparedUnitID = unitID
@@ -333,9 +327,9 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                 self.appOpenLog.info("App-open rights/configuration ready; intervalMinutes=\(interval ?? -1)")
                 if self.appOpenAttempt == attempt { self.appOpenStage = "ad-preparation" }
                 // Consent can finish independently of this app-open presentation opportunity.
-                if !placement.isOfficialDemo { await self.consentTask?.value }
+                await self.consentTask?.value
                 try Task.checkCancellation()
-                try self.prepareSDK(for: placement)
+                try self.prepareSDK()
                 guard AppOpenTiming.isDue(intervalMinutes: interval,
                     lastShown: UserDefaults.standard.object(forKey: key) as? Date) else {
                     Task { _ = try? await self.preloadAppOpen(for: placement) }
@@ -349,7 +343,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                       commerce.api.session?.userId.value == owner,
                       !commerce.premium, UIApplication.shared.applicationState == .active,
                       !self.busy, !self.isPresenting, !commerce.busy, !commerce.preparingPurchase,
-                      !accountAccess.isBusy, self.canRequestAds(for: placement),
+                      !accountAccess.isBusy, self.canRequestAds,
                       AppOpenTiming.isDue(intervalMinutes: interval,
                         lastShown: UserDefaults.standard.object(forKey: key) as? Date) else {
                     self.finishAppOpen(attempt: attempt); return

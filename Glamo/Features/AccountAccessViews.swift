@@ -45,7 +45,7 @@ struct AccountBusyModifier: ViewModifier {
             .overlay {
                 if let message = accountAccess.busyMessage {
                     ZStack {
-                        Color.black.opacity(0.58).ignoresSafeArea()
+                        Color.black.opacity(0.58).ignoresSafeArea(.container, edges: .all)
                         AccountLoadingIndicator(title: message).padding(24)
                     }.accessibilityAddTraits(.isModal)
                 }
@@ -87,7 +87,7 @@ struct AccountDecisionDialog: View {
                     .glamoCard(radius: 26)
                     .padding(24).frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-        }.background(Color.black.opacity(0.68).ignoresSafeArea())
+        }.background(Color.black.opacity(0.68).ignoresSafeArea(.container, edges: .all))
             .accessibilityAddTraits(.isModal)
             .interactiveDismissDisabled()
             .onAppear { titleFocused = true }
@@ -163,15 +163,16 @@ struct PolicyBrowser: View {
             }
             ZStack {
                 PolicyWebView(url: document.url, state: state, webSearch: webSearch)
+                    .ignoresSafeArea(.container, edges: [.horizontal, .bottom])
                     .accessibilityHidden(state.loading || state.error != nil)
                 if let error = state.error {
-                    GlamoStyle.background
+                    GlamoStyle.background.ignoresSafeArea(.container, edges: [.horizontal, .bottom])
                     ScrollView {
                         MessagePanel(title: "Couldn’t open this page", message: error,
                                      actionTitle: "Try again", action: { state.retry() }).padding(24)
                     }
                 } else if state.loading {
-                    GlamoStyle.background
+                    GlamoStyle.background.ignoresSafeArea(.container, edges: [.horizontal, .bottom])
                     AccountLoadingIndicator(title: webSearch ? "Opening page…" : "Opening document…").padding(24)
                 }
             }
@@ -193,6 +194,10 @@ struct PolicyWebView: UIViewRepresentable {
         view.allowsBackForwardNavigationGestures = true
         view.allowsLinkPreview = !webSearch
         view.isOpaque = false
+        // The web canvas reaches the edges; UIKit keeps scroll content and
+        // indicators clear of the home indicator and asymmetric side insets.
+        view.scrollView.contentInsetAdjustmentBehavior = .automatic
+        view.scrollView.automaticallyAdjustsScrollIndicatorInsets = true
         state.webView = view
         return view
     }
@@ -289,10 +294,23 @@ struct PolicyWebView: UIViewRepresentable {
 
 struct AccountSettingsSection: View {
     let showActivity: () -> Void
+    let showShares: () -> Void
+    let showSaved: () -> Void
+    let showViewed: () -> Void
+    let browseFolders: () -> Void
     @Environment(\.openURL) private var openURL
+    @Environment(\.locale) private var locale
     @State private var websiteError: String?
     @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
     @State private var languagePicker = false
+    @State private var helpPresented = false
+    @State private var playbackSettings = false
+    @State private var cacheBytes: Int64 = 0
+    @State private var clearingCache = false
+    @State private var cacheMessage: String?
+    @State private var cacheError: String?
+    @State private var cacheRequestID = UUID()
+    @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var ads: RewardedAds
@@ -306,11 +324,54 @@ struct AccountSettingsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(spacing: 0) {
-                Button(action: showActivity) {
-                    AccountMenuRow(title: "Activity", symbol: .driveActivity,
-                                   tint: Color(red: 0.15, green: 0.71, blue: 0.90))
+                Button(action: showSaved) {
+                    AccountMenuRow(title: "Saved", detail: (library.favoriteFiles.count + library.favorites.count).formatted(.number.locale(locale)),
+                                   symbol: .feed)
                 }
                 rowDivider
+                Button(action: showViewed) { AccountMenuRow(title: "Recently played", symbol: .driveRecent) }
+                rowDivider
+                Button(action: browseFolders) { AccountMenuRow(title: "Folders", symbol: .driveFolder) }
+                rowDivider
+                Button { playbackSettings = true } label: {
+                    AccountMenuRow(title: "Playback settings", symbol: .play)
+                }
+            }.background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+            VStack(spacing: 0) {
+                Button(action: showShares) {
+                    AccountMenuRow(title: "My shares",
+                                   detail: library.movies.filter { $0.lastSharedAt != nil }.count.formatted(.number.locale(locale)),
+                                   symbol: .driveShare, tint: Color(red: 0.98, green: 0.58, blue: 0.15))
+                }.accessibilityIdentifier("account.myShares")
+                rowDivider
+                Button(action: showActivity) {
+                    AccountMenuRow(title: "Transfers", detail: library.importingVideo ? "Importing videos…" : nil,
+                                   symbol: .driveActivity,
+                                   tint: Color(red: 0.15, green: 0.71, blue: 0.90))
+                }.accessibilityIdentifier("account.transfers")
+                rowDivider
+                Button { Task { await clearCache() } } label: {
+                    AccountMenuRow(title: clearingCache ? "Clearing cache…" : "Clear cache",
+                                   detail: cacheBytes.formatted(.byteCount(style: .file).locale(locale)), symbol: .folder)
+                }
+                .disabled(clearingCache || unavailable || library.importingVideo)
+                .accessibilityIdentifier("account.clearCache")
+                rowDivider
+                Button { helpPresented = true } label: {
+                    AccountMenuRow(title: "Help & feedback", symbol: .driveList,
+                                   tint: Color(red: 0.18, green: 0.67, blue: 0.40))
+                }.accessibilityIdentifier("account.help")
+            }
+            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+
+            if let cacheMessage {
+                LocalizedText(cacheMessage).driveFont(13, relativeTo: .footnote)
+                    .foregroundStyle(GlamoStyle.accent).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+            }
+            if let cacheError { ErrorNote(message: cacheError) }
+
+            VStack(spacing: 0) {
                 Button { languagePicker = true } label: {
                     AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system",
                                    symbol: .driveSettings)
@@ -320,13 +381,45 @@ struct AccountSettingsSection: View {
                     policyRows.disabled(unavailable)
                 }
             }
-            .buttonStyle(PressStyle())
             .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
             if let websiteError { ErrorNote(message: websiteError) }
             if let error = ads.error { ErrorNote(message: error) }
         }
+        .buttonStyle(PressStyle())
+        .task { await refreshCache() }
         .sheet(item: $document) { PolicyBrowser(document: $0) }
         .sheet(isPresented: $languagePicker) { LanguagePicker() }
+        .sheet(isPresented: $helpPresented) { AccountHelpView() }
+        .sheet(isPresented: $playbackSettings) { PlaybackSettingsSheet() }
+    }
+
+    private func refreshCache() async {
+        let request = UUID()
+        cacheRequestID = request
+        do {
+            let scan = try await Task.detached(priority: .utility) { try ProfileCache.scan() }.value
+            guard !Task.isCancelled, cacheRequestID == request else { return }
+            cacheBytes = scan.bytes + Int64(URLCache.shared.currentDiskUsage) + Int64(URLCache.shared.currentMemoryUsage)
+        } catch {
+            if cacheRequestID == request { cacheError = error.localizedDescription }
+        }
+    }
+
+    private func clearCache() async {
+        guard !clearingCache, !unavailable, !library.importingVideo else { return }
+        clearingCache = true
+        cacheMessage = nil
+        cacheError = nil
+        defer { clearingCache = false }
+        URLCache.shared.removeAllCachedResponses()
+        do {
+            try await Task.detached(priority: .utility) { try ProfileCache.clearExpiredCopies() }.value
+            await refreshCache()
+            if cacheError == nil { cacheMessage = "Cache cleared. Your videos and folders are unchanged." }
+        } catch {
+            await refreshCache()
+            cacheError = error.localizedDescription
+        }
     }
 
     @ViewBuilder
@@ -370,8 +463,124 @@ struct AccountSettingsSection: View {
     }
 }
 
+private enum ProfileCache {
+    struct Scan: Sendable {
+        let bytes: Int64
+        let expiredCopies: [URL]
+    }
+
+    static func scan() throws -> Scan {
+        let files = FileManager.default
+        let root = files.temporaryDirectory.appendingPathComponent("GlamoSharedVideos", isDirectory: true)
+        guard files.fileExists(atPath: root.path) else { return Scan(bytes: 0, expiredCopies: []) }
+        let rootMetadata = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard rootMetadata.isDirectory == true, rootMetadata.isSymbolicLink != true else {
+            return Scan(bytes: 0, expiredCopies: [])
+        }
+        let entries = try files.contentsOfDirectory(at: root,
+            includingPropertiesForKeys: [.creationDateKey, .isDirectoryKey, .isSymbolicLinkKey])
+        let cutoff = Date().addingTimeInterval(-7 * 86_400)
+        var expired: [URL] = []
+        var bytes: Int64 = 0
+        for entry in entries {
+            let values = try entry.resourceValues(forKeys: [.creationDateKey, .isDirectoryKey, .isSymbolicLinkKey])
+            guard UUID(uuidString: entry.lastPathComponent) != nil,
+                  values.isDirectory == true, values.isSymbolicLink != true,
+                  let created = values.creationDate, created < cutoff else { continue }
+            expired.append(entry)
+            if let children = files.enumerator(at: entry,
+                includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileAllocatedSizeKey]) {
+                for case let file as URL in children {
+                    let metadata = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileAllocatedSizeKey])
+                    if metadata.isSymbolicLink == true { children.skipDescendants(); continue }
+                    if metadata.isRegularFile == true { bytes += Int64(metadata.fileAllocatedSize ?? 0) }
+                }
+            }
+        }
+        return Scan(bytes: bytes, expiredCopies: expired)
+    }
+
+    static func clearExpiredCopies() throws {
+        // Match the library's existing seven-day staging lifetime. Recent copies
+        // may still be used by a receiving app or an in-flight share.
+        for copy in try scan().expiredCopies {
+            if FileManager.default.fileExists(atPath: copy.path) { try FileManager.default.removeItem(at: copy) }
+        }
+    }
+}
+
+private struct AccountHelpView: View {
+    @EnvironmentObject private var api: APIClient
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @Environment(\.layoutDirection) private var layoutDirection
+    @State private var expanded: String? = "Import videos"
+    @State private var websiteError: String?
+    private let topics: [(String, String)] = [
+        ("Import videos", "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open."),
+        ("My shares", "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added."),
+        ("Clear cache", "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept."),
+        ("Vifol Plus", "Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available.")
+    ]
+
+    var body: some View {
+        GeometryReader { container in
+            VStack(spacing: 0) {
+                SheetHeading(title: "Help & feedback", inset: false) { dismiss() }
+                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 10)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(topics, id: \.0) { title, answer in
+                            VStack(alignment: .leading, spacing: 0) {
+                                Button {
+                                    expanded = expanded == title ? nil : title
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        LocalizedText(title).driveFont(16, relativeTo: .subheadline, weight: .semibold)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        Glyph(symbol: .back, size: 12, tint: DriveStyle.secondary)
+                                            .rotationEffect(.degrees(expanded == title ? -90 : (layoutDirection == .rightToLeft ? 0 : 180)))
+                                    }
+                                    .padding(14).frame(minHeight: 48).contentShape(Rectangle())
+                                }.buttonStyle(PressStyle())
+                                if expanded == title {
+                                    LocalizedText(answer).driveFont(14, relativeTo: .subheadline)
+                                        .foregroundStyle(GlamoStyle.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.horizontal, 14).padding(.bottom, 14)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: .white)
+                        }
+                        if let website = api.configuration.websiteURL {
+                            LocalizedText("Need more help?").driveFont(17, relativeTo: .headline, weight: .semibold)
+                                .padding(.top, 10).accessibilityAddTraits(.isHeader)
+                            ActionButton(title: "Support website", primary: false) {
+                                websiteError = nil
+                                openURL(website) { accepted in
+                                    if !accepted { websiteError = "Couldn’t open the Vifol website. Try again." }
+                                }
+                            }
+                        }
+                        if let websiteError { ErrorNote(message: websiteError) }
+                    }
+                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 24)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
+        }
+        .driveScreenBackground()
+    }
+}
+
 // Plain native rows with the original raster navigation glyph.
 private struct AccountMenuRow: View {
+    @Environment(\.layoutDirection) private var layoutDirection
     let title: String
     var detail: String? = nil
     let symbol: GlamoGlyph
@@ -404,7 +613,7 @@ private struct AccountMenuRow: View {
                 rowTitle.frame(maxWidth: .infinity, alignment: .leading)
             }
             Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
-                .rotationEffect(.degrees(180))
+                .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 0 : 180))
                 .frame(width: 20, height: 24)
                 .allowsHitTesting(false).accessibilityHidden(true)
         }.padding(.horizontal, 16).padding(.vertical, 8)

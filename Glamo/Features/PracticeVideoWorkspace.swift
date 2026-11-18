@@ -270,8 +270,9 @@ struct EditorWorkspace: View {
                 if let message { editor.error = "Preview could not play. \(message)" }
             }
             .sheet(item: $shareURL) { file in
-                ShareSheet(items: [file.url], onCompletion: { [id = file.id] outcome in
+                ShareSheet(items: [file.url], onCompletion: { [id = file.id, recordingID = file.recordingID] outcome in
                     guard exportSharePresentation?.id == id else { return }
+                    if case .completed = outcome, let recordingID { library.recordSharedFile(recordingID) }
                     exportSharePresentation?.outcome = outcome
                 })
             }
@@ -923,7 +924,7 @@ struct EditorWorkspace: View {
         do {
             let share = try await library.shareFile(for: file, commerce: commerce)
             if !Task.isCancelled {
-                let sharedFile = SharedFile(url: share)
+                let sharedFile = SharedFile(url: share, recordingID: file.id)
                 exportSharePresentation = ExportSharePresentation(id: sharedFile.id)
                 shareURL = sharedFile
             }
@@ -1014,7 +1015,11 @@ struct FlowChoices: View {
         ChipFilter(values: values, selected: selected, select: action)
     }
 }
-struct SharedFile: Identifiable { let id = UUID(); let url: URL }
+struct SharedFile: Identifiable, Sendable {
+    let id = UUID()
+    let url: URL
+    var recordingID: UUID? = nil
+}
 struct ShareSheet: UIViewControllerRepresentable {
     enum Outcome: Sendable {
         case completed
@@ -1090,7 +1095,7 @@ struct ExportDepartureProtection: ViewModifier {
                         .scrollBounceBehavior(.basedOnSize)
                         .padding(pane)
                     }
-                    .background(GlamoStyle.ink.opacity(0.66).ignoresSafeArea())
+                    .background(GlamoStyle.ink.opacity(0.66).ignoresSafeArea(.container, edges: .all))
                     .accessibilityElement(children: .contain)
                     .accessibilityAddTraits(.isModal)
                     .accessibilityAction(.escape) { departure.keepWorking() }

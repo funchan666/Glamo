@@ -25,6 +25,7 @@ final class LibraryStore: ObservableObject {
     private let root: URL
     private let snapshotURL: URL
     private var readable = true
+    var packageCollectionRequest = UUID()
 
     func beginVideoImport() -> Bool {
         guard !importingVideo else { return false }
@@ -51,6 +52,14 @@ final class LibraryStore: ObservableObject {
     var movies: [PracticeRecording] { snapshot.movies }
     var folders: [VideoFolder] { snapshot.folders ?? [] }
     var favorites: [LessonClip] { snapshot.favorites }
+    var storageRoot: URL { root }
+    private(set) lazy var offline = OfflineVideoCache(library: self)
+
+    func updateLibrary(_ change: (inout LessonLibrarySnapshot) throws -> Void) throws {
+        var next = snapshot
+        try change(&next)
+        try persist(next)
+    }
     func url(for movie: PracticeRecording) -> URL { root.appendingPathComponent(movie.filename) }
     // Internal IDs stay stable; only the user-facing shared copy gets a readable name.
     func shareFile(for movie: PracticeRecording, commerce: CommerceStore) async throws -> URL {
@@ -101,10 +110,11 @@ final class LibraryStore: ObservableObject {
     }
     func isSaved(_ clip: LessonClip) -> Bool { favorites.contains { $0.id == clip.id } }
     @discardableResult func toggle(_ clip: LessonClip) -> Bool {
-        var next = snapshot
-        if isSaved(clip) { next.favorites.removeAll { $0.id == clip.id } }
-        else { next.favorites.insert(clip, at: 0) }
-        do { try persist(next); return true }
+        do {
+            if isSaved(clip) { try removeSavedVideo(clip.id) }
+            else { try saveVideo(clip) }
+            return true
+        }
         catch { self.error = "Favorites could not be updated. Please try again."; return false }
     }
     func record(link: String, title: String) {
@@ -205,11 +215,31 @@ final class LibraryStore: ObservableObject {
     }
 
     func removeFolder(_ id: UUID) throws {
-        guard !movies.contains(where: { $0.folderID == id }), !folders.contains(where: { $0.parentID == id }) else {
-            throw GlamoError.service("Move the files and folders out before deleting this folder.")
-        }
+        guard let removed = folders.first(where: { $0.id == id }) else { throw GlamoError.storage }
         var next = snapshot
         next.folders = folders.filter { $0.id != id }
+        // Removing an organizer never removes its media. Keep nested folders and
+        // move immediate children up one level, retaining their stable IDs.
+        for index in next.movies.indices where next.movies[index].folderID == id {
+            next.movies[index].folderID = removed.parentID
+        }
+        for index in next.savedVideos?.indices ?? 0..<0 where next.savedVideos?[index].folderID == id {
+            next.savedVideos?[index].folderID = removed.parentID
+        }
+        var entries = next.folders ?? []
+        for index in entries.indices where entries[index].parentID == id {
+            let original = entries[index].name
+            var candidate = original
+            var suffix = 2
+            while entries.contains(where: { $0.id != entries[index].id && $0.parentID == removed.parentID &&
+                $0.name.localizedCaseInsensitiveCompare(candidate) == .orderedSame }) {
+                candidate = "\(original) (\(suffix))"
+                suffix += 1
+            }
+            entries[index].name = candidate
+            entries[index].parentID = removed.parentID
+        }
+        next.folders = entries
         try persist(next)
     }
 
@@ -259,6 +289,12 @@ final class LibraryStore: ObservableObject {
                 $0.duration = duration
             }
         } catch { self.error = error.localizedDescription }
+    }
+
+    func recordSharedFile(_ id: UUID) {
+        guard movies.contains(where: { $0.id == id }) else { return }
+        do { try changeMovie(id) { $0.lastSharedAt = Date() } }
+        catch { self.error = "The file was shared, but its sharing history could not be saved." }
     }
 
     private func changeMovie(_ id: UUID, change: (inout PracticeRecording) -> Void) throws {

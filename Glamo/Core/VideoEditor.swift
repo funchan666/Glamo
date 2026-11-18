@@ -34,7 +34,7 @@ final class VideoEditor: ObservableObject {
     @Published private(set) var progress: Float = 0
     @Published var error: String?
     @Published var exportedURL: URL?
-    let preview = PlaybackController()
+    let preview = PlaybackController(usePlaybackPreferences: false)
     private var sourceURL: URL?
     private var exporter: AVAssetExportSession?
     private var revision = UUID()

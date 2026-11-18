@@ -32,8 +32,11 @@ final class PlaybackController: ObservableObject {
     private var pendingSeek: Double?
     private var seeking = false
     private var loadingDeadline: Task<Void, Never>?
+    private let usesPlaybackPreferences: Bool
 
-    init() {
+    init(usePlaybackPreferences: Bool = true) {
+        usesPlaybackPreferences = usePlaybackPreferences
+        speed = usePlaybackPreferences ? PlaybackPreferences.shared.speed : 1
         player.automaticallyWaitsToMinimizeStalling = true
         timer = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -84,10 +87,14 @@ final class PlaybackController: ObservableObject {
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, self.generation == token else { return }
-                if self.onEnd != nil { self.pause() }
-                // Seek completion resumes only if this page still intends to play.
-                self.seek(0)
-                self.onEnd?()
+                if !self.usesPlaybackPreferences || PlaybackPreferences.shared.loop {
+                    self.seek(0)
+                    self.play()
+                } else {
+                    self.pause()
+                    self.seek(0)
+                    self.onEnd?()
+                }
             }
         }
         failureObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { [weak self] _ in
@@ -147,6 +154,7 @@ final class PlaybackController: ObservableObject {
     func setSpeed(_ value: Float) {
         guard value.isFinite, value > 0 else { return }
         speed = value
+        if usesPlaybackPreferences { PlaybackPreferences.shared.speed = value }
         if wantsPlayback { play() }
     }
     func seek(_ seconds: Double) {
@@ -227,6 +235,9 @@ final class PlaybackController: ObservableObject {
 @MainActor
 final class PlaybackPool: ObservableObject {
     @Published private(set) var controllers: [String: PlaybackController] = [:]
+    var resolveURL: (LessonClip) -> URL = { $0.playbackURL }
+    var checkpoint: ((LessonClip, PlaybackController) -> Void)?
+    private var clipsByOccurrence: [String: LessonClip] = [:]
     private var selectedID: String?
     private var nextEntry: PlaybackQueueEntry?
     private var warmupTask: Task<Void, Never>?
@@ -246,17 +257,20 @@ final class PlaybackPool: ObservableObject {
         let nearby = entries[max(0, index - 1)...min(entries.count - 1, index + 1)]
         let ids = Set(nearby.map(\.id))
         for (id, controller) in controllers {
+            if id != selectedID, controller.error == nil, controller.intendsPlayback,
+               let clip = clipsByOccurrence[id] { checkpoint?(clip, controller) }
             if !ids.contains(id) { controller.release() }
             else if id != selectedID, controller.intendsPlayback { controller.pause() }
         }
         var retained: [String: PlaybackController] = [:]
         for entry in nearby {
             let controller = controllers[entry.id] ?? PlaybackController()
-            if let url = controller.loadedURL, url != entry.clip.playbackURL { controller.release() }
+            if let url = controller.loadedURL, url != resolveURL(entry.clip) { controller.release() }
             retained[entry.id] = controller
         }
         guard let current = retained[selectedID] else { return }
-        if current.loadedURL == nil { current.load(entries[index].clip.playbackURL, autoplay: false) }
+        if current.loadedURL == nil { current.load(resolveURL(entries[index].clip), autoplay: false) }
+        clipsByOccurrence = Dictionary(nearby.map { ($0.id, $0.clip) }, uniquingKeysWith: { first, _ in first })
         // Appending a feed batch should not invalidate every visible video page.
         if controllers.count != retained.count || retained.contains(where: { controllers[$0.key] !== $0.value }) {
             controllers = retained
@@ -266,7 +280,7 @@ final class PlaybackPool: ObservableObject {
     func prepareNext(after id: String) {
         guard id == selectedID, controllers[id]?.isPlaying == true,
               let nextEntry, let upcoming = controllers[nextEntry.id],
-              upcoming.loadedURL != nextEntry.clip.playbackURL else { return }
+              upcoming.loadedURL != resolveURL(nextEntry.clip) else { return }
         guard warmupID != nextEntry.id else { return }
         cancelWarmup()
         warmupID = nextEntry.id
@@ -290,7 +304,7 @@ final class PlaybackPool: ObservableObject {
                 let remaining = duration.isFinite ? max(0, duration - position) : 4
                 guard position.isFinite, item.isPlaybackLikelyToKeepUp,
                       ahead >= min(4, remaining) else { continue }
-                self.controllers[nextEntry.id]?.prepare(nextEntry.clip.playbackURL)
+                self.controllers[nextEntry.id]?.prepare(self.resolveURL(nextEntry.clip))
                 return
             }
         }
@@ -312,7 +326,11 @@ final class PlaybackPool: ObservableObject {
     }
     func releaseAll() {
         cancelWarmup()
+        for (id, controller) in controllers where controller.error == nil && controller.intendsPlayback {
+            if let clip = clipsByOccurrence[id] { checkpoint?(clip, controller) }
+        }
         controllers.values.forEach { $0.release() }
+        clipsByOccurrence = [:]
         controllers = [:]
         selectedID = nil
         nextEntry = nil

@@ -29,10 +29,12 @@ struct VisitorSession: Codable {
 }
 
 struct ReleaseConfiguration: Decodable {
+    struct LandingLinks: Decodable { let us: [String]? }
     var NB01: Bool?
     var ios: IOSBillingConfiguration?
     var quotaConfig: QuotaConfiguration?
     var adList: [AdConfiguration]?
+    var lcList: LandingLinks?
 }
 struct LessonFeedPage: Decodable {
     let feedId: String?
@@ -61,6 +63,8 @@ struct LessonClip: Codable, Identifiable, Hashable {
     let shortLink: String?
     let channel: String
     let duration: Double?
+    var isDirect: Bool? = nil
+    var originalURL: URL? = nil
 }
 struct LessonLinkVisit: Codable, Identifiable {
     let id: UUID
@@ -78,6 +82,8 @@ struct PracticeRecording: Codable, Identifiable, Hashable {
     var byteCount: Int64? = nil
     var duration: Double? = nil
     var viewing: FileViewingPosition? = nil
+    var lastSharedAt: Date? = nil
+    var isFavorite: Bool? = nil
     var fileExtension: String { (filename as NSString).pathExtension.lowercased() }
     var isAudio: Bool { fileExtension == "m4a" }
     var displayName: String {
@@ -100,6 +106,11 @@ struct LessonLibrarySnapshot: Codable {
     var history: [LessonLinkVisit] = []
     var movies: [PracticeRecording] = []
     var folders: [VideoFolder]? = nil
+    // Optional additions preserve libraries written by previous app versions.
+    var savedVideos: [SavedVideo]? = nil
+    var remotePlayback: [RemotePlaybackRecord]? = nil
+    var packageCollections: [DriveCollection]? = nil
+    var playbackHistoryClearedAt: Date? = nil
 }
 // Separate scroll occurrence from video identity: a new recommendation round may
 // repeat a lesson without sharing AVPlayer state or charging it again.
@@ -134,6 +145,29 @@ struct QuotaConfiguration: Decodable {
     let firstAdRewardWatchCount: Int?
     let secondAdRewardWatchCount: Int?
     let thirdAdRewardWatchCount: Int?
+    let favoriteBaseLimit: Int?
+    let unlimitedAfterAdCount: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case dailyWatchLimit, firstAdRewardWatchCount, secondAdRewardWatchCount, thirdAdRewardWatchCount
+        case favoriteBaseLimit, unlimitedAfterAdCount
+    }
+    init(from decoder: Decoder) throws {
+        let box = try decoder.container(keyedBy: CodingKeys.self)
+        func number(_ key: CodingKeys) throws -> Int? {
+            guard let value = try box.decodeMediaNumber(forKey: key) else { return nil }
+            guard value >= 0, value < Double(Int.max), value.rounded(.towardZero) == value else {
+                throw DecodingError.dataCorruptedError(forKey: key, in: box, debugDescription: "Expected a nonnegative quota.")
+            }
+            return Int(value)
+        }
+        dailyWatchLimit = try number(.dailyWatchLimit)
+        firstAdRewardWatchCount = try number(.firstAdRewardWatchCount)
+        secondAdRewardWatchCount = try number(.secondAdRewardWatchCount)
+        thirdAdRewardWatchCount = try number(.thirdAdRewardWatchCount)
+        favoriteBaseLimit = try number(.favoriteBaseLimit)
+        unlimitedAfterAdCount = try number(.unlimitedAfterAdCount)
+    }
 }
 struct AdConfiguration: Decodable {
     let adType: Int

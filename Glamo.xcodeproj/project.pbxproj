@@ -36,6 +36,10 @@
 		D71000000000000000000003 /* Glamo/Features/DrivePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */; };
 		ED1700000000000000000001 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000002 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf */; };
 		ED1700000000000000000003 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */; };
+		91C27D2D64D482DCE6603266 /* Glamo/Core/VideoLibraryParity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCDD22FB8F1FD0DDEF208A9 /* Glamo/Core/VideoLibraryParity.swift */; };
+		DBFC1BC81DFCBBAB5115204A /* Glamo/Core/OfflineVideoCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FAF94BF00712214ACC6040 /* Glamo/Core/OfflineVideoCache.swift */; };
+		C4B12C6070147384E1CF7737 /* Glamo/Features/SavedLibraryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C547C971F4D1137C2614471 /* Glamo/Features/SavedLibraryViews.swift */; };
+		16FB4E207EA5E0304203D3EF /* Glamo/Core/DriveCollections.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9E5989BDC13ED7092818B0 /* Glamo/Core/DriveCollections.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -81,6 +85,10 @@
 		ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Glamo/Resources/Fonts/InstrumentSerif-OFL.txt"; sourceTree = SOURCE_ROOT; };
 		EFC3AA166887DDAA8FB0EBD0 /* Glamo/Core/CommerceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/CommerceStore.swift; sourceTree = SOURCE_ROOT; };
 		F2CDBB4A80FB9A168C05E16E /* Glamo/Core/PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/PlaybackController.swift; sourceTree = SOURCE_ROOT; };
+		5FCDD22FB8F1FD0DDEF208A9 /* Glamo/Core/VideoLibraryParity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/VideoLibraryParity.swift; sourceTree = SOURCE_ROOT; };
+		E9FAF94BF00712214ACC6040 /* Glamo/Core/OfflineVideoCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/OfflineVideoCache.swift; sourceTree = SOURCE_ROOT; };
+		4C547C971F4D1137C2614471 /* Glamo/Features/SavedLibraryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Features/SavedLibraryViews.swift; sourceTree = SOURCE_ROOT; };
+		DA9E5989BDC13ED7092818B0 /* Glamo/Core/DriveCollections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glamo/Core/DriveCollections.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +136,10 @@
 				D71000000000000000000004 /* Glamo/Features/DrivePlayer.swift */,
 				EC62DF084BD6179B0CD0BFAA /* Glamo/Features/MembershipView.swift */,
 				ACCE55100000000000000002 /* Glamo/Features/AccountAccessViews.swift */,
+				DA9E5989BDC13ED7092818B0 /* Glamo/Core/DriveCollections.swift */,
+				4C547C971F4D1137C2614471 /* Glamo/Features/SavedLibraryViews.swift */,
+				E9FAF94BF00712214ACC6040 /* Glamo/Core/OfflineVideoCache.swift */,
+				5FCDD22FB8F1FD0DDEF208A9 /* Glamo/Core/VideoLibraryParity.swift */,
 				47A27C0CD55779B5085CB27B /* Glamo/Resources/Assets.xcassets */,
 				ED1700000000000000000002 /* Glamo/Resources/Fonts/InstrumentSerif-Regular.ttf */,
 				ED1700000000000000000004 /* Glamo/Resources/Fonts/InstrumentSerif-OFL.txt */,
@@ -248,6 +260,10 @@
 				D71000000000000000000003 /* Glamo/Features/DrivePlayer.swift in Sources */,
 				8CBAB9F374786F17F0527D7A /* Glamo/Features/MembershipView.swift in Sources */,
 				ACCE55100000000000000001 /* Glamo/Features/AccountAccessViews.swift in Sources */,
+				16FB4E207EA5E0304203D3EF /* Glamo/Core/DriveCollections.swift in Sources */,
+				C4B12C6070147384E1CF7737 /* Glamo/Features/SavedLibraryViews.swift in Sources */,
+				DBFC1BC81DFCBBAB5115204A /* Glamo/Core/OfflineVideoCache.swift in Sources */,
+				91C27D2D64D482DCE6603266 /* Glamo/Core/VideoLibraryParity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

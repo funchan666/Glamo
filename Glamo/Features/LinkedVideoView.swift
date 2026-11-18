@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import AVFoundation
+import CryptoKit
 
 private struct BrowserLessonSearch: Identifiable, Equatable {
     let id = UUID()
@@ -28,6 +30,36 @@ private final class FeedStore: ObservableObject {
     private var requestQuery = ""
     private(set) var query = ""
     private var generation = UUID()
+    private var collectionPage = 1
+
+    func install(_ clips: [LessonClip]) {
+        invalidatePendingLoad()
+        var seen = Set<String>()
+        entries = clips.filter { seen.insert($0.id).inserted }.map { .init(id: UUID().uuidString, clip: $0) }
+        hasMore = false
+        error = nil
+    }
+    func configureCollection(nextPage: Int, hasMore: Bool) {
+        collectionPage = nextPage
+        self.hasMore = hasMore
+    }
+    func loadCollection(_ collection: DriveCollection, api: APIClient) async {
+        guard !loading, hasMore else { return }
+        let token = generation
+        loading = true; error = nil
+        defer { if token == generation { loading = false } }
+        do {
+            let response = try await api.collectionPage(link: collection.id, page: collectionPage)
+            try Task.checkCancellation()
+            guard token == generation else { return }
+            var seen = Set(entries.map { $0.clip.id })
+            entries += response.list.compactMap { $0.collection()?.clip }.filter { seen.insert($0.id).inserted }
+                .map { .init(id: UUID().uuidString, clip: $0) }
+            hasMore = !response.list.isEmpty && (response.total.flatMap { Int($0.value) }.map { collectionPage * 10 < $0 } ?? (response.list.count >= 10))
+            collectionPage += 1
+        } catch is CancellationError { }
+        catch { if token == generation { self.error = error.localizedDescription } }
+    }
 
     func invalidatePendingLoad() {
         generation = UUID()
@@ -45,6 +77,15 @@ private final class FeedStore: ObservableObject {
             entries = []; feedID = nil; cursor = nil; hasMore = true; loading = false
             query = search; requestQuery = search; roundVideoIDs = []
             emptySearch = nil
+            if let url = WebAddress.media(search.trimmingCharacters(in: .whitespacesAndNewlines)),
+               ["mp4", "mov", "m4v", "m3u8"].contains(url.pathExtension.lowercased()) {
+                let id = SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
+                var clip = LessonClip(id: "url-" + id, title: url.deletingPathExtension().lastPathComponent,
+                                      playbackURL: url, coverURL: nil, shortLink: nil, channel: "", duration: nil)
+                clip.isDirect = true
+                install([clip])
+                return
+            }
         }
         guard !loading else { return }
         let current = generation
@@ -91,31 +132,34 @@ private final class FeedStore: ObservableObject {
     }
 }
 
-private enum PlayerPalette {
-    static let overlay = Color(red: 0.169, green: 0.090, blue: 0.133)  // #2B1722
-    static let highlight = Color(red: 1, green: 0.722, blue: 0.792)    // #FFB8CA
-}
-
 struct LinkedVideoView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.pauseLocalPlayback) private var pauseLocalPlayback
     private let morePageID = "recommendation-tail"
     @EnvironmentObject private var api: APIClient
+    @EnvironmentObject private var library: LibraryStore
     @StateObject private var feed = FeedStore()
     @StateObject private var players = PlaybackPool()
     @Environment(\.scenePhase) private var scenePhase
     let search: String
-    let onSearchResult: (String, LessonClip) -> Void
+    var initialClips: [LessonClip]? = nil
+    var selectedClipID: String? = nil
+    var initialCollection: DriveCollection? = nil
+    var collectionNextPage = 1
+    var collectionHasMore = false
+    var onSearchResult: (String, LessonClip) -> Void = { _, _ in }
     @State private var visible = false
     @State private var loadedFeedOwner: String?
     @State private var watchOptionsPresented = false
+    @State private var nestedPresentationActive = false
     @State private var activeID: String?
     @State private var recordedQuery: String?
     @State private var openedBrowserSearchID: UUID?
     @State private var browserSearch: PolicyDocument?
     var body: some View {
-        let showingClips = api.session != nil && !feed.entries.isEmpty
+        let showingClips = (initialClips != nil || api.session != nil) && !feed.entries.isEmpty
         ZStack(alignment: .top) {
-            if api.session == nil {
+            if api.session == nil && initialClips == nil {
                 VStack(spacing: 0) {
                     feedHeader
                     ScrollView { ConnectionPanel().glamoPage() }
@@ -139,18 +183,30 @@ struct LinkedVideoView: View {
                                                      didStartPlaying: { players.prepareNext(after: entry.id) },
                                                      didStopPlaying: { if activeID == entry.id { players.suspend() } },
                                                      showWatchOptions: { watchOptionsPresented = true },
+                                                     purchasePresentation: { nestedPresentationActive = $0 },
                                                      onSwipeExit: exitPlayer)
                                         } else {
                                             PlayerPoster(url: clip.coverURL)
+                                                .overlay(alignment: .topLeading) {
+                                                    PlayerExitButton(action: exitPlayer)
+                                                        .padding(.horizontal, 16).padding(.top, 8)
+                                                        .padding(container.safeAreaInsets)
+                                                }
                                         }
                                     }.frame(width: geometry.size.width, height: geometry.size.height).clipped().id(entry.id)
                                 }
-                                if !feed.entries.isEmpty {
+                                if !feed.entries.isEmpty, initialClips == nil || (initialCollection != nil && feed.hasMore) {
                                     VStack(spacing: 16) {
+                                        HStack {
+                                            PlayerExitButton(action: exitPlayer)
+                                            Spacer(minLength: 0)
+                                        }
+                                        Spacer(minLength: 0)
                                         if let error = feed.error { LocalizedText(error).foregroundStyle(.white) }
                                         ActionButton(title: feed.loading ? "Loading videos…" : feed.error == nil ? "Load more videos" : "Try again",
-                                                     primary: false) { Task { await feed.load(api: api) } }
+                                                     primary: false) { Task { await loadMore() } }
                                             .disabled(feed.loading)
+                                        Spacer(minLength: 0)
                                     }.padding(28).padding(container.safeAreaInsets)
                                         .frame(width: geometry.size.width, height: geometry.size.height).id(morePageID)
                                 }
@@ -162,16 +218,28 @@ struct LinkedVideoView: View {
                     }.ignoresSafeArea(.container, edges: .all)
                 }
             }
-            if showingClips {
-                feedHeader
-            }
         }.glamoScreenBackground(showingClips ? .black : GlamoStyle.background)
             .foregroundStyle(showingClips ? .white : GlamoStyle.ink)
             .preferredColorScheme(showingClips ? .dark : .light)
             .modifier(PlayerPagingAccess(entries: feed.entries, selectedID: $activeID,
                                          watchOptionsPresented: $watchOptionsPresented, tailID: morePageID, players: players))
-            .onAppear { visible = true; players.update(entries: feed.entries, selectedID: activeID) }
+            .onAppear {
+                visible = true
+                pauseLocalPlayback()
+                players.resolveURL = { library.playbackURL(for: $0) }
+                players.checkpoint = { clip, player in
+                    library.recordRemotePlayback(clip, seconds: player.timeline.elapsed, duration: player.timeline.duration)
+                }
+                players.update(entries: feed.entries, selectedID: activeID)
+            }
             .task(id: api.session?.userId.value) {
+                if let initialClips {
+                    guard feed.entries.isEmpty else { return }
+                    feed.install(initialClips)
+                    if initialCollection != nil { feed.configureCollection(nextPage: collectionNextPage, hasMore: collectionHasMore) }
+                    activeID = feed.entries.first(where: { $0.clip.id == selectedClipID })?.id ?? feed.entries.first?.id
+                    return
+                }
                 guard let owner = api.session?.userId.value else {
                     loadedFeedOwner = nil
                     return
@@ -184,9 +252,12 @@ struct LinkedVideoView: View {
                 loadedFeedOwner = owner
             }
             .onChange(of: activeID) { _, id in
-                guard visible, api.session != nil,
+                guard initialClips == nil || initialCollection != nil, visible, api.session != nil,
                       id == morePageID || feed.isNearEnd(id) else { return }
-                Task { guard visible else { return }; await feed.load(api: api) }
+                Task { guard visible else { return }; await loadMore() }
+            }
+            .onChange(of: feed.hasMore) { _, hasMore in
+                if initialCollection != nil, !hasMore, activeID == morePageID { activeID = feed.entries.last?.id }
             }
             .onChange(of: feed.entries) { previous, entries in
                 guard visible else { return }
@@ -194,14 +265,14 @@ struct LinkedVideoView: View {
                     activeID = entries[previous.count].id
                 } else if !entries.contains(where: { $0.id == activeID }) { activeID = entries.first?.id }
                 players.update(entries: feed.entries, selectedID: activeID)
-                if let first = entries.first?.clip, recordedQuery != feed.query {
+                if initialClips == nil, let first = entries.first?.clip, recordedQuery != feed.query {
                     recordedQuery = feed.query
                     onSearchResult(feed.query, first)
                 }
             }
             .onDisappear {
                 // A rewarded ad or the Plus page can temporarily cover the active player.
-                if watchOptionsPresented {
+                if watchOptionsPresented || nestedPresentationActive {
                     players.suspend()
                     return
                 }
@@ -255,13 +326,17 @@ struct LinkedVideoView: View {
     private var feedHeader: some View {
         HStack {
             Spacer(minLength: 0)
-            PlayerExitButton(action: exitPlayer)
+            PlayerExitButton(overVideo: false, action: exitPlayer)
         }.environment(\.layoutDirection, .leftToRight)
             .padding(.horizontal, 12).padding(.top, 8)
     }
     private func exitPlayer() {
         players.releaseAll()
         dismiss()
+    }
+    private func loadMore() async {
+        if let initialCollection { await feed.loadCollection(initialCollection, api: api) }
+        else { await feed.load(api: api) }
     }
 }
 
@@ -283,6 +358,7 @@ private struct PlayerPagingAccess: ViewModifier {
     @ObservedObject var players: PlaybackPool
     @EnvironmentObject private var quota: QuotaStore
     @EnvironmentObject private var commerce: CommerceStore
+    @EnvironmentObject private var library: LibraryStore
     @State private var admittedID: String?
     @State private var requestedID: String?
     @State private var showingMembership = false
@@ -320,7 +396,7 @@ private struct PlayerPagingAccess: ViewModifier {
     }
     private func canWatch(_ id: String) -> Bool {
         guard let clip = entries.first(where: { $0.id == id })?.clip else { return false }
-        return clip.playbackURL.isFileURL || quota.mayWatch(clip.id, premium: commerce.premium)
+        return !library.requiresWatchAllowance(clip) || quota.mayWatch(clip.id, premium: commerce.premium)
     }
     private func admit(_ id: String?) {
         guard !watchOptionsPresented, let id else { return }
@@ -364,53 +440,25 @@ private struct PlayerSwipeHint: View {
     @Environment(\.scenePhase) private var phase
     @State private var showing = false
     var body: some View {
-        // A persistent host is essential: a task on an empty conditional Group
-        // has no rendered child to start it. Buffering must not gate this cue.
-        GeometryReader { container in
-            // The parent reserves the exit, action rail and bottom captions.
-            // Size the artwork from the remaining viewport, not a device model.
-            let width = max(0, container.size.width)
-            let height = max(0, container.size.height)
-            let artworkHeight = min(width * 1.18, height * 0.64, 520)
-            ZStack {
-                Color.clear
+        // Keep the task mounted while the short, noninteractive cue is hidden.
+        Color.clear.frame(height: 0)
+            .overlay(alignment: .bottom) {
                 if showing && eligible && !alreadyShown && phase == .active {
-                    VStack(spacing: min(24, height * 0.04)) {
-                        Color.clear.frame(width: width, height: artworkHeight)
-                            .phaseAnimator([0, 1, 2, 3, 4]) { host, step in
-                                host.overlay {
-                                    let resting = step == 0 || step == 4
-                                    ZStack {
-                                        Image("PlayerSwipeTrail").resizable().scaledToFit()
-                                            .frame(width: artworkHeight * 0.56, height: artworkHeight)
-                                            .offset(x: -artworkHeight * 0.12)
-                                            .opacity(reduceMotion ? 0.7 : (resting ? 0.25 : 0.9))
-                                            .scaleEffect(reduceMotion || resting ? 0.94 : 1)
-                                        Image("PlayerSwipeGesture").resizable().scaledToFit()
-                                            .frame(width: artworkHeight * 0.48, height: artworkHeight * 0.48)
-                                            .shadow(color: PlayerPalette.highlight.opacity(0.25), radius: 6)
-                                            .rotationEffect(.degrees(reduceMotion ? 0 : (step == 2 ? -5 : 3)))
-                                            .offset(x: artworkHeight * 0.1,
-                                                    y: reduceMotion ? 0 : (step == 2 ? -1 : 1) * artworkHeight * 0.22)
-                                            .opacity(reduceMotion ? 1 : (resting ? 0.15 : 1))
-                                    }
-                                }
-                            } animation: { step in
-                                reduceMotion ? nil : .easeInOut(duration: step == 2 || step == 3 ? 0.85 : 0.3)
-                            }
+                    HStack(spacing: 10) {
+                        Image("PlayerSwipeGesture").resizable().scaledToFit()
+                            .frame(width: 28, height: 28).accessibilityHidden(true)
                         LocalizedText("Swipe up or down for another video")
-                            .font(.glam(.title3, weight: .semibold))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.white.opacity(0.95))
+                            .font(.glam(.caption, weight: .medium))
+                            .foregroundStyle(.white)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .shadow(color: .black.opacity(0.8), radius: 4, y: 1)
-                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .frame(maxWidth: 320)
+                    .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 16), shade: 0.54))
                     .accessibilityElement(children: .combine)
                     .transition(.opacity)
                 }
-            }.frame(width: width, height: height)
-        }
+            }
         .allowsHitTesting(false)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showing)
         .task(id: eligible && phase == .active) {
@@ -430,12 +478,15 @@ private struct PlayerSwipeHint: View {
 }
 
 private struct ClipPage: View {
+    private enum OptionsPage: Equatable { case actions, speed, quality }
+    private enum FocusedAction: Hashable { case more, quality }
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var quota: QuotaStore
     @EnvironmentObject private var ads: RewardedAds
     @Environment(\.scenePhase) private var phase
     @Environment(\.playbackGatePresented) private var pagingGate
+    @Environment(\.dynamicTypeSize) private var typeSize
     let clip: LessonClip
     let active: Bool
     // Read from the enclosing safe container; video fills the expanded viewport.
@@ -444,6 +495,7 @@ private struct ClipPage: View {
     var didStartPlaying: () -> Void = {}
     var didStopPlaying: () -> Void = {}
     let showWatchOptions: () -> Void
+    var purchasePresentation: (Bool) -> Void = { _ in }
     var onSwipeExit: () -> Void = {}
     @State private var visible = false
     @State private var firstFrameReady = false
@@ -451,15 +503,26 @@ private struct ClipPage: View {
     @State private var resumeAfterSheet = false
     @State private var resumeAfterInterruption = false
     @State private var options = false
+    @State private var optionsPage = OptionsPage.actions
+    @State private var fitsVideo = false
+    @State private var preferredResolution = CGSize.zero
     @State private var editor = false
+    @State private var fileManagement = false
     @State private var recorded = false
     @State private var allowed = false
     @State private var scrubbing = false
     @State private var favoriteError: String?
+    @State private var collectOptions = false
+    @State private var collectMembership = false
+    @State private var resumedURL: URL?
+    @State private var resumeAfterCollection = false
+    private var currentClip: LessonClip { library.favorites.first { $0.id == clip.id } ?? clip }
+    @AccessibilityFocusState private var focusedAction: FocusedAction?
     var body: some View {
         ZStack {
             Color.black
-            VideoSurface(player: playback.player, onReadyForDisplay: { firstFrameReady = $0 })
+            VideoSurface(player: playback.player, onReadyForDisplay: { firstFrameReady = $0 },
+                         preferredGravity: fitsVideo ? .resizeAspect : .resizeAspectFill)
                 .clipped().allowsHitTesting(false)
             if !firstFrameReady {
                 PlayerPoster(url: clip.coverURL)
@@ -487,58 +550,28 @@ private struct ClipPage: View {
                            startPoint: .top, endPoint: .bottom)
                 .allowsHitTesting(false).accessibilityHidden(true)
             playerControls
-            if active, let favoriteError {
-                VStack {
-                    HStack(spacing: 10) {
-                        LocalizedText(favoriteError).font(.glam(.caption))
-                        IconButton(symbol: .close, label: "Dismiss message") { self.favoriteError = nil }
-                    }.padding(12).foregroundStyle(GlamoStyle.ink)
-                        .glamoCard(radius: 20)
-                    Spacer()
-                }.padding(.top, controlInsets.top + 60).padding(.horizontal, 16)
-            }
-            PlayerSwipeHint(eligible: active && visible && playback.error == nil &&
-                            !pagingGate && !options && !editor && !ads.isPresenting)
-                .padding(.top, controlInsets.top + 64)
-                .padding(.bottom, controlInsets.bottom + 150)
-                .padding(.leading, controlInsets.leading + 20)
-                .padding(.trailing, controlInsets.trailing + 72)
-            if active, visible, !pagingGate, !options, !editor {
-                if accessChecked, !allowed {
-                    VStack(spacing: 16) {
-                        LocalizedText(quota.canRequestReward(for: .watch, premium: commerce.premium)
-                                      ? "Daily viewing limit reached" : "Playback unavailable")
-                            .font(.glam(.title3, weight: .semibold, editorial: true))
-                        ActionButton(title: "Get more views", action: showWatchOptions)
-                    }.padding(20).frame(maxWidth: 320)
-                        .foregroundStyle(GlamoStyle.ink)
-                        .glamoCard(radius: 24, fill: GlamoStyle.paper).padding(24)
-                } else if let error = playback.error {
-                    MessagePanel(title: "Couldn’t play this video", message: error, actionTitle: "Retry") { activate(reload: true) }.padding(24)
-                } else if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
-                    PlayerLoadingFeedback(buffering: firstFrameReady)
-                        .allowsHitTesting(false)
-                } else if allowed, firstFrameReady, !playback.intendsPlayback, !scrubbing {
-                    IconButton(symbol: .play, label: "Play video", tint: .white) { playback.play() }
-                        .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
-                }
-            }
         }.foregroundStyle(.white).clipped()
             .onAppear { visible = true; if active { activate() } }
             .onChange(of: active) { _, active in
                 resumeAfterInterruption = false
-                if active { activate() } else { favoriteError = nil; resumeAfterSheet = false; playback.pause() }
+                if active { activate() } else {
+                    checkpoint()
+                    favoriteError = nil
+                    resumeAfterSheet = false
+                    options = false
+                    playback.pause()
+                }
             }
             .onChange(of: playback.isPlaying) { _, playing in
                 if playing, active, visible, !recorded {
-                    recorded = clip.playbackURL.isFileURL || quota.recordWatch(clip.id, premium: commerce.premium)
+                    recorded = !library.requiresWatchAllowance(clip) || quota.recordWatch(clip.id, premium: commerce.premium)
                     if !recorded { playback.pause(); allowed = false }
                 }
                 if playing, active, recorded { didStartPlaying() }
-                if !playing, active { didStopPlaying() }
+                if !playing, active { checkpoint(); didStopPlaying() }
             }
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
-                guard active, visible, playback.isPlaying, !clip.playbackURL.isFileURL else { return }
+                guard active, visible, playback.isPlaying, library.requiresWatchAllowance(clip) else { return }
                 if !quota.recordWatch(clip.id, premium: commerce.premium) { playback.pause(); allowed = false }
             }
             .onChange(of: phase) { _, state in
@@ -547,86 +580,330 @@ private struct ClipPage: View {
             .onChange(of: ads.isPresenting) { _, presenting in
                 if presenting { interruptPlayback() } else { resumeIfNeeded() }
             }
-            .onDisappear { visible = false; resumeAfterInterruption = false; playback.pause() }
+            .onReceive(Timer.publish(every: 8, on: .main, in: .common).autoconnect()) { _ in
+                if active, visible, playback.isPlaying { checkpoint() }
+            }
+            .onChange(of: playback.error) { _, error in
+                if let error, let record = library.savedVideo(clip.id), record.state == .ready,
+                   playback.loadedURL == library.offlineURL(for: record) { library.offline.invalidate(clip.id, message: error) }
+                if error != nil, recorded, library.requiresWatchAllowance(clip) {
+                    quota.refundFailedWatch(clip.id)
+                    recorded = false
+                }
+            }
+            .onDisappear { checkpoint(); visible = false; resumeAfterInterruption = false; playback.pause() }
             .onChange(of: pagingGate) { _, presented in
                 if presented { playback.pause() } else if active { activate() }
             }
-            .sheet(isPresented: $options, onDismiss: resumeAfterControls) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        SheetHeading(inset: false) { options = false }
-                        LocalizedText("Speed").font(.glam(.headline))
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach([Float(0.5), 1, 1.5, 2], id: \.self) { speed in
-                                    Button("\(speed, specifier: "%g")×") { playback.setSpeed(speed) }
-                                        .font(.glam(.subheadline, weight: .semibold))
-                                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                                        .padding(.horizontal, 16).frame(minHeight: 44)
-                                        .foregroundStyle(playback.speed == speed ? GlamoStyle.accent : GlamoStyle.ink)
-                                        .background(playback.speed == speed ? GlamoStyle.paperMuted : GlamoStyle.surface, in: Capsule())
-                                        .overlay {
-                                            Capsule().strokeBorder(playback.speed == speed ? GlamoStyle.accent : GlamoStyle.line)
-                                                .allowsHitTesting(false)
-                                        }
-                                        .accessibilityAddTraits(playback.speed == speed ? .isSelected : [])
-                                }
-                            }
-                        }.buttonStyle(PressStyle())
-                        LocalizedText("Video quality adjusts to your connection on supported streams.")
-                            .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                        ActionButton(title: "Open video editor", primary: false) { options = false; editor = true }
-                    }.glamoPage()
-                }.glamoScreenBackground().presentationDetents([.medium, .large])
+            .sheet(isPresented: $editor, onDismiss: resumeAfterControls) { RemoteVideoExportView(clip: currentClip) }
+            .sheet(isPresented: $fileManagement, onDismiss: resumeAfterControls) { DriveRemoteVideoActions(clip: currentClip) }
+            .overlay {
+                if collectOptions {
+                    WatchLimitPrompt(showingMembership: $collectMembership, kind: .collect, finish: finishCollection)
+                }
             }
-            .sheet(isPresented: $editor, onDismiss: resumeAfterControls) { EditorSheet() }
+            .fullScreenCover(isPresented: $collectMembership, onDismiss: {
+                if commerce.premium { finishCollection() }
+            }) { MembershipView() }
+            .onChange(of: editor || fileManagement || collectMembership || collectOptions) { _, presented in purchasePresentation(presented) }
     }
+
     private var playerControls: some View {
         GeometryReader { viewport in
             let insets = resolvedControlInsets(in: viewport)
-            let height = viewport.size.height - insets.top - insets.bottom
-            playerControlContent(compact: height < 270)
-                .padding(insets)
+            let width = max(0, viewport.size.width - insets.leading - insets.trailing)
+            let height = max(0, viewport.size.height - insets.top - insets.bottom)
+            let compact = height < 400 || width < 320 || typeSize.isAccessibilitySize
+            let scrollControls = height < 220 || (typeSize >= .xxxLarge && height < 360)
+                || (typeSize.isAccessibilitySize && height < 520)
+
+            VStack(spacing: compact ? 4 : 10) {
+                playerHeader
+                if active, let favoriteError {
+                    saveFeedback(favoriteError)
+                }
+
+                ZStack {
+                    Group {
+                        if scrollControls {
+                            ScrollView {
+                                VStack(spacing: 16) {
+                                    playerCenter(compact: true).padding(.vertical, 12)
+                                    playerFooter
+                                }
+                            }
+                            .scrollBounceBehavior(.basedOnSize)
+                        } else {
+                            VStack(spacing: 6) {
+                                GeometryReader { _ in
+                                    ViewThatFits(in: .vertical) {
+                                        playerCenter(compact: compact).fixedSize(horizontal: false, vertical: true)
+                                        ScrollView { playerCenter(compact: compact) }
+                                            .scrollBounceBehavior(.basedOnSize)
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .overlay(alignment: .bottom) {
+                                        PlayerSwipeHint(eligible: active && visible && firstFrameReady &&
+                                                        playback.error == nil && !playback.isLoading &&
+                                                        !pagingGate && !options && !editor && !ads.isPresenting)
+                                            .padding(.bottom, 8)
+                                    }
+                                }
+                                playerFooter
+                            }
+                        }
+                    }
+                    .disabled(options)
+                    .accessibilityHidden(options)
+
+                    if options { playerOptions }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, compact ? 4 : 8).padding(.bottom, 4)
+            .padding(insets)
         }
     }
-    private func playerControlContent(compact: Bool) -> some View {
-        let row = compact
-            ? AnyLayout(VStackLayout(alignment: .trailing, spacing: 6))
-            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 16))
-        let rail = compact
-            ? AnyLayout(HStackLayout(spacing: 8))
-            : AnyLayout(VStackLayout(spacing: 8))
-        return VStack(spacing: 0) {
-            Spacer(minLength: 16)
-            row {
-                VStack(alignment: .leading, spacing: 7) {
-                    if !clip.channel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(verbatim: clip.channel).font(.glam(.subheadline, weight: .bold)).lineLimit(2)
+
+    private var playerHeader: some View {
+        HStack(alignment: .center, spacing: 10) {
+            PlayerExitButton(action: onSwipeExit)
+            Text(verbatim: currentClip.title)
+                .font(.glam(.footnote, weight: .medium))
+                .lineLimit(2).multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
+                .accessibilityLabel(currentClip.title)
+            Button {
+                if options { closeOptions() } else { openOptions(.actions) }
+            } label: {
+                Glyph(symbol: .driveMore, size: 19, tint: .white)
+            }
+            .buttonStyle(DriveVideoButtonStyle())
+            .accessibilityLabel("Playback options")
+            .accessibilityFocused($focusedAction, equals: .more)
+            .accessibilityIdentifier("player.options")
+        }
+        .frame(maxWidth: 1000)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func playerCenter(compact: Bool) -> some View {
+        if active, visible, !pagingGate, !editor {
+            VStack(spacing: 16) {
+                if accessChecked, !allowed {
+                    playerNotice(title: quota.canRequestReward(for: .watch, premium: commerce.premium)
+                                 ? "Daily viewing limit reached" : "Playback unavailable",
+                                 actionTitle: "Get more views", action: showWatchOptions)
+                } else {
+                    if let error = playback.error {
+                        playerNotice(title: "Couldn’t play this video", message: error, actionTitle: "Retry") {
+                            activate(reload: true)
+                        }
+                    } else if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
+                        PlayerLoadingFeedback(buffering: firstFrameReady).allowsHitTesting(false)
                     }
-                    Text(verbatim: clip.title).font(.glam(.subheadline)).lineLimit(2)
-                        .accessibilityLabel(clip.title)
+                    DrivePlaybackControls(playback: playback, overVideo: true, compact: compact)
+                        .disabled(!canControlPlayback || !firstFrameReady)
                 }
-                .shadow(color: .black.opacity(0.7), radius: 3, y: 1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 8)
-                rail {
-                    PlayerRailButton(artwork: library.isSaved(clip) ? .saved : .save,
-                                     title: library.isSaved(clip) ? "Saved" : "Save",
-                                     accessibilityTitle: library.isSaved(clip) ? "Remove saved video" : "Save video",
-                                     selected: library.isSaved(clip), action: save)
-                    PlayerRailButton(artwork: .more, title: "More", accessibilityTitle: "Playback options") {
-                        resumeAfterSheet = playback.intendsPlayback
-                        playback.pause(); options = true
-                    }
-                }.padding(.bottom, 8)
-            }.padding(.leading, 4)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var playerFooter: some View {
+        VStack(spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    saveButton.fixedSize()
+                    Spacer(minLength: 0)
+                    playbackSettings.fixedSize()
+                }
+                VStack(spacing: 4) {
+                    saveButton.frame(maxWidth: .infinity, alignment: .leading)
+                    playbackSettings.frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
             PlayerProgressControl(playback: playback, timeline: playback.timeline,
                                   enabled: allowed && firstFrameReady,
-                                  canResume: active && allowed && phase == .active && !ads.isPresenting,
-                                  scrubbing: $scrubbing)
+                                  canResume: canControlPlayback,
+                                  scrubbing: $scrubbing, tint: Color(red: 0.15, green: 0.55, blue: 1),
+                                  showsInlineTimes: true, overVideo: true)
+                .padding(.horizontal, 14)
+                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22).inset(by: 4)))
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 2)
+        .frame(maxWidth: 840)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var saveButton: some View {
+        let saved = library.isSaved(clip)
+        return Button(action: save) {
+            HStack(spacing: 6) {
+                AssetMask(name: saved ? "PlayerSaved" : "PlayerSave", tint: .white)
+                    .frame(width: 16, height: 16)
+                LocalizedText(saved ? "Saved" : "Save")
+                    .font(.glam(.caption, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+        }
+        .buttonStyle(DriveVideoButtonStyle(prominent: saved))
+        .accessibilityLabel(LocalizedStringKey(saved ? "Remove saved video" : "Save video"))
+        .accessibilityAddTraits(saved ? .isSelected : [])
+        .accessibilityIdentifier("player.save")
+    }
+
+    private var playbackSettings: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { speedButton; qualityButton; fitButton }
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 6) { speedButton; fitButton }
+                qualityButton
+            }
+        }
+    }
+
+    private var speedButton: some View {
+        DriveSpeedButton(playback: playback, compact: true, showingVideoRates: Binding(
+            get: { options && optionsPage == .speed },
+            set: { if $0 { openOptions(.speed) } else { closeOptions() } }
+        ))
+    }
+
+    private var qualityButton: some View {
+        Button { openOptions(.quality) } label: {
+            HStack(spacing: 6) {
+                Glyph(symbol: .driveSettings, size: 15, tint: .white)
+                LocalizedText("Resolution")
+                    .font(.glam(.caption, weight: .medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+        }
+        .buttonStyle(DriveVideoButtonStyle())
+        .accessibilityFocused($focusedAction, equals: .quality)
+        .accessibilityIdentifier("player.quality")
+    }
+
+    private var fitButton: some View {
+        Button { fitsVideo.toggle() } label: {
+            Glyph(symbol: .driveExpand, size: 17, tint: .white)
+        }
+        .buttonStyle(DriveVideoButtonStyle())
+        .accessibilityLabel(LocalizedStringKey(fitsVideo ? "Fill screen" : "Fit video"))
+        .accessibilityAddTraits(fitsVideo ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private var playerOptions: some View {
+        switch optionsPage {
+        case .speed:
+            DriveVideoSpeedOverlay(playback: playback, close: closeOptions)
+        case .quality:
+            LinkedVideoQualityPicker(playback: playback, selected: $preferredResolution, close: closeOptions)
+        case .actions:
+            DriveVideoBottomOverlay(title: "Playback options", columnWidth: 164, close: closeOptions) { columns in
+                ViewThatFits(in: .vertical) {
+                    optionItems(columns: columns).fixedSize(horizontal: false, vertical: true)
+                    ScrollView { optionItems(columns: columns) }.scrollBounceBehavior(.basedOnSize)
+                }
+            }
+        }
+    }
+
+    private func optionItems(columns: [GridItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(verbatim: currentClip.title)
+                .font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+            LazyVGrid(columns: columns, spacing: 4) {
+                optionButton("Playback speed") { openOptions(.speed) }
+                optionButton("Resolution") { openOptions(.quality) }
+                optionButton(library.isSaved(clip) ? "Remove saved video" : "Save video") {
+                    save()
+                    closeOptions()
+                }
+                optionButton("Export video") {
+                    options = false
+                    editor = true
+                }
+                optionButton("Video options") {
+                    options = false
+                    fileManagement = true
+                }
+            }
+        }
+    }
+
+    private func optionButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            LocalizedText(title).font(.glam(.subheadline, weight: .medium))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .padding(.horizontal, 12).padding(.vertical, 4)
+                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+    }
+
+    private func playerNotice(title: String, message: String? = nil, actionTitle: String,
+                              action: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LocalizedText(title).font(.glam(.headline))
+                .accessibilityAddTraits(.isHeader)
+            if let message {
+                LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(.white.opacity(0.86))
+            }
+            Button(action: action) {
+                LocalizedText(actionTitle).font(.glam(.subheadline, weight: .semibold))
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(DriveStyle.link, in: RoundedRectangle(cornerRadius: 14))
+                    .contentShape(Rectangle())
+            }.buttonStyle(PressStyle())
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(16).frame(maxWidth: 360)
+        .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22), shade: 0.66))
+    }
+
+    private func saveFeedback(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            LocalizedText(message).font(.glam(.caption))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button { favoriteError = nil } label: {
+                Glyph(symbol: .close, size: 14, tint: .white)
+            }
+            .buttonStyle(DriveVideoButtonStyle())
+            .accessibilityLabel("Dismiss message")
+        }
+        .padding(10)
+        .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 18), shade: 0.66))
+    }
+
+    private var canControlPlayback: Bool {
+        active && visible && allowed && phase == .active && !ads.isPresenting &&
+            !pagingGate && !options && !editor
+    }
+
+    private func openOptions(_ page: OptionsPage) {
+        if !options {
+            resumeAfterSheet = playback.intendsPlayback
+            playback.pause()
+        }
+        optionsPage = page
+        options = true
+    }
+
+    private func closeOptions() {
+        options = false
+        if optionsPage != .speed { focusedAction = optionsPage == .quality ? .quality : .more }
+        resumeAfterControls()
     }
     private func resolvedControlInsets(in viewport: GeometryProxy) -> EdgeInsets {
         guard #available(iOS 27.1, *) else { return controlInsets }
@@ -678,24 +955,33 @@ private struct ClipPage: View {
     }
     private func activate(reload: Bool = false) {
         guard active, visible, phase == .active, !ads.isPresenting, !pagingGate,
-              !options, !editor else { return }
+              !options, !editor, !fileManagement, !collectOptions else { return }
         recorded = false
         accessChecked = true
-        allowed = clip.playbackURL.isFileURL || quota.mayWatch(clip.id, premium: commerce.premium)
+        allowed = !library.requiresWatchAllowance(clip) || quota.mayWatch(clip.id, premium: commerce.premium)
         if !allowed {
             playback.pause()
             // Paging owns automatic prompts; this page retains the explicit reward action.
             return
         }
-        if playback.loadedURL != clip.playbackURL || reload {
+        let source = library.playbackURL(for: clip)
+        if playback.loadedURL != source || reload {
             firstFrameReady = false
-            playback.load(clip.playbackURL, autoplay: true)
+            preferredResolution = .zero
+            playback.load(source, autoplay: false)
         }
-        else { playback.play() }
+        if resumedURL != source || reload {
+            resumedURL = source
+            playback.setSpeed(PlaybackPreferences.shared.speed)
+            if PlaybackPreferences.shared.resume,
+               let position = library.remotePlayback.first(where: { $0.id == clip.id })?.viewing,
+               position.seconds > 0, position.seconds < position.duration - 1 { playback.seek(position.seconds) }
+        }
+        playback.play()
     }
     private func resumeAfterControls() {
         guard resumeAfterSheet, active, visible, phase == .active,
-              !ads.isPresenting, !pagingGate, !options, !editor else { return }
+              !ads.isPresenting, !pagingGate, !options, !editor, !fileManagement, !collectOptions else { return }
         resumeAfterSheet = false
         activate()
     }
@@ -705,37 +991,192 @@ private struct ClipPage: View {
     }
     private func resumeIfNeeded() {
         guard resumeAfterInterruption || resumeAfterSheet, active, visible, phase == .active,
-              !ads.isPresenting, !pagingGate, !options, !editor else { return }
+              !ads.isPresenting, !pagingGate, !options, !editor, !fileManagement, !collectOptions else { return }
         resumeAfterInterruption = false
         resumeAfterSheet = false
         activate()
     }
     private func save() {
         favoriteError = nil
-        if !library.toggle(clip) {
-            favoriteError = "Favorites could not be updated. Please try again."
-            library.error = nil // This full-screen surface owns the feedback.
+        if !library.isSaved(clip), !quota.mayCollect(premium: commerce.premium) {
+            resumeAfterCollection = playback.intendsPlayback || resumeAfterSheet
+            playback.pause()
+            collectOptions = true
+            return
+        }
+        var charged = false
+        do {
+            if library.isSaved(clip) { try library.removeSavedVideo(clip.id) }
+            else {
+                try quota.recordCollection(premium: commerce.premium)
+                charged = !commerce.premium
+                try library.saveVideo(clip)
+            }
+        } catch {
+            if charged { quota.refundCollection() }
+            favoriteError = error.localizedDescription
         }
     }
-}
-private struct PlayerExitButton: View {
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                AssetMask(name: "PlayerExit", tint: .white)
-                    .frame(width: 14, height: 14)
-                LocalizedText("Exit").font(.glam(.caption, weight: .semibold))
-                    .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .glamoGlass(in: Capsule(), tint: PlayerPalette.overlay, interactive: true, mediaBackdrop: true)
-            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
-        }.buttonStyle(PressStyle()).accessibilityLabel(LocalizedStringKey("Exit"))
-            .accessibilityIdentifier("player.exit")
+    private func finishCollection() {
+        collectOptions = false
+        if !library.isSaved(clip), quota.mayCollect(premium: commerce.premium) { save() }
+        if resumeAfterCollection {
+            resumeAfterCollection = false
+            resumeAfterSheet = false
+            activate()
+        }
+    }
+    private func checkpoint() {
+        guard recorded, playback.error == nil else { return }
+        library.recordRemotePlayback(clip, seconds: playback.timeline.elapsed, duration: playback.timeline.duration)
     }
 }
 
+private struct LinkedVideoQualityPicker: View {
+    private struct Resolution: Identifiable {
+        let size: CGSize
+        var id: String { "\(size.width)×\(size.height)" }
+        var label: String { "\(Int(min(size.width, size.height).rounded()))p" }
+    }
+
+    @ObservedObject var playback: PlaybackController
+    @Binding var selected: CGSize
+    let close: () -> Void
+    @State private var resolutions: [Resolution] = []
+    @State private var checking = true
+    @State private var loadError: String?
+    @State private var refreshID = UUID()
+    @ScaledMetric(relativeTo: .subheadline) private var columnWidth: CGFloat = 144
+
+    var body: some View {
+        DriveVideoBottomOverlay(title: "Resolution", columnWidth: columnWidth, close: close) { columns in
+            ViewThatFits(in: .vertical) {
+                choices(columns: columns).fixedSize(horizontal: false, vertical: true)
+                ScrollView { choices(columns: columns) }.scrollBounceBehavior(.basedOnSize)
+            }
+        }
+        .task(id: refreshID) { await inspectVideo() }
+    }
+
+    @ViewBuilder
+    private func choices(columns: [GridItem]) -> some View {
+        if checking {
+            LocalizedText("Checking video quality…")
+                .font(.glam(.subheadline)).padding(12)
+        } else if let loadError {
+            VStack(alignment: .leading, spacing: 8) {
+                LocalizedText("Couldn’t load video quality.").font(.glam(.subheadline, weight: .semibold))
+                Text(verbatim: loadError).font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
+                Button { refreshID = UUID() } label: {
+                    LocalizedText("Retry").font(.glam(.subheadline, weight: .semibold))
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                }.buttonStyle(DriveVideoButtonStyle(prominent: true))
+            }
+            .fixedSize(horizontal: false, vertical: true).padding(8)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                LazyVGrid(columns: columns, spacing: 4) {
+                    choice(resolutions.count > 1 ? "Auto" : "Original", size: .zero)
+                    if resolutions.count > 1 {
+                        ForEach(resolutions) { resolution in
+                            choice("Up to %@", value: resolution.label, size: resolution.size)
+                        }
+                    }
+                }
+                LocalizedText(resolutions.count > 1
+                              ? "Supported streams adjust quality to your connection."
+                              : "This video plays at its original resolution.")
+                    .font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 10).padding(.bottom, 4)
+            }
+        }
+    }
+
+    private func choice(_ title: String, value: String? = nil, size: CGSize) -> some View {
+        let isSelected = selected == size
+        return Button {
+            guard let item = playback.player.currentItem else { return }
+            // Apply a real HLS resolution ceiling without replacing or restarting the item.
+            item.preferredMaximumResolution = size
+            selected = size
+            close()
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                if let value { LocalizedText(title, value) }
+                else { LocalizedText(title) }
+                if isSelected {
+                    LocalizedText("Selected").font(.glam(.caption, weight: .semibold))
+                }
+            }
+            .font(.glam(.subheadline, weight: isSelected ? .semibold : .medium))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .foregroundStyle(isSelected ? Color(red: 0.72, green: 0.87, blue: 1) : .white)
+            .background(isSelected ? Color(red: 0.11, green: 0.28, blue: 0.50).opacity(0.8) : .clear,
+                        in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func inspectVideo() async {
+        checking = true
+        loadError = nil
+        guard let item = playback.player.currentItem, let asset = item.asset as? AVURLAsset else {
+            loadError = L10n.display("Playback unavailable")
+            checking = false
+            return
+        }
+        selected = item.preferredMaximumResolution
+        do {
+            let variants = try await asset.load(.variants)
+            guard !Task.isCancelled, playback.player.currentItem === item else { return }
+            var seen = Set<String>()
+            resolutions = variants.compactMap { variant -> Resolution? in
+                guard let size = variant.videoAttributes?.presentationSize,
+                      size.width.isFinite, size.height.isFinite,
+                      size.width > 0, size.height > 0, max(size.width, size.height) < 100_000 else { return nil }
+                let resolution = Resolution(size: size)
+                return seen.insert(resolution.id).inserted ? resolution : nil
+            }.sorted { min($0.size.width, $0.size.height) < min($1.size.width, $1.size.height) }
+        } catch {
+            guard !Task.isCancelled, playback.player.currentItem === item else { return }
+            if item.status == .readyToPlay, item.presentationSize != .zero {
+                resolutions = [] // A fixed-quality file has no alternate HLS variants.
+            } else {
+                loadError = error.localizedDescription
+            }
+        }
+        checking = false
+    }
+}
+
+private struct PlayerExitButton: View {
+    @Environment(\.layoutDirection) private var layoutDirection
+    var overVideo = true
+    let action: () -> Void
+    var body: some View {
+        let button = Button(action: action) {
+            Glyph(symbol: .back, size: 17, tint: overVideo ? .white : GlamoStyle.ink)
+                .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 180 : 0))
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        return Group {
+            if overVideo {
+                button.buttonStyle(DriveVideoButtonStyle())
+            } else {
+                button.buttonStyle(PressStyle())
+                    .glamoGlass(in: Capsule(), tint: GlamoStyle.paper, interactive: true)
+            }
+        }
+        .accessibilityLabel(LocalizedStringKey("Exit"))
+        .accessibilityIdentifier("player.exit")
+    }
+}
 struct PlayerProgressControl: View {
     @ObservedObject var playback: PlaybackController
     @ObservedObject var timeline: PlaybackTimeline
@@ -893,7 +1334,7 @@ private struct PlayerLoadingFeedback: View {
     var body: some View {
         VStack(spacing: 10) {
             Image("GlamoLoadingMark").renderingMode(.template).resizable().scaledToFit()
-                .foregroundStyle(PlayerPalette.highlight)
+                .foregroundStyle(.white)
                 .frame(width: 36, height: 5)
                 .phaseAnimator([false, true]) { content, dimmed in
                     content.opacity(reduceMotion || phase != .active ? 1 : (dimmed ? 0.3 : 1))
@@ -948,54 +1389,5 @@ struct GlamoScrubber: View {
         guard editing else { return }
         editing = false
         onEditingChanged(false)
-    }
-}
-
-private enum PlayerArtwork: String, CaseIterable, Hashable {
-    // Individual original assets (template rendering, tinted for state).
-    case save = "PlayerSave", saved = "PlayerSaved", more = "PlayerMore"
-}
-
-// Shared geometry for every rail action, including the changing cache status.
-private struct PlayerRailLabel<Label: View>: View {
-    let artwork: PlayerArtwork
-    let selected: Bool
-    private let label: Label
-    @ScaledMetric(relativeTo: .caption2) private var labelHeight: CGFloat = 16
-    init(artwork: PlayerArtwork, selected: Bool, @ViewBuilder label: () -> Label) {
-        self.artwork = artwork
-        self.selected = selected
-        self.label = label()
-    }
-    var body: some View {
-        VStack(spacing: 4) {
-            AssetMask(name: artwork.rawValue, tint: GlamoStyle.ink)
-                .frame(width: 20, height: 20)
-                .frame(width: 30, height: 30)
-                .background(selected ? PlayerPalette.highlight : GlamoStyle.paper, in: Capsule())
-            label.font(.glam(.caption2, weight: .medium))
-                .foregroundStyle(selected ? PlayerPalette.highlight : .white)
-                .lineLimit(1).minimumScaleFactor(0.65).multilineTextAlignment(.center)
-                .frame(width: 48, height: labelHeight)
-                .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
-        }.frame(width: 48, height: max(52, 34 + labelHeight))
-            .contentShape(.interaction, Rectangle())
-    }
-}
-
-private struct PlayerRailButton: View {
-    let artwork: PlayerArtwork
-    let title: String
-    let accessibilityTitle: String
-    var selected = false
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            PlayerRailLabel(artwork: artwork, selected: selected) {
-                LocalizedText(title)
-            }
-        }.buttonStyle(PressStyle())
-            .accessibilityLabel(LocalizedStringKey(accessibilityTitle))
-            .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

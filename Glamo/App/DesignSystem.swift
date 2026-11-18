@@ -95,7 +95,7 @@ enum GlamoGlyph: String, CaseIterable {
         case .folder: "Folder"
         case .driveFolder: "Files"
         case .driveRecent: "Recent"
-        case .driveActivity: "Activity"
+        case .driveActivity: "Transfers"
         case .driveSettings: "Settings"
         case .driveGrid: "Grid view"
         case .driveList: "List view"
@@ -383,10 +383,15 @@ extension View {
         glamoScreenBackground(GlamoStyle.background)
             .foregroundStyle(GlamoStyle.ink)
             .preferredColorScheme(.light)
-            .presentationBackground(GlamoStyle.background)
     }
     func glamoScreenBackground(_ color: Color) -> some View {
-        background(color, ignoresSafeAreaEdges: .all)
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background {
+                color.ignoresSafeArea(.container, edges: .all)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .presentationBackground(color)
     }
     // A readable column that follows the available container width.
     func glamoPage() -> some View {

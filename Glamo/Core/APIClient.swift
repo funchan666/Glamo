@@ -221,6 +221,41 @@ final class APIClient: ObservableObject {
         return try await perform("/app-api/flow/search-check", query: queryItems, emptyDataValue: LessonFeedPage.empty)
     }
 
+    func packageCollections(links raw: [String]) async throws -> [DriveCollection] {
+        var seen = Set<String>()
+        let links = raw.map(DriveCollection.linkID).filter { !$0.isEmpty && seen.insert($0).inserted }
+        guard !links.isEmpty else { return [] }
+        let body = try JSONSerialization.data(withJSONObject: links.map {
+            ["externalLinks": $0, "packageName": configuration.servicePackageName]
+        })
+        let entries: [LandingResource] = try await perform("/app-api/flow/land-page/info_by_links_list", method: "POST", body: body)
+        let byID = Dictionary(entries.compactMap { entry -> (String, DriveCollection)? in
+            guard let item = entry.collection(), seen.contains(item.id) else { return nil }
+            return (item.id, item)
+        }, uniquingKeysWith: { first, _ in first })
+        return links.compactMap { byID[$0] }
+    }
+    func collectionPage(link: String, page: Int) async throws -> LandingResourcePage {
+        try await perform("/app-api/flow/land-page/list_by_links_page", query: [
+            "externalLinks": link, "pageNo": String(page), "pageSize": "10", "packageName": configuration.servicePackageName
+        ])
+    }
+    func resolveSavedVideo(_ clip: LessonClip) async throws -> LessonClip {
+        let link = DriveCollection.linkID(clip.shortLink ?? clip.id)
+        let info: LandingResource = try await perform("/app-api/flow/land-page/info_by_links", query: [
+            "externalLinks": link, "password": "", "packageName": configuration.servicePackageName
+        ])
+        guard var updated = info.collection(id: clip.id)?.clip else { throw GlamoError.invalidResponse }
+        updated.title = clip.title
+        return updated
+    }
+    func sharedResource(link: String) async throws -> DriveCollection {
+        let info: LandingResource = try await perform("/app-api/flow/land-page/info_by_links", query: [
+            "externalLinks": link, "password": "", "packageName": configuration.servicePackageName
+        ])
+        guard let item = info.collection(id: link) else { throw GlamoError.invalidResponse }
+        return item
+    }
     func rights() async throws -> UserRights {
         try await perform("/app-api/member/user/get")
     }

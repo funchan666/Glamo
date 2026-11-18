@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import UIKit
 
 struct MembershipView: View {
     enum RequiredBenefit: Equatable {
@@ -39,7 +40,7 @@ struct MembershipView: View {
             let paneWidth = container.size.width - paneMargins.leading - paneMargins.trailing
             let paneHeight = container.size.height - paneMargins.top - paneMargins.bottom
             let wide = paneWidth >= 740 && !typeSize.isAccessibilitySize && !driveHasReservedRegion(container)
-            let compact = verticalSizeClass == .compact || paneHeight < 620
+            let compact = verticalSizeClass == .compact || paneHeight < 680
             let pageWidth: CGFloat = wide ? 880 : 560
             let benefitsFirst = !commerce.premium && requiredBenefit != .unlimitedViewing
             let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 20))
@@ -51,7 +52,7 @@ struct MembershipView: View {
                     .padding(.horizontal, DriveStyle.pageInset)
                     .padding(.top, compact ? 0 : 8).padding(.bottom, compact ? 2 : 8)
                     .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
-                    .background(DriveStyle.background, ignoresSafeAreaEdges: .top)
+                    .background(DriveStyle.background, ignoresSafeAreaEdges: [.horizontal, .top])
                 ScrollViewReader { scroll in
                     ScrollView {
                         VStack(alignment: .leading, spacing: compact ? 12 : 22) {
@@ -110,8 +111,8 @@ struct MembershipView: View {
             LocalizedText(commerce.premium ? "Vifol Plus" : "Get Premium")
                 .driveFont(30, relativeTo: .title, weight: .bold)
                 .accessibilityAddTraits(.isHeader)
-            if let requiredBenefit {
-                LocalizedText(requiredBenefit == .mediaExport ? "Plus includes file export and sharing." : "Unlimited video views")
+            if requiredBenefit == .mediaExport {
+                LocalizedText("Plus includes file export and sharing.")
                     .driveFont(14, relativeTo: .footnote)
                     .foregroundStyle(DriveStyle.secondary)
             }
@@ -123,6 +124,9 @@ struct MembershipView: View {
 
     private var benefits: some View {
         VStack(spacing: 0) {
+            benefit("Unlimited online viewing", symbol: .play)
+            benefit("Unlimited video saves", symbol: .driveFolder)
+            benefit("Skip launch ads", symbol: .close)
             benefit("MP4 export up to 1080p", symbol: .edit)
             benefit("M4A audio export", symbol: .sound)
             benefit("Share files", symbol: .driveShare)
@@ -309,7 +313,7 @@ struct MembershipView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
-        .background(DriveStyle.background, ignoresSafeAreaEdges: .bottom)
+        .background(DriveStyle.background, ignoresSafeAreaEdges: [.horizontal, .bottom])
     }
 
     private var purchaseAction: some View {
@@ -354,13 +358,13 @@ struct PlusShortcut: View {
     var body: some View {
         Button(action: open) {
             Text(verbatim: "Plus")
-                .font(.glam(.footnote, weight: .semibold))
-                .padding(.horizontal, 12).padding(.vertical, 8)
+                .driveFont(14, relativeTo: .footnote, weight: .semibold)
+                .padding(.horizontal, 16).padding(.vertical, 8)
                 .frame(minWidth: 44, minHeight: 44)
-                .foregroundStyle(GlamoStyle.accent)
-                .glamoGlass(in: RoundedRectangle(cornerRadius: 12), tint: GlamoStyle.paperMuted,
+                .foregroundStyle(DriveStyle.link)
+                .glamoGlass(in: Capsule(), tint: GlamoStyle.paper,
                             interactive: true, mediaBackdrop: true)
-                .contentShape(Rectangle())
+                .contentShape(Capsule())
         }.buttonStyle(PressStyle())
             .accessibilityLabel("Vifol Plus")
             .accessibilityHint(LocalizedStringKey(isMember ? "Manage membership" : "View plans"))
@@ -378,10 +382,18 @@ struct AccountView: View {
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.locale) private var locale
+    @Environment(\.layoutDirection) private var layoutDirection
     @State private var deviceCapacity: Int64?
+    @State private var deviceAvailable: Int64?
+    @State private var measuredFileBytes: Int64?
+    @State private var copiedAccountID = false
     @State private var paywall = false
+    @State private var storagePresented = false
     let browse: () -> Void
     let showActivity: () -> Void
+    let showShares: () -> Void
+    let showSaved: () -> Void
+    let showViewed: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -392,7 +404,7 @@ struct AccountView: View {
                 .frame(maxWidth: .infinity)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 16) {
                     identity
                     VStack(spacing: 0) {
                         librarySummary
@@ -400,7 +412,8 @@ struct AccountView: View {
                         plusEntry
                     }
                     .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
-                    AccountSettingsSection(showActivity: showActivity)
+                    AccountSettingsSection(showActivity: showActivity, showShares: showShares,
+                                           showSaved: showSaved, showViewed: showViewed, browseFolders: browse)
                 }
                 .padding(.horizontal, DriveStyle.pageInset).padding(.top, 22).padding(.bottom, 24)
                 .frame(maxWidth: 680).frame(maxWidth: .infinity)
@@ -408,17 +421,23 @@ struct AccountView: View {
             .scrollBounceBehavior(.basedOnSize)
         }
         .driveScreenBackground()
-        .task {
-            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            if let capacity = try? documents?.resourceValues(forKeys: [.volumeTotalCapacityKey]).volumeTotalCapacity {
-                deviceCapacity = Int64(capacity)
-            }
+        .task(id: storageRevision) { await refreshStorage() }
+        .task(id: copiedAccountID) {
+            guard copiedAccountID else { return }
+            do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            copiedAccountID = false
         }
+        .onDisappear { copiedAccountID = false }
+        .onChange(of: api.session?.userId.value) { _, _ in copiedAccountID = false }
         .fullScreenCover(isPresented: $paywall) { MembershipView() }
+        .sheet(isPresented: $storagePresented) { StorageManagementSheet() }
     }
 
     private var identity: some View {
-        let name = Text(verbatim: "Vifol").driveFont(16, relativeTo: .subheadline, weight: .medium)
+        let name = Group {
+            if let id = api.session?.userId.value, !id.isEmpty { LocalizedText("User %@", id) }
+            else { Text(verbatim: "Vifol") }
+        }.driveFont(16, relativeTo: .subheadline, weight: .medium)
         let badge = Text(verbatim: "Plus")
             .driveFont(10, relativeTo: .caption2, weight: .bold)
             .foregroundStyle(.white)
@@ -442,63 +461,87 @@ struct AccountView: View {
                     name
                 }
                 if let id = api.session?.userId.value, !id.isEmpty {
-                    LocalizedText("Account ID · %@", id)
-                        .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Button {
+                        UIPasteboard.general.string = id
+                        copiedAccountID = true
+                    } label: {
+                        LocalizedText(copiedAccountID ? "Copied" : "Account ID · %@", id)
+                            .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressStyle())
+                    .accessibilityLabel(LocalizedStringKey(copiedAccountID ? "Account ID copied" : "Copy account ID"))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     private var localBytes: Int64? {
-        let sizes = library.movies.compactMap(\.byteCount)
-        guard !sizes.isEmpty, sizes.count == library.movies.count else { return nil }
-        return sizes.reduce(Int64(0), +)
+        library.movies.isEmpty && library.savedVideos.isEmpty ? 0 : measuredFileBytes
+    }
+    private var storageRevision: [String] {
+        library.movies.map { $0.id.uuidString } + library.savedVideos.map { "\($0.id):\($0.state.rawValue)" }
+    }
+
+    private func refreshStorage() async {
+        let revision = storageRevision
+        let files = library.movies.map { library.url(for: $0) }
+            + library.savedVideos.filter { $0.state == .ready }.compactMap { library.offlineURL(for: $0) }
+        let result = await Task.detached(priority: .utility) {
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            let capacity = try? documents?.resourceValues(forKeys: [.volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey])
+            let sizes = files.map { MediaStorageSize.bytes(at: $0) }
+            let bytes: Int64? = sizes.allSatisfy { $0 != nil } ? sizes.compactMap { $0 }.reduce(0, +) : nil
+            return (bytes, capacity?.volumeTotalCapacity.map(Int64.init), capacity?.volumeAvailableCapacityForImportantUsage)
+        }.value
+        guard !Task.isCancelled, revision == storageRevision else { return }
+        measuredFileBytes = result.0
+        deviceCapacity = result.1
+        deviceAvailable = result.2
     }
 
     private var librarySummary: some View {
-        let count = library.movies.count
+        let count = library.movies.count + library.folders.count + library.favorites.count
         let size = localBytes
-        let localSize = size?.formatted(.byteCount(style: .file).locale(locale))
-        let heading = LocalizedText("On this device").driveFont(16, relativeTo: .subheadline, weight: .semibold)
+        let heading = LocalizedText("File storage").driveFont(16, relativeTo: .subheadline, weight: .semibold)
         let fileCount = LocalizedText(count == 1 ? "%@ item" : "%@ items", count.formatted(.number.locale(locale)))
-        let usage = Text(verbatim: localSize ?? "").accessibilityHidden(localSize == nil)
-        let summary = Group {
-            if localSize != nil {
-                usage
-            } else {
-                fileCount
-            }
-        }.driveFont(14, relativeTo: .footnote).monospacedDigit().foregroundStyle(DriveStyle.secondary)
-        return Button(action: browse) {
-            HStack(spacing: 10) {
+        return Button { storagePresented = true } label: {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 10) {
+                    heading.fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Group {
+                        if let size { Text(verbatim: size.formatted(.byteCount(style: .file).locale(locale))) }
+                        else { LocalizedText("Calculating…") }
+                    }
+                    .driveFont(14, relativeTo: .footnote).monospacedDigit().foregroundStyle(DriveStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
+                        .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 0 : 180))
+                        .accessibilityHidden(true)
+                }
+                if let size, let deviceCapacity, deviceCapacity > 0 {
+                    DriveMeter(value: Double(size) / Double(deviceCapacity),
+                               tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 6)
+                        .accessibilityHidden(true)
+                }
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
-                        heading.fixedSize(horizontal: true, vertical: false)
-                        if let size, let deviceCapacity, deviceCapacity > 0 {
-                            DriveMeter(value: Double(size) / Double(deviceCapacity),
-                                       tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 7)
-                                .frame(width: 68)
-                        }
+                        fileCount.fixedSize()
                         Spacer(minLength: 0)
-                        summary.fixedSize(horizontal: true, vertical: false)
+                        availableStorage.fixedSize()
                     }
-                    VStack(alignment: .leading, spacing: 4) {
-                        heading
-                        summary
-                    }
+                    VStack(alignment: .leading, spacing: 4) { fileCount; availableStorage }
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
-                    .rotationEffect(.degrees(180))
-                    .accessibilityHidden(true)
+                .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
             }
-            .padding(.horizontal, 16).padding(.vertical, 6)
+            .padding(.horizontal, 16).padding(.vertical, 14)
             .foregroundStyle(DriveStyle.ink)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
@@ -507,10 +550,17 @@ struct AccountView: View {
         .accessibilityElement(children: .combine)
     }
 
+    @ViewBuilder private var availableStorage: some View {
+        if let deviceAvailable {
+            LocalizedText("%@ free on this device", deviceAvailable.formatted(.byteCount(style: .file).locale(locale)))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var plusEntry: some View {
         let description = VStack(alignment: .leading, spacing: 4) {
             Text(verbatim: "Vifol Plus").driveFont(16, relativeTo: .subheadline, weight: .medium)
-            LocalizedText(commerce.premium ? "Plus is active" : "MP4 and M4A export")
+            LocalizedText(commerce.premium ? "Plus is active" : "Unlimited online viewing")
                 .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
         }.fixedSize(horizontal: false, vertical: true)
         let plansButton = Button { paywall = true } label: {
@@ -544,6 +594,7 @@ struct AccountView: View {
 
 struct WatchLimitPrompt: View {
     @Binding var showingMembership: Bool
+    var kind: AllowanceKind = .watch
     let finish: () -> Void
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var quota: QuotaStore
@@ -554,13 +605,14 @@ struct WatchLimitPrompt: View {
     @State private var previousCompletion: UUID?
 
     private var eligibleForAd: Bool {
-        quota.canRequestReward(for: .watch, premium: commerce.premium)
+        quota.canRequestReward(for: kind, premium: commerce.premium)
     }
     private var isLoadingAd: Bool { rewardTask != nil || ads.busy }
     private var actionsLocked: Bool { isLoadingAd || ads.isPresenting || ads.isPreparingAppOpen || showingMembership }
     private var bonus: LuckyRewardNotice? { requestedReward ? ads.luckyReward : nil }
     private var title: String {
         if bonus != nil { return "Bonus added" }
+        if kind == .collect { return "Daily saving limit reached" }
         return eligibleForAd ? "Daily viewing limit reached" : "Playback unavailable"
     }
 
@@ -574,7 +626,7 @@ struct WatchLimitPrompt: View {
             .scrollBounceBehavior(.basedOnSize)
             .padding(margins)
         }
-        .background(Color.black.opacity(0.56).ignoresSafeArea())
+        .background(Color.black.opacity(0.56).ignoresSafeArea(.container, edges: .all))
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape) { close() }
@@ -604,8 +656,8 @@ struct WatchLimitPrompt: View {
                 ActionButton(title: "Done", action: close)
             } else {
                 VStack(alignment: .leading, spacing: 7) {
-                    choice(isLoadingAd ? "Loading ad…" : "Watch ad for views",
-                           detail: eligibleForAd ? quota.rewardSummary(for: .watch) : "Rewards are unavailable.",
+                    choice(isLoadingAd ? "Loading ad…" : kind == .watch ? "Watch ad for views" : "Watch ad to save more",
+                           detail: eligibleForAd ? quota.rewardSummary(for: kind) : "Rewards are unavailable.",
                            primary: true, action: startAd)
                         .disabled(!eligibleForAd || actionsLocked || commerce.busy || commerce.preparingPurchase)
                         .accessibilityIdentifier("watchLimit.watchAd")
@@ -615,7 +667,7 @@ struct WatchLimitPrompt: View {
                         else if eligibleForAd { caption("Rewards are unavailable.") }
                     }
                 }
-                choice("Get Plus", detail: "Unlimited video views", primary: false) { showingMembership = true }
+                choice("Get Plus", detail: kind == .watch ? "Unlimited online viewing" : "Unlimited video saves", primary: false) { showingMembership = true }
                     .disabled(actionsLocked)
                     .accessibilityIdentifier("watchLimit.viewPlans")
                 Button(action: close) {
@@ -660,7 +712,7 @@ struct WatchLimitPrompt: View {
         rewardTask = Task {
             if !commerce.hasVerifiedRightsForCurrentAccount || commerce.release == nil { await commerce.refresh() }
             guard !Task.isCancelled else { return }
-            await ads.watch(commerce: commerce, quota: quota, kind: .watch)
+            await ads.watch(commerce: commerce, quota: quota, kind: kind)
             if !Task.isCancelled { rewardTask = nil }
         }
     }

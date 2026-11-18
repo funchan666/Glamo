@@ -4,6 +4,7 @@ import OSLog
 
 @main
 struct GlamoApp: App {
+    @UIApplicationDelegateAdaptor(VifolApplicationDelegate.self) private var applicationDelegate
     @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
     @Environment(\.scenePhase) private var appPhase
     @State private var systemLanguage = AppLanguage.systemLanguage()
@@ -33,6 +34,10 @@ struct GlamoApp: App {
                 .environment(\.layoutDirection, language.direction)
                 .font(.glam(.body))
                 .preferredColorScheme(.light).tint(GlamoStyle.accent)
+                .task {
+                    library.offline.resolveClip = { try await api.resolveSavedVideo($0) }
+                    await library.offline.prepare()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
                     systemLanguage = AppLanguage.systemLanguage()
                 }
@@ -56,7 +61,6 @@ struct GlamoStartupHost: View {
 
     var body: some View {
         ZStack {
-            GlamoStyle.background.ignoresSafeArea()
             // Mount once so local content and authentication prepare while the
             // bounded app-open opportunity runs, without rebuilding navigation.
             GlamoRootView()
@@ -66,6 +70,7 @@ struct GlamoStartupHost: View {
                 GlamoStartupView().transition(.opacity)
             }
         }
+        .glamoScreenBackground(DriveStyle.background)
         .task(id: scenePhase) {
             guard scenePhase == .active, !finished else { return }
             ads.beginStartup(commerce: commerce, accountAccess: accountAccess)
@@ -114,7 +119,7 @@ struct GlamoStartupView: View {
             .frame(width: width, height: height)
             .padding(pane)
         }
-        .background(Color("LaunchBackground").ignoresSafeArea())
+        .glamoScreenBackground(Color("LaunchBackground"))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Opening Vifol…")
     }
@@ -163,6 +168,8 @@ struct GlamoRootView: View {
     private enum Destination: Hashable {
         case search
         case activity
+        case sharedFiles
+        case incomingLink(String)
         case history(DriveRecentView.History)
     }
 
@@ -213,6 +220,7 @@ struct GlamoRootView: View {
             .padding(pane)
         }
         .driveScreenBackground()
+        .environment(\.pauseLocalPlayback, player.pause)
         .fullScreenCover(isPresented: $player.expanded) { DrivePlayerView(session: player) }
         .onReceive(player.playback.$isPlaying.removeDuplicates()) { playing in
             if playing { player.markStarted() }
@@ -223,6 +231,10 @@ struct GlamoRootView: View {
         .task(id: api.session?.userId.value) {
             guard api.session != nil else { return }
             if !commerce.rightsVerified || commerce.release == nil { await commerce.refresh() }
+        }
+        .task(id: packageConfigurationID) {
+            guard let release = commerce.release, api.session != nil else { return }
+            await library.refreshPackageCollections(release.lcList?.us ?? [], api: api)
         }
         .onChange(of: phase) { _, value in
             if value == .active { quota.resetIfNeeded() }
@@ -241,6 +253,12 @@ struct GlamoRootView: View {
             }
         }
         .modifier(AccountBusyModifier())
+        .onOpenURL { url in
+            guard let id = DriveCollection.incomingLinkID(url) else { return }
+            player.pause()
+            let destination = Destination.incomingLink(id)
+            if destinations.last != destination { destinations.append(destination) }
+        }
     }
 
     private var tabs: some View {
@@ -253,11 +271,18 @@ struct GlamoRootView: View {
                          showActivity: { openActivity(.imports) }, folderVisibility: { folderOpen = $0 })
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
-            AccountView(browse: openFiles, showActivity: { openActivity(.all) })
+            AccountView(browse: openFiles, showActivity: { openActivity(.all) },
+                        showShares: { destinations.append(.sharedFiles) },
+                        showSaved: { destinations.append(.history(.saved)) },
+                        showViewed: { destinations.append(.history(.viewed)) })
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.profile) }.tag(GlamoTab.profile)
         }
         .toolbar(.hidden, for: .tabBar)
+    }
+    private var packageConfigurationID: [String] {
+        [api.session?.userId.value ?? "", commerce.release == nil ? "pending" : "loaded"]
+            + (commerce.release?.lcList?.us ?? [])
     }
 
     @ViewBuilder
@@ -268,6 +293,10 @@ struct GlamoRootView: View {
                          play: open, pausePlayback: player.pause, showActivity: { openActivity(.imports) })
         case .activity:
             DriveActivityView(filter: $activityFilter, play: open, browse: openFiles, back: closeDestination)
+        case .sharedFiles:
+            DriveSharedFilesView(play: open, pausePlayback: player.pause, browse: openFiles, back: closeDestination)
+        case .incomingLink(let link):
+            IncomingSharedResourceView(link: link, back: closeDestination)
         case .history(let history):
             recentPage(history)
         }
@@ -326,6 +355,7 @@ private struct GlamoTabDock: View {
     @Binding var selection: GlamoTab
     let compact: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Namespace private var indicator
 
     var body: some View {
@@ -346,10 +376,15 @@ private struct GlamoTabDock: View {
                     .padding(.horizontal, 4)
                     .padding(.vertical, 5)
                     .frame(minWidth: 44, maxWidth: .infinity, minHeight: compact ? 44 : 56)
-                    .foregroundStyle(selected ? DriveStyle.accent : DriveStyle.ink)
+                    .foregroundStyle(selected ? GlamoStyle.accent : DriveStyle.ink)
                     .background {
                         if selected {
-                            Capsule().fill(DriveStyle.selectedTab)
+                            Capsule().fill(reduceTransparency ? DriveStyle.selectedTab : DriveStyle.accent.opacity(0.14))
+                                .overlay {
+                                    if !reduceTransparency {
+                                        Capsule().strokeBorder(.white.opacity(0.72))
+                                    }
+                                }
                                 .matchedGeometryEffect(id: "selected", in: indicator)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
@@ -364,9 +399,42 @@ private struct GlamoTabDock: View {
         }
         .padding(4)
         .frame(maxWidth: DriveStyle.tabWidth)
-        .glamoGlass(in: Capsule(), tint: .white)
+        .background {
+            dockSurface
+                .allowsHitTesting(false).accessibilityHidden(true)
+        }
         .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selection)
+    }
+
+    @ViewBuilder
+    private var dockSurface: some View {
+        let shape = Capsule()
+        if reduceTransparency {
+            shape.fill(.white)
+                .overlay { shape.strokeBorder(GlamoStyle.line) }
+        } else {
+            let tint = DriveStyle.accent.opacity(0.08)
+            Group {
+                if #available(iOS 26.0, *) {
+                    Color.clear.glassEffect(.regular.tint(tint), in: shape)
+                } else {
+                    shape.fill(.thinMaterial)
+                        .overlay { shape.fill(tint) }
+                }
+            }
+            .overlay {
+                shape.strokeBorder(
+                    LinearGradient(stops: [
+                        .init(color: .white.opacity(0.98), location: 0),
+                        .init(color: .white.opacity(0.52), location: 0.44),
+                        .init(color: DriveStyle.link.opacity(0.27), location: 1),
+                    ], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 1.25
+                )
+            }
+            .shadow(color: GlamoStyle.ink.opacity(0.18), radius: 9, y: 5)
+        }
     }
 }
 

@@ -83,8 +83,10 @@ final class DrivePlaybackSession: ObservableObject {
         started = false
         savedSeconds = nil
         currentID = file.id
+        playback.setSpeed(PlaybackPreferences.shared.speed)
         playback.load(library.url(for: file), autoplay: false)
-        if let position = file.viewing, position.seconds > 0, position.seconds < position.duration - 1 {
+        if PlaybackPreferences.shared.resume, let position = file.viewing,
+           position.seconds > 0, position.seconds < position.duration - 1 {
             playback.seek(position.seconds)
         }
         playback.play()
@@ -174,7 +176,7 @@ struct DrivePlayerView: View {
                 playerHeader(movie, showsFileTitle: titleInHeader, locateCurrent: locateInHeader ? locateCurrent : nil)
                     .pageHorizontalMargins().padding(.vertical, 6)
                     .frame(maxWidth: 1100).frame(maxWidth: .infinity)
-                    .background(GlamoStyle.background, ignoresSafeAreaEdges: .top)
+                    .background(GlamoStyle.background, ignoresSafeAreaEdges: [.horizontal, .top])
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
 
                 ScrollView {
@@ -833,11 +835,17 @@ private struct DriveTransport: View {
     }
 }
 
-private struct DrivePlaybackControls: View {
+struct DrivePlaybackControls: View {
     @ObservedObject var playback: PlaybackController
     @Environment(\.layoutDirection) private var layoutDirection
     var overVideo = false
     var compact = false
+
+    init(playback: PlaybackController, overVideo: Bool = false, compact: Bool = false) {
+        _playback = ObservedObject(wrappedValue: playback)
+        self.overVideo = overVideo
+        self.compact = compact
+    }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -904,10 +912,15 @@ private struct DrivePlayButton: View {
     }
 }
 
-private struct DriveVideoButtonStyle: ButtonStyle {
+struct DriveVideoButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var diameter: CGFloat = 40
     var prominent = false
+
+    init(diameter: CGFloat = 40, prominent: Bool = false) {
+        self.diameter = diameter
+        self.prominent = prominent
+    }
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -919,11 +932,17 @@ private struct DriveVideoButtonStyle: ButtonStyle {
     }
 }
 
-private struct DriveVideoGlass<Surface: InsettableShape>: ViewModifier {
+struct DriveVideoGlass<Surface: InsettableShape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let shape: Surface
     var prominent = false
     var shade = 0.24
+
+    init(shape: Surface, prominent: Bool = false, shade: Double = 0.24) {
+        self.shape = shape
+        self.prominent = prominent
+        self.shade = shade
+    }
 
     func body(content: Content) -> some View {
         content.background {
@@ -937,7 +956,7 @@ private struct DriveVideoGlass<Surface: InsettableShape>: ViewModifier {
     }
 }
 
-private struct DriveSpeedButton: View {
+struct DriveSpeedButton: View {
     @ObservedObject var playback: PlaybackController
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.locale) private var locale
@@ -947,6 +966,12 @@ private struct DriveSpeedButton: View {
     var showingVideoRates: Binding<Bool>?
     private var overVideo: Bool { showingVideoRates != nil }
     private var usesSingleColumn: Bool { typeSize >= .xxLarge }
+
+    init(playback: PlaybackController, compact: Bool, showingVideoRates: Binding<Bool>? = nil) {
+        _playback = ObservedObject(wrappedValue: playback)
+        self.compact = compact
+        self.showingVideoRates = showingVideoRates
+    }
 
     var body: some View {
         let button = Button {
@@ -1036,10 +1061,15 @@ private struct DriveSpeedButton: View {
     }
 }
 
-private struct DriveVideoSpeedOverlay: View {
+struct DriveVideoSpeedOverlay: View {
     @ObservedObject var playback: PlaybackController
     @ScaledMetric(relativeTo: .subheadline) private var columnWidth: CGFloat = 116
     let close: () -> Void
+
+    init(playback: PlaybackController, close: @escaping () -> Void) {
+        _playback = ObservedObject(wrappedValue: playback)
+        self.close = close
+    }
 
     var body: some View {
         DriveVideoBottomOverlay(title: "Playback speed", columnWidth: columnWidth, close: close) { columns in
@@ -1066,6 +1096,13 @@ struct DriveVideoBottomOverlay<Content: View>: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.14)
+                .ignoresSafeArea(.container, edges: .all)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
+            // Extend the dimming surface without extending its dismissal hit area
+            // over the header, exit button or system gestures.
+            Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture(perform: close)
                 .accessibilityHidden(true)
@@ -1127,7 +1164,7 @@ private struct DriveSpeedChoices: View {
     let columns: [GridItem]
     var overVideo = false
     let close: () -> Void
-    private let rates: [Float] = [0.5, 0.75, 1, 1.25, 1.5, 2]
+    private let rates = PlaybackPreferences.rates
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: overVideo ? 2 : 8) {
@@ -1205,7 +1242,7 @@ private struct DriveSpeedChoices: View {
     }
 }
 
-private func driveRateText(_ speed: Float, locale: Locale) -> String {
+func driveRateText(_ speed: Float, locale: Locale) -> String {
     speed.formatted(.number.precision(.fractionLength(0...2)).locale(locale)) + "×"
 }
 
