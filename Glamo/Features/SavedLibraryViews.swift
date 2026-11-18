@@ -49,6 +49,30 @@ private struct DriveRemoteListLabel<Preview: View, Metadata: View>: View {
     }
 }
 
+private struct DriveRemoteFolderCover: View {
+    let url: URL?
+    var compact = false
+
+    var body: some View {
+        let width: CGFloat = compact ? 26 : 64
+        let height: CGFloat = compact ? 26 : 52
+        AsyncImage(url: url) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: compact ? 6 : 10))
+            } else {
+                Glyph(symbol: compact ? .driveFolder : .folder, size: compact ? 26 : 30,
+                      tint: compact ? DriveStyle.accent : DriveStyle.folder)
+                    .frame(width: width, height: height)
+            }
+        }
+        .frame(width: width, height: height)
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
+}
+
 private struct DriveRemoteFolderRow: View {
     let folder: DriveCollection
     let open: () -> Void
@@ -58,7 +82,7 @@ private struct DriveRemoteFolderRow: View {
         Button(action: open) {
             HStack(spacing: 4) {
                 DriveRemoteListLabel(title: folder.title) {
-                    Glyph(symbol: .folder, size: 30, tint: DriveStyle.folder)
+                    DriveRemoteFolderCover(url: folder.coverURL)
                 } metadata: {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 8) { details }
@@ -642,7 +666,11 @@ struct DriveCollectionRows: View {
                 } else {
                     Button { open(collection) } label: {
                         HStack(spacing: 12) {
-                            Glyph(symbol: collection.isFolder ? .driveFolder : .play, size: 26, tint: DriveStyle.accent)
+                            if collection.isFolder {
+                                DriveRemoteFolderCover(url: collection.coverURL, compact: true)
+                            } else {
+                                Glyph(symbol: .play, size: 26, tint: DriveStyle.accent)
+                            }
                             Text(verbatim: collection.title).font(.glam(.subheadline, weight: .medium))
                                 .lineLimit(2).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
                             Glyph(symbol: .back, size: 12, tint: DriveStyle.secondary).rotationEffect(.degrees(180))
