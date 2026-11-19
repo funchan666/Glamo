@@ -112,6 +112,7 @@ struct GlamoStartupView: View {
                 Image("GlamoLaunchMark")
                     .resizable().scaledToFit()
                     .frame(width: iconSize, height: iconSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
                 loadingMark
                     .frame(width: loadingSize, height: loadingSize)
             }
@@ -157,11 +158,12 @@ enum GlamoTab: Int, CaseIterable, Hashable {
 
     var symbol: GlamoGlyph {
         switch self {
-        case .files: .driveFolder
-        case .recent: .driveRecent
-        case .profile: .driveSettings
+        case .files: .tabFiles
+        case .recent: .tabHome
+        case .profile: .tabProfile
         }
     }
+
 }
 
 struct GlamoRootView: View {
@@ -184,6 +186,7 @@ struct GlamoRootView: View {
     @State private var searching = false
     @State private var folderOpen = false
     @State private var activityFilter = DriveActivityFilter.all
+    @State private var dockOverlayHeight: CGFloat = 0
 
     var body: some View {
         GeometryReader { container in
@@ -191,8 +194,21 @@ struct GlamoRootView: View {
             let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
             let isMainPage = destinations.isEmpty && (tab != .files || !folderOpen)
             let hidesMiniPlayer = destinations.last == .search && searching
-            // Reserve the dock's actual height outside the navigation/tab hosts.
-            // Their scroll views must end above both the dock and mini player.
+            let footer = VStack(spacing: 5) {
+                if let movie = dockedMovie, !hidesMiniPlayer {
+                    DriveMiniPlayer(playback: player.playback, movie: movie,
+                                    expand: { player.expanded = true }, close: player.stop)
+                        .pageHorizontalMargins()
+                }
+                if isMainPage {
+                    GlamoTabDock(selection: $tab,
+                                 compact: container.size.height - pane.top - pane.bottom < 420)
+                        .padding(.horizontal, DriveStyle.pageInset)
+                }
+            }
+            .padding(.vertical, 5)
+            .padding(.bottom, dockClearance(in: container, pane: pane, includesPlayer: dockedMovie != nil))
+
             VStack(spacing: 0) {
                 NavigationStack(path: $destinations) {
                     tabs
@@ -202,21 +218,18 @@ struct GlamoRootView: View {
                         }
                         .toolbar(.hidden, for: .navigationBar)
                 }
-                if isMainPage || (dockedMovie != nil && !hidesMiniPlayer) {
-                    VStack(spacing: 5) {
-                        if let movie = dockedMovie, !hidesMiniPlayer {
-                            DriveMiniPlayer(playback: player.playback, movie: movie,
-                                            expand: { player.expanded = true }, close: player.stop)
-                                .pageHorizontalMargins()
-                        }
-                        if isMainPage {
-                            GlamoTabDock(selection: $tab,
-                                         compact: container.size.height - pane.top - pane.bottom < 420)
-                                .padding(.horizontal, DriveStyle.pageInset)
-                        }
+                .environment(\.driveBottomOverlayInset, isMainPage ? dockOverlayHeight : 0)
+                if !isMainPage, dockedMovie != nil, !hidesMiniPlayer {
+                    footer
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isMainPage {
+                    // Content can pass behind the hollow dock; only its end padding
+                    // clears the measured footer, including the optional mini player.
+                    footer.onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        dockOverlayHeight = $0
                     }
-                    .padding(.vertical, 5)
-                    .padding(.bottom, dockClearance(in: container, pane: pane, includesPlayer: dockedMovie != nil))
                 }
             }
             .padding(pane)
@@ -273,10 +286,7 @@ struct GlamoRootView: View {
                          showActivity: { openActivity(.imports) }, folderVisibility: { folderOpen = $0 })
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
-            AccountView(browse: openFiles, showActivity: { openActivity(.all) },
-                        showShares: { destinations.append(.sharedFiles) },
-                        showSaved: { destinations.append(.history(.saved)) },
-                        showViewed: { destinations.append(.history(.viewed)) })
+            AccountView(showActivity: { openActivity(.all) })
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.profile) }.tag(GlamoTab.profile)
         }
@@ -358,11 +368,38 @@ private struct GlamoTabDock: View {
     let compact: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Namespace private var indicator
+    @Environment(\.layoutDirection) private var layoutDirection
+    private let itemSpacing: CGFloat = 3
 
     var body: some View {
+        buttons
+        .background {
+            GeometryReader { container in
+                let count = CGFloat(GlamoTab.allCases.count)
+                let width = max(0, (container.size.width - itemSpacing * (count - 1)) / count)
+                let index = CGFloat(selection.rawValue)
+                let visualIndex = layoutDirection == .rightToLeft ? count - 1 - index : index
+
+                // Only this independent backdrop moves; labels never enter a glass morph.
+                selectedGlass
+                    .frame(width: width, height: container.size.height)
+                    .position(x: width / 2 + visualIndex * (width + itemSpacing),
+                              y: container.size.height / 2)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.28), value: selection)
+            }
+            .allowsHitTesting(false).accessibilityHidden(true)
+        }
+        .padding(4)
+        .frame(maxWidth: DriveStyle.tabWidth)
+        .background {
+            dockRim.allowsHitTesting(false).accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var buttons: some View {
         let labelLayout = compact ? AnyLayout(HStackLayout(spacing: 6)) : AnyLayout(VStackLayout(spacing: 2))
-        HStack(spacing: 3) {
+        return HStack(spacing: itemSpacing) {
             ForEach(GlamoTab.allCases, id: \.self) { item in
                 let selected = selection == item
                 Button { selection = item } label: {
@@ -375,22 +412,11 @@ private struct GlamoTabDock: View {
                             .lineLimit(2).minimumScaleFactor(0.8)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .foregroundStyle(selected ? GlamoStyle.accent : DriveStyle.ink)
+                    .shadow(color: .white.opacity(selected ? 0 : 0.85), radius: 2, y: 1)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 5)
                     .frame(minWidth: 44, maxWidth: .infinity, minHeight: compact ? 44 : 56)
-                    .foregroundStyle(selected ? GlamoStyle.accent : DriveStyle.ink)
-                    .background {
-                        if selected {
-                            Capsule().fill(reduceTransparency ? DriveStyle.selectedTab : DriveStyle.accent.opacity(0.14))
-                                .overlay {
-                                    if !reduceTransparency {
-                                        Capsule().strokeBorder(.white.opacity(0.72))
-                                    }
-                                }
-                                .matchedGeometryEffect(id: "selected", in: indicator)
-                                .allowsHitTesting(false).accessibilityHidden(true)
-                        }
-                    }
                     .contentShape(.interaction, Rectangle())
                 }
                 .buttonStyle(PressStyle())
@@ -399,45 +425,33 @@ private struct GlamoTabDock: View {
                 .accessibilityIdentifier("tab.\(item.name.lowercased())")
             }
         }
-        .padding(4)
-        .frame(maxWidth: DriveStyle.tabWidth)
-        .background {
-            dockSurface
-                .allowsHitTesting(false).accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selection)
     }
 
     @ViewBuilder
-    private var dockSurface: some View {
-        let shape = Capsule()
+    private var selectedGlass: some View {
         if reduceTransparency {
-            shape.fill(.white)
-                .overlay { shape.strokeBorder(GlamoStyle.line) }
+            Capsule().fill(GlamoStyle.paperMuted)
+        } else if #available(iOS 26.0, *) {
+            Color.clear
+                .background(.white.opacity(0.18), in: Capsule())
+                .glassEffect(.clear.tint(.white.opacity(0.10)), in: Capsule())
         } else {
-            let tint = DriveStyle.accent.opacity(0.08)
-            Group {
-                if #available(iOS 26.0, *) {
-                    Color.clear.glassEffect(.regular.tint(tint), in: shape)
-                } else {
-                    shape.fill(.thinMaterial)
-                        .overlay { shape.fill(tint) }
-                }
-            }
-            .overlay {
-                shape.strokeBorder(
-                    LinearGradient(stops: [
-                        .init(color: .white.opacity(0.98), location: 0),
-                        .init(color: .white.opacity(0.52), location: 0.44),
-                        .init(color: DriveStyle.link.opacity(0.27), location: 1),
-                    ], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 1.25
-                )
-            }
-            .shadow(color: GlamoStyle.ink.opacity(0.18), radius: 9, y: 5)
+            Capsule().fill(.ultraThinMaterial)
+                .overlay { Capsule().strokeBorder(.white.opacity(0.72)) }
+                .shadow(color: DriveStyle.ink.opacity(0.12), radius: 7, y: 3)
         }
     }
+
+    private var dockRim: some View {
+        Capsule().strokeBorder(
+            LinearGradient(colors: [
+                .white.opacity(reduceTransparency ? 0.95 : 0.85),
+                DriveStyle.secondary.opacity(reduceTransparency ? 0.42 : 0.14),
+                .white.opacity(0.65)
+            ], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+            .shadow(color: DriveStyle.ink.opacity(0.10), radius: 6, y: 3)
+    }
+
 }
 
 // A network recovery surface, not a second login or consent gate.

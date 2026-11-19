@@ -132,7 +132,7 @@ struct MembershipView: View {
             benefit("Share files", symbol: .driveShare)
         }
         .padding(.horizontal, 16).padding(.vertical, 9)
-        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+        .driveGlassCard()
     }
 
     private func benefit(_ title: String, symbol: GlamoGlyph) -> some View {
@@ -270,7 +270,7 @@ struct MembershipView: View {
             .padding(.horizontal, 16).padding(.vertical, 11)
             .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
             .foregroundStyle(DriveStyle.ink)
-            .background(.white, in: shape)
+            .glamoGlass(in: shape, tint: .white)
             .overlay {
                 if selected {
                     shape.strokeBorder(DriveStyle.accent, lineWidth: 2)
@@ -378,6 +378,7 @@ private var plusArtwork: some View {
 }
 
 struct AccountView: View {
+    @Environment(\.driveBottomOverlayInset) private var bottomOverlayInset
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var library: LibraryStore
@@ -389,11 +390,7 @@ struct AccountView: View {
     @State private var copiedAccountID = false
     @State private var paywall = false
     @State private var storagePresented = false
-    let browse: () -> Void
     let showActivity: () -> Void
-    let showShares: () -> Void
-    let showSaved: () -> Void
-    let showViewed: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -411,11 +408,10 @@ struct AccountView: View {
                         Divider().overlay(DriveStyle.separator).padding(.horizontal, 16)
                         plusEntry
                     }
-                    .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
-                    AccountSettingsSection(showActivity: showActivity, showShares: showShares,
-                                           showSaved: showSaved, showViewed: showViewed, browseFolders: browse)
+                    .driveGlassCard()
+                    AccountSettingsSection(showActivity: showActivity)
                 }
-                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 22).padding(.bottom, 24)
+                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 22).padding(.bottom, 24 + bottomOverlayInset)
                 .frame(maxWidth: 680).frame(maxWidth: .infinity)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -430,7 +426,7 @@ struct AccountView: View {
         .onDisappear { copiedAccountID = false }
         .onChange(of: api.session?.userId.value) { _, _ in copiedAccountID = false }
         .fullScreenCover(isPresented: $paywall) { MembershipView() }
-        .sheet(isPresented: $storagePresented) { StorageManagementSheet() }
+        .driveDialog(isPresented: $storagePresented, maxWidth: 460, height: 580) { StorageManagementSheet() }
     }
 
     private var identity: some View {
@@ -478,7 +474,7 @@ struct AccountView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+        .driveGlassCard()
         .accessibilityElement(children: .contain)
     }
 
@@ -509,10 +505,10 @@ struct AccountView: View {
     private var librarySummary: some View {
         let count = library.movies.count + library.folders.count + library.favorites.count
         let size = localBytes
-        let heading = LocalizedText("File storage").driveFont(16, relativeTo: .subheadline, weight: .semibold)
+        let heading = LocalizedText("File storage").driveFont(15, relativeTo: .subheadline, weight: .medium)
         let fileCount = LocalizedText(count == 1 ? "%@ item" : "%@ items", count.formatted(.number.locale(locale)))
         return Button { storagePresented = true } label: {
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 10) {
                     heading.fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
@@ -528,7 +524,7 @@ struct AccountView: View {
                 }
                 if let size, let deviceCapacity, deviceCapacity > 0 {
                     DriveMeter(value: Double(size) / Double(deviceCapacity),
-                               tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 6)
+                               tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 4)
                         .accessibilityHidden(true)
                 }
                 ViewThatFits(in: .horizontal) {
@@ -541,7 +537,7 @@ struct AccountView: View {
                 }
                 .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
             }
-            .padding(.horizontal, 16).padding(.vertical, 14)
+            .padding(.horizontal, 16).padding(.vertical, 10)
             .foregroundStyle(DriveStyle.ink)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
@@ -617,16 +613,7 @@ struct WatchLimitPrompt: View {
     }
 
     var body: some View {
-        GeometryReader { container in
-            let margins = drivePaneMargins(in: container, includesHorizontalFold: true)
-            ScrollView {
-                card.padding(.horizontal, 16).padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, minHeight: max(0, container.size.height - margins.top - margins.bottom))
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .padding(margins)
-        }
-        .background(Color.black.opacity(0.56).ignoresSafeArea(.container, edges: .all))
+        DriveFloatingDialog { card }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape) { close() }
@@ -680,7 +667,6 @@ struct WatchLimitPrompt: View {
         }
         .padding(20).frame(maxWidth: 360)
         .foregroundStyle(GlamoStyle.ink)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 26), tint: GlamoStyle.surface, mediaBackdrop: true)
     }
 
     private func choice(_ title: String, detail: String, primary: Bool, action: @escaping () -> Void) -> some View {

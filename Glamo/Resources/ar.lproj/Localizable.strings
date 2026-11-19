@@ -519,7 +519,6 @@
 "Folder name" = "اسم المجلد";
 "Create folder" = "إنشاء مجلد";
 "Select one or more videos." = "حدد فيديو واحدًا أو عدة فيديوهات.";
-"Pick a video to open in the editor." = "اختر فيديو لفتحه في محرر الفيديو.";
 "Only empty folders can be deleted." = "يمكن حذف المجلدات الفارغة فقط.";
 "Minimize player" = "تصغير المشغّل";
 "Back to mini player" = "العودة إلى المشغّل المصغّر";
@@ -701,3 +700,5 @@
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "ألصق رابط الفيديو أو الرمز في حقل البحث، ثم اضغط على بحث. حافظ على الأحرف الكبيرة والصغيرة كما تمت مشاركتها تمامًا.";
 "Search your files" = "ابحث في ملفاتك";
 "Enter a file or folder name to filter your library as you type." = "أدخل اسم ملف أو مجلد لتصفية مكتبتك أثناء الكتابة.";
+"Pick a video to add to your library." = "اختر فيديو لإضافته إلى مكتبتك.";
+"User Agreement" = "اتفاقية المستخدم";

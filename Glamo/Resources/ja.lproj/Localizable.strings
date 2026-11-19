@@ -519,7 +519,6 @@
 "Folder name" = "フォルダ名";
 "Create folder" = "フォルダを作成";
 "Select one or more videos." = "動画を1本以上選べます。";
-"Pick a video to open in the editor." = "選んだ動画をエディタで開きます。";
 "Only empty folders can be deleted." = "空のフォルダのみ削除できます。";
 "Minimize player" = "プレーヤーを最小化";
 "Back to mini player" = "ミニプレーヤーに戻る";
@@ -701,3 +700,5 @@
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "検索欄に動画URLまたはコードを貼り付け、「検索」をタップします。共有された文字列の大文字と小文字をそのまま入力してください。";
 "Search your files" = "ファイルを探す";
 "Enter a file or folder name to filter your library as you type." = "ファイル名やフォルダ名を入力すると、入力に合わせてライブラリを絞り込めます。";
+"Pick a video to add to your library." = "ライブラリに追加する動画を選択します。";
+"User Agreement" = "利用規約とプライバシー";

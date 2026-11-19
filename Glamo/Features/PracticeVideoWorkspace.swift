@@ -64,7 +64,7 @@ struct ToolsView: View {
                 }.glamoCard(radius: 20)
             }.glamoPage()
         }.glamoScreenBackground()
-            .sheet(item: $selectedTool) { EditorSheet(initialTool: $0) }
+            .fullScreenCover(item: $selectedTool) { EditorSheet(initialTool: $0, exportOnly: true) }
     }
 }
 
@@ -153,16 +153,17 @@ struct EditorSheet: View {
     @EnvironmentObject private var library: LibraryStore
     var initialMovie: PracticeRecording? = nil
     var initialTool: VideoTool = .studio
+    var exportOnly = false
     @StateObject private var departure = ExportDeparture()
     var body: some View {
         GeometryReader { container in
             VStack(spacing: 0) {
-                SheetHeading(title: initialTool == .studio ? "Video editor" : initialTool.title, inset: false) {
+                SheetHeading(title: exportOnly ? "Export video" : initialTool == .studio ? "Video editor" : initialTool.title, inset: false) {
                     departure.request { dismiss() }
                 }
                 .pageHorizontalMargins().padding(.top, 8)
                 .disabled(library.importingVideo)
-                EditorWorkspace(initialMovie: initialMovie, initialTool: initialTool)
+                EditorWorkspace(initialMovie: initialMovie, initialTool: initialTool, exportOnly: exportOnly)
             }
             .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
         }.glamoScreenBackground()
@@ -181,6 +182,7 @@ struct EditorWorkspace: View {
     @Environment(\.layoutDirection) private var layoutDirection
     var initialMovie: PracticeRecording? = nil
     var initialTool: VideoTool = .studio
+    var exportOnly = false
     @StateObject private var editor = VideoEditor()
     @State private var selected: PracticeRecording?
     @State private var completedExport: PracticeRecording?
@@ -220,10 +222,11 @@ struct EditorWorkspace: View {
         var outcome: ShareSheet.Outcome? = nil
     }
 
-    init(initialMovie: PracticeRecording? = nil, initialTool: VideoTool = .studio) {
+    init(initialMovie: PracticeRecording? = nil, initialTool: VideoTool = .studio, exportOnly: Bool = false) {
         self.initialMovie = initialMovie
         self.initialTool = initialTool
-        _tool = State(initialValue: initialTool.editorTab)
+        self.exportOnly = exportOnly
+        _tool = State(initialValue: exportOnly ? "Export" : initialTool.editorTab)
     }
     var body: some View {
         GeometryReader { container in
@@ -380,7 +383,7 @@ struct EditorWorkspace: View {
     }
 
     @ViewBuilder private var applyPreviewButton: some View {
-        if !departure.running {
+        if !exportOnly, !departure.running {
             Button("Preview changes") { Task { await editor.applyPreview() } }
                 .buttonStyle(CompactActionStyle()).disabled(previewOrExportDisabled)
         }
@@ -388,8 +391,8 @@ struct EditorWorkspace: View {
 
     private func editingPanel(_ movie: PracticeRecording) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            if initialTool == .studio { toolbar }
-            if tool != "Export" {
+            if !exportOnly, initialTool == .studio { toolbar }
+            if !exportOnly, tool != "Export" {
                 controls.disabled(editingDisabled)
             }
             if let error = editor.error, error != exportFailure?.message,
@@ -1085,17 +1088,7 @@ struct ExportDepartureProtection: ViewModifier {
             .accessibilityHidden(departure.confirming)
             .overlay {
                 if departure.confirming {
-                    GeometryReader { container in
-                        let pane = drivePaneMargins(in: container, includesHorizontalFold: true)
-                        ScrollView {
-                            confirmationCard
-                                .padding(20)
-                                .frame(maxWidth: .infinity, minHeight: max(0, container.size.height - pane.top - pane.bottom))
-                        }
-                        .scrollBounceBehavior(.basedOnSize)
-                        .padding(pane)
-                    }
-                    .background(GlamoStyle.ink.opacity(0.66).ignoresSafeArea(.container, edges: .all))
+                    DriveFloatingDialog { confirmationCard }
                     .accessibilityElement(children: .contain)
                     .accessibilityAddTraits(.isModal)
                     .accessibilityAction(.escape) { departure.keepWorking() }
@@ -1115,23 +1108,14 @@ struct ExportDepartureProtection: ViewModifier {
             }
             .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
 
-            VStack(spacing: 8) {
-                ActionButton(title: "Keep exporting", action: departure.keepWorking)
-                Button(role: .destructive, action: departure.stop) {
-                    LocalizedText("Stop export")
-                        .font(.glam(.subheadline, weight: .semibold))
-                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                        .frame(minWidth: 44, maxWidth: .infinity, minHeight: 52)
-                        .foregroundStyle(GlamoStyle.danger)
-                        .background(GlamoStyle.danger.opacity(0.10), in: Capsule())
-                        .contentShape(.interaction, Capsule())
-                }
-                .buttonStyle(PressStyle())
+            DriveDialogActions {
+                Button(action: departure.keepWorking) { LocalizedText("Keep exporting") }
+                    .buttonStyle(DriveDialogButtonStyle(primary: true))
+                Button(role: .destructive, action: departure.stop) { LocalizedText("Stop export") }
+                    .buttonStyle(DriveDialogButtonStyle(destructive: true))
             }
         }
         .padding(20).frame(maxWidth: 360)
         .foregroundStyle(GlamoStyle.ink)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 24), tint: GlamoStyle.surface, mediaBackdrop: true)
     }
 }

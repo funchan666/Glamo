@@ -519,7 +519,6 @@
 "Folder name" = "Nama folder";
 "Create folder" = "Buat folder";
 "Select one or more videos." = "Pilih satu atau beberapa video.";
-"Pick a video to open in the editor." = "Pilih video untuk dibuka di editor.";
 "Only empty folders can be deleted." = "Hanya folder kosong yang dapat dihapus.";
 "Minimize player" = "Perkecil pemutar";
 "Back to mini player" = "Kembali ke pemutar mini";
@@ -701,3 +700,5 @@
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Tempel URL video atau kode di kolom pencarian, lalu ketuk Cari. Pertahankan huruf besar dan kecil persis seperti yang dibagikan.";
 "Search your files" = "Cari file Anda";
 "Enter a file or folder name to filter your library as you type." = "Masukkan nama file atau folder untuk memfilter pustaka saat Anda mengetik.";
+"Pick a video to add to your library." = "Pilih video untuk ditambahkan ke pustaka.";
+"User Agreement" = "Perjanjian Pengguna";

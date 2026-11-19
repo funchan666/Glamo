@@ -45,7 +45,7 @@ struct AccountBusyModifier: ViewModifier {
             .overlay {
                 if let message = accountAccess.busyMessage {
                     ZStack {
-                        Color.black.opacity(0.58).ignoresSafeArea(.container, edges: .all)
+                        Color.black.opacity(0.18).ignoresSafeArea(.container, edges: .all)
                         AccountLoadingIndicator(title: message).padding(24)
                     }.accessibilityAddTraits(.isModal)
                 }
@@ -64,34 +64,27 @@ struct AccountDecisionDialog: View {
     let confirm: () -> Void
     @AccessibilityFocusState private var titleFocused: Bool
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    LocalizedText(title).font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
-                        .accessibilityAddTraits(.isHeader).accessibilityFocused($titleFocused)
-                    LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if showsPolicies { PolicyLinks() }
-                    VStack(spacing: 10) {
-                        Button(action: confirm) {
-                            LocalizedText(confirmTitle).font(.glam(.subheadline, weight: .semibold))
-                                .lineLimit(1).minimumScaleFactor(0.75)
-                                .multilineTextAlignment(.center).padding(.horizontal, 16).padding(.vertical, 12)
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .foregroundStyle(destructive ? GlamoStyle.danger : GlamoStyle.onAccent)
-                                .background { GlamSurface(tone: destructive ? .raised : .accent) }
-                        }.buttonStyle(PressStyle())
-                        if let cancel { ActionButton(title: "Cancel", primary: false, action: cancel) }
+        DriveFloatingDialog {
+            VStack(alignment: .leading, spacing: 12) {
+                LocalizedText(title).driveFont(17, relativeTo: .headline, weight: .semibold)
+                    .foregroundStyle(DriveStyle.ink)
+                    .accessibilityAddTraits(.isHeader).accessibilityFocused($titleFocused)
+                LocalizedText(message).driveFont(14, relativeTo: .subheadline)
+                    .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                if showsPolicies { PolicyLinks() }
+                DriveDialogActions {
+                    if let cancel {
+                        Button(action: cancel) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
                     }
-                }.padding(20).frame(maxWidth: 360)
-                    .glamoCard(radius: 26)
-                    .padding(24).frame(maxWidth: .infinity, minHeight: geometry.size.height)
-            }
-        }.background(Color.black.opacity(0.68).ignoresSafeArea(.container, edges: .all))
-            .accessibilityAddTraits(.isModal)
-            .interactiveDismissDisabled()
-            .onAppear { titleFocused = true }
+                    Button(action: confirm) { LocalizedText(confirmTitle) }
+                        .buttonStyle(DriveDialogButtonStyle(primary: !destructive, destructive: destructive))
+                }
+            }.padding(18)
+        }
+        .interactiveDismissDisabled()
+        .onAppear { titleFocused = true }
     }
+
 }
 
 struct PolicyDocument: Identifiable {
@@ -108,7 +101,7 @@ struct PolicyLinks: View {
         Group {
             if compact { linkLayout.buttonStyle(PressStyle()) }
             else { linkLayout.buttonStyle(CompactActionStyle()) }
-        }.sheet(item: $document) { PolicyBrowser(document: $0) }
+        }.fullScreenCover(item: $document) { PolicyBrowser(document: $0) }
     }
     private var linkLayout: some View {
         ViewThatFits(in: .horizontal) {
@@ -294,17 +287,9 @@ struct PolicyWebView: UIViewRepresentable {
 
 struct AccountSettingsSection: View {
     let showActivity: () -> Void
-    let showShares: () -> Void
-    let showSaved: () -> Void
-    let showViewed: () -> Void
-    let browseFolders: () -> Void
-    @Environment(\.openURL) private var openURL
     @Environment(\.locale) private var locale
-    @State private var websiteError: String?
-    @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
-    @State private var languagePicker = false
     @State private var helpPresented = false
-    @State private var playbackSettings = false
+    @State private var agreementsPresented = false
     @State private var cacheBytes: Int64 = 0
     @State private var clearingCache = false
     @State private var cacheMessage: String?
@@ -315,35 +300,14 @@ struct AccountSettingsSection: View {
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var ads: RewardedAds
     @EnvironmentObject private var accountAccess: AccountAccessFlow
-    @State private var document: PolicyDocument?
     private var unavailable: Bool { accountAccess.isBusy || commerce.busy || commerce.preparingPurchase || ads.busy || ads.isPreparingAppOpen || ads.isPresenting }
-    private var hasPolicyLinks: Bool {
-        api.configuration.privacyURL != nil || api.configuration.termsURL != nil || api.configuration.websiteURL != nil
+    private var hasAgreements: Bool {
+        api.configuration.privacyURL != nil || api.configuration.termsURL != nil || ads.privacyOptionsRequired
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(spacing: 0) {
-                Button(action: showSaved) {
-                    AccountMenuRow(title: "Saved", detail: (library.favoriteFiles.count + library.favorites.count).formatted(.number.locale(locale)),
-                                   symbol: .feed)
-                }
-                rowDivider
-                Button(action: showViewed) { AccountMenuRow(title: "Recently played", symbol: .driveRecent) }
-                rowDivider
-                Button(action: browseFolders) { AccountMenuRow(title: "Folders", symbol: .driveFolder) }
-                rowDivider
-                Button { playbackSettings = true } label: {
-                    AccountMenuRow(title: "Playback settings", symbol: .play)
-                }
-            }.background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
-            VStack(spacing: 0) {
-                Button(action: showShares) {
-                    AccountMenuRow(title: "My shares",
-                                   detail: library.movies.filter { $0.lastSharedAt != nil }.count.formatted(.number.locale(locale)),
-                                   symbol: .driveShare, tint: Color(red: 0.98, green: 0.58, blue: 0.15))
-                }.accessibilityIdentifier("account.myShares")
-                rowDivider
                 Button(action: showActivity) {
                     AccountMenuRow(title: "Transfers", detail: library.importingVideo ? "Importing videos…" : nil,
                                    symbol: .driveActivity,
@@ -361,8 +325,15 @@ struct AccountSettingsSection: View {
                     AccountMenuRow(title: "Help & feedback", symbol: .driveList,
                                    tint: Color(red: 0.18, green: 0.67, blue: 0.40))
                 }.accessibilityIdentifier("account.help")
+                rowDivider
+                Button { agreementsPresented = true } label: {
+                    AccountMenuRow(title: "User Agreement", symbol: .driveList,
+                                   tint: Color(red: 0.90, green: 0.24, blue: 0.29))
+                }
+                .disabled(!hasAgreements)
+                .accessibilityIdentifier("account.agreements")
             }
-            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+            .driveGlassCard()
 
             if let cacheMessage {
                 LocalizedText(cacheMessage).driveFont(13, relativeTo: .footnote)
@@ -370,27 +341,11 @@ struct AccountSettingsSection: View {
                     .padding(.horizontal, 8)
             }
             if let cacheError { ErrorNote(message: cacheError) }
-
-            VStack(spacing: 0) {
-                Button { languagePicker = true } label: {
-                    AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system",
-                                   symbol: .driveSettings)
-                }.accessibilityIdentifier("account.language")
-                if hasPolicyLinks || ads.privacyOptionsRequired {
-                    rowDivider
-                    policyRows.disabled(unavailable)
-                }
-            }
-            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
-            if let websiteError { ErrorNote(message: websiteError) }
-            if let error = ads.error { ErrorNote(message: error) }
         }
         .buttonStyle(PressStyle())
         .task { await refreshCache() }
-        .sheet(item: $document) { PolicyBrowser(document: $0) }
-        .sheet(isPresented: $languagePicker) { LanguagePicker() }
-        .sheet(isPresented: $helpPresented) { AccountHelpView() }
-        .sheet(isPresented: $playbackSettings) { PlaybackSettingsSheet() }
+        .driveDialog(isPresented: $helpPresented, maxWidth: 460, height: 560) { AccountHelpView() }
+        .driveDialog(isPresented: $agreementsPresented, maxWidth: 460, height: 400) { AccountAgreementView() }
     }
 
     private func refreshCache() async {
@@ -422,8 +377,44 @@ struct AccountSettingsSection: View {
         }
     }
 
-    @ViewBuilder
-    private var policyRows: some View {
+    private var rowDivider: some View {
+        Divider().overlay(DriveStyle.separator).padding(.leading, 60).padding(.trailing, 16)
+    }
+}
+
+private struct AccountAgreementView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var api: APIClient
+    @EnvironmentObject private var ads: RewardedAds
+    @EnvironmentObject private var commerce: CommerceStore
+    @EnvironmentObject private var accountAccess: AccountAccessFlow
+    @State private var document: PolicyDocument?
+    private var unavailable: Bool { accountAccess.isBusy || commerce.busy || commerce.preparingPurchase || ads.busy || ads.isPreparingAppOpen || ads.isPresenting }
+
+    var body: some View {
+        GeometryReader { container in
+            VStack(spacing: 0) {
+                SheetHeading(title: "User Agreement", inset: false) { dismiss() }
+                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 10)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(spacing: 0) { policyRows }
+                            .driveGlassCard()
+                            .disabled(unavailable)
+                        if let error = ads.error { ErrorNote(message: error) }
+                    }
+                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 24)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
+        }
+        .buttonStyle(PressStyle())
+        .driveScreenBackground()
+        .fullScreenCover(item: $document) { PolicyBrowser(document: $0) }
+    }
+
+    @ViewBuilder private var policyRows: some View {
         if let url = api.configuration.privacyURL {
             Button { document = PolicyDocument(title: "Privacy Policy", url: url) } label: {
                 AccountMenuRow(title: "Privacy Policy", symbol: .driveList,
@@ -437,20 +428,8 @@ struct AccountSettingsSection: View {
                                tint: Color(red: 0.90, green: 0.24, blue: 0.29))
             }
         }
-        if let website = api.configuration.websiteURL {
-            if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
-            Button {
-                websiteError = nil
-                openURL(website) { accepted in
-                    if !accepted { websiteError = "Couldn’t open the Vifol website. Try again." }
-                }
-            } label: {
-                AccountMenuRow(title: "Official website", symbol: .link,
-                               tint: Color(red: 0.18, green: 0.67, blue: 0.40))
-            }.accessibilityIdentifier("account.officialWebsite")
-        }
         if ads.privacyOptionsRequired {
-            if hasPolicyLinks { rowDivider }
+            if api.configuration.privacyURL != nil || api.configuration.termsURL != nil { rowDivider }
             Button { Task { await ads.privacyOptions() } } label: {
                 AccountMenuRow(title: "Ad privacy choices", symbol: .driveSettings)
             }.disabled(!ads.canOpenPrivacyOptions)
@@ -516,9 +495,11 @@ private struct AccountHelpView: View {
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var expanded: String? = "Import videos"
     @State private var websiteError: String?
+    @AppStorage(AppLanguage.preferenceKey) private var languageCode = AppLanguage.systemSelection
+    @State private var languagePicker = false
+    @State private var playbackSettings = false
     private let topics: [(String, String)] = [
         ("Import videos", "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open."),
-        ("My shares", "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added."),
         ("Clear cache", "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept."),
         ("Vifol Plus", "Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available.")
     ]
@@ -555,6 +536,20 @@ private struct AccountHelpView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: .white)
                         }
+                        LocalizedText("Settings").driveFont(17, relativeTo: .headline, weight: .semibold)
+                            .padding(.top, 10).accessibilityAddTraits(.isHeader)
+                        VStack(spacing: 0) {
+                            Button { languagePicker = true } label: {
+                                AccountMenuRow(title: "App language", detail: AppLanguage(rawValue: languageCode)?.nativeName ?? "Follow system",
+                                               symbol: .driveSettings)
+                            }.accessibilityIdentifier("account.language")
+                            Divider().overlay(DriveStyle.separator).padding(.leading, 60).padding(.trailing, 16)
+                            Button { playbackSettings = true } label: {
+                                AccountMenuRow(title: "Playback settings", symbol: .play)
+                            }
+                        }
+                        .buttonStyle(PressStyle())
+                        .driveGlassCard()
                         if let website = api.configuration.websiteURL {
                             LocalizedText("Need more help?").driveFont(17, relativeTo: .headline, weight: .semibold)
                                 .padding(.top, 10).accessibilityAddTraits(.isHeader)
@@ -563,7 +558,7 @@ private struct AccountHelpView: View {
                                 openURL(website) { accepted in
                                     if !accepted { websiteError = "Couldn’t open the Vifol website. Try again." }
                                 }
-                            }
+                            }.accessibilityIdentifier("account.officialWebsite")
                         }
                         if let websiteError { ErrorNote(message: websiteError) }
                     }
@@ -575,6 +570,8 @@ private struct AccountHelpView: View {
             .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
         }
         .driveScreenBackground()
+        .driveDialog(isPresented: $languagePicker, height: 540) { LanguagePicker() }
+        .driveDialog(isPresented: $playbackSettings, maxWidth: 420, height: 560) { PlaybackSettingsSheet() }
     }
 }
 

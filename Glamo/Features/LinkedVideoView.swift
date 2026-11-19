@@ -678,6 +678,7 @@ private struct ClipPage: View {
     @Environment(\.scenePhase) private var phase
     @Environment(\.playbackGatePresented) private var pagingGate
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.locale) private var locale
     let clip: LessonClip
     let active: Bool
     // Read from the enclosing safe container; video fills the expanded viewport.
@@ -786,8 +787,8 @@ private struct ClipPage: View {
             .onChange(of: pagingGate) { _, presented in
                 if presented { playback.pause() } else if active { activate() }
             }
-            .sheet(isPresented: $editor, onDismiss: resumeAfterControls) { RemoteVideoExportView(clip: currentClip) }
-            .sheet(isPresented: $fileManagement, onDismiss: resumeAfterControls) { DriveRemoteVideoActions(clip: currentClip) }
+            .fullScreenCover(isPresented: $editor, onDismiss: resumeAfterControls) { RemoteVideoExportView(clip: currentClip) }
+            .driveDialog(isPresented: $fileManagement, onDismiss: resumeAfterControls) { DriveRemoteVideoActions(clip: currentClip) }
             .overlay {
                 if collectOptions {
                     WatchLimitPrompt(showingMembership: $collectMembership, kind: .collect, finish: finishCollection)
@@ -866,7 +867,13 @@ private struct ClipPage: View {
                 .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
                 .accessibilityLabel(currentClip.title)
             Button {
-                if options { closeOptions() } else { openOptions(.actions) }
+                if options {
+                    closeOptions()
+                } else {
+                    resumeAfterSheet = playback.intendsPlayback
+                    playback.pause()
+                    fileManagement = true
+                }
             } label: {
                 Glyph(symbol: .driveMore, size: 19, tint: .white)
             }
@@ -904,28 +911,27 @@ private struct ClipPage: View {
     }
 
     private var playerFooter: some View {
-        VStack(spacing: 4) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    saveButton.fixedSize()
-                    Spacer(minLength: 0)
-                    playbackSettings.fixedSize()
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button { openOptions(.actions) } label: {
+                    Glyph(symbol: .driveSettings, size: 17, tint: .white)
                 }
-                VStack(spacing: 4) {
-                    saveButton.frame(maxWidth: .infinity, alignment: .leading)
-                    playbackSettings.frame(maxWidth: .infinity, alignment: .trailing)
-                }
+                .buttonStyle(DriveVideoButtonStyle())
+                .accessibilityLabel("Playback options")
+                .accessibilityFocused($focusedAction, equals: .quality)
+                .accessibilityValue(Text(verbatim: driveRateText(playback.speed, locale: locale)))
+                fitButton
             }
             PlayerProgressControl(playback: playback, timeline: playback.timeline,
                                   enabled: allowed && firstFrameReady,
                                   canResume: canControlPlayback,
-                                  scrubbing: $scrubbing, tint: Color(red: 0.15, green: 0.55, blue: 1),
+                                  scrubbing: $scrubbing, tint: DriveStyle.accent,
                                   showsInlineTimes: true, overVideo: true)
-                .padding(.horizontal, 14)
-                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22).inset(by: 4)))
+                .padding(.horizontal, 12)
+                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22)))
         }
-        .frame(maxWidth: 840)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: 840).frame(maxWidth: .infinity)
     }
 
     private var saveButton: some View {
@@ -1005,27 +1011,9 @@ private struct ClipPage: View {
     }
 
     private func optionItems(columns: [GridItem]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(verbatim: currentClip.title)
-                .font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
-            LazyVGrid(columns: columns, spacing: 4) {
-                optionButton("Playback speed") { openOptions(.speed) }
-                optionButton("Resolution") { openOptions(.quality) }
-                optionButton(library.isSaved(clip) ? "Remove saved video" : "Save video") {
-                    save()
-                    closeOptions()
-                }
-                optionButton("Export video") {
-                    options = false
-                    editor = true
-                }
-                optionButton("Video options") {
-                    options = false
-                    fileManagement = true
-                }
-            }
+        LazyVGrid(columns: columns, spacing: 4) {
+            optionButton("Playback speed") { openOptions(.speed) }
+            optionButton("Resolution") { openOptions(.quality) }
         }
     }
 
@@ -1093,7 +1081,7 @@ private struct ClipPage: View {
 
     private func closeOptions() {
         options = false
-        if optionsPage != .speed { focusedAction = optionsPage == .quality ? .quality : .more }
+        focusedAction = .quality
         resumeAfterControls()
     }
     private func resolvedControlInsets(in viewport: GeometryProxy) -> EdgeInsets {
@@ -1257,7 +1245,7 @@ private struct LinkedVideoQualityPicker: View {
         } else if let loadError {
             VStack(alignment: .leading, spacing: 8) {
                 LocalizedText("Couldn’t load video quality.").font(.glam(.subheadline, weight: .semibold))
-                Text(verbatim: loadError).font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
+                Text(verbatim: loadError).font(.glam(.caption)).foregroundStyle(DriveStyle.secondary)
                 Button { refreshID = UUID() } label: {
                     LocalizedText("Retry").font(.glam(.subheadline, weight: .semibold))
                         .padding(.horizontal, 14).padding(.vertical, 8)
@@ -1277,7 +1265,7 @@ private struct LinkedVideoQualityPicker: View {
                 LocalizedText(resolutions.count > 1
                               ? "Supported streams adjust quality to your connection."
                               : "This video plays at its original resolution.")
-                    .font(.glam(.caption)).foregroundStyle(.white.opacity(0.84))
+                    .font(.glam(.caption)).foregroundStyle(DriveStyle.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 10).padding(.bottom, 4)
             }
@@ -1304,8 +1292,8 @@ private struct LinkedVideoQualityPicker: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12).padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .foregroundStyle(isSelected ? Color(red: 0.72, green: 0.87, blue: 1) : .white)
-            .background(isSelected ? Color(red: 0.11, green: 0.28, blue: 0.50).opacity(0.8) : .clear,
+            .foregroundStyle(isSelected ? DriveStyle.accent : DriveStyle.ink)
+            .background(isSelected ? DriveStyle.accent.opacity(0.06) : .clear,
                         in: RoundedRectangle(cornerRadius: 10))
             .contentShape(Rectangle())
         }

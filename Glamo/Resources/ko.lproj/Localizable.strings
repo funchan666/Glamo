@@ -519,7 +519,6 @@
 "Folder name" = "폴더 이름";
 "Create folder" = "폴더 만들기";
 "Select one or more videos." = "동영상을 하나 이상 선택할 수 있습니다.";
-"Pick a video to open in the editor." = "선택한 동영상을 편집기에서 엽니다.";
 "Only empty folders can be deleted." = "빈 폴더만 삭제할 수 있어요.";
 "Minimize player" = "플레이어 최소화";
 "Back to mini player" = "미니 플레이어로 돌아가기";
@@ -701,3 +700,5 @@
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "검색창에 영상 URL 또는 코드를 붙여넣고 검색을 누르세요. 공유된 텍스트의 대소문자를 그대로 유지하세요.";
 "Search your files" = "내 파일 검색";
 "Enter a file or folder name to filter your library as you type." = "파일이나 폴더 이름을 입력하면 입력하는 동안 라이브러리가 필터링됩니다.";
+"Pick a video to add to your library." = "보관함에 추가할 동영상을 선택하세요.";
+"User Agreement" = "사용자 약관";

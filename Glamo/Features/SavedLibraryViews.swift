@@ -323,32 +323,20 @@ struct DriveRemoteVideoRows: View {
 private struct DriveRemoteMoreButton: View {
     let clip: LessonClip
     @EnvironmentObject private var library: LibraryStore
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var showingMenu = false
-    @State private var showingSheet = false
-
     private var title: String { library.favorites.first { $0.id == clip.id }?.title ?? clip.title }
-
     var body: some View {
-        IconButton(symbol: .driveMore, label: "Video options", tint: DriveStyle.ink, glass: true, glyphSize: 16) {
-            if typeSize >= .xxLarge || verticalSizeClass == .compact { showingSheet = true }
-            else { showingMenu = true }
+        IconButton(symbol: .driveMore, label: "Video options", tint: DriveStyle.secondary, glyphSize: 16) {
+            showingMenu = true
         }
         .frame(width: 44, height: 44).fixedSize()
         .accessibilityValue(Text(verbatim: title))
-        .popover(isPresented: $showingMenu, attachmentAnchor: .rect(.bounds), arrowEdge: nil) {
-            DriveRemoteVideoActions(clip: clip, compactMenu: true)
-                .presentationBackground(.regularMaterial)
-                .presentationCompactAdaptation(.popover)
-        }
-        .sheet(isPresented: $showingSheet) { DriveRemoteVideoActions(clip: clip) }
+        .driveDialog(isPresented: $showingMenu) { DriveRemoteVideoActions(clip: clip) }
     }
 }
 
 struct DriveRemoteVideoActions: View {
     let clip: LessonClip
-    var compactMenu = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
     @EnvironmentObject private var library: LibraryStore
@@ -361,83 +349,45 @@ struct DriveRemoteVideoActions: View {
     @State private var collectionPrompt = false
     @State private var collectionMembership = false
     @State private var moveAfterSaving = false
+    @State private var resumeSavingAfterPrompt = false
     @State private var error: String?
     private var saved: Bool { library.isSaved(clip) }
     private var title: String { library.favorites.first { $0.id == clip.id }?.title ?? clip.title }
 
     var body: some View {
-        Group {
-            if compactMenu { compactPanel }
-            else { sheetPanel }
+        VStack(spacing: 8) {
+            fileSummary(compact: false)
+            menuDivider
+            menuActions
         }
+        .padding(16)
         .foregroundStyle(DriveStyle.ink)
         .preferredColorScheme(.light)
-        .presentationBackground(.regularMaterial)
-        .presentationDetents(typeSize >= .xxLarge ? [.large] : [.height(360), .large])
-        .presentationDragIndicator(.hidden)
         .accessibilityAction(.escape) { dismiss() }
-        .sheet(isPresented: $renaming) {
+        .driveDialog(isPresented: $renaming) {
             DriveNameSheet(title: "Rename", startingName: title) { try library.renameSavedVideo(clip.id, to: $0) }
         }
-        .sheet(isPresented: $moving) { SavedVideoMoveSheet(clip: clip) }
-        .sheet(isPresented: $exporting) { RemoteVideoExportView(clip: clip) }
-        .fullScreenCover(isPresented: $collectionMembership, onDismiss: {
-            if commerce.premium { finishSaving() }
-        }) { MembershipView() }
-        .overlay {
-            if deleting {
-                AccountDecisionDialog(title: "Remove saved video", message: "The offline copy will be removed. Your playback history and original video stay available.",
-                                      confirmTitle: "Remove saved video", destructive: true, cancel: { deleting = false }) {
-                    do { try library.removeSavedVideo(clip.id); deleting = false; dismiss() }
-                    catch { self.error = error.localizedDescription; deleting = false }
-                }
+        .driveDialog(isPresented: $moving, maxWidth: 420, height: 540) { SavedVideoMoveSheet(clip: clip) }
+        .fullScreenCover(isPresented: $exporting) { RemoteVideoExportView(clip: clip) }
+        .fullScreenCover(isPresented: $deleting) {
+            AccountDecisionDialog(title: "Remove saved video", message: "The offline copy will be removed. Your playback history and original video stay available.",
+                                  confirmTitle: "Remove saved video", destructive: true, cancel: { deleting = false }) {
+                do { try library.removeSavedVideo(clip.id); deleting = false; dismiss() }
+                catch { self.error = error.localizedDescription; deleting = false }
             }
-            if collectionPrompt {
-                WatchLimitPrompt(showingMembership: $collectionMembership, kind: .collect, finish: finishSaving)
-            }
+        }
+        .fullScreenCover(isPresented: $collectionPrompt, onDismiss: {
+            guard resumeSavingAfterPrompt else { return }
+            resumeSavingAfterPrompt = false
+            if !saved, quota.mayCollect(premium: commerce.premium) { save(moveAfter: moveAfterSaving) }
+        }) {
+            WatchLimitPrompt(showingMembership: $collectionMembership, kind: .collect, finish: finishSaving)
+                .fullScreenCover(isPresented: $collectionMembership, onDismiss: {
+                    if commerce.premium { finishSaving() }
+                }) { MembershipView() }
         }
     }
 
-    private var compactPanel: some View {
-        VStack(spacing: 6) {
-            fileSummary(compact: true)
-            menuDivider
-            ScrollView { menuActions }
-                .scrollBounceBehavior(.basedOnSize)
-                .frame(idealHeight: 252, maxHeight: 280)
-        }
-        .padding(10)
-        .frame(idealWidth: 316, maxWidth: 360)
-        // Existing confirmation and allowance overlays keep room for their actions.
-        .frame(minHeight: collectionPrompt ? 520 : deleting ? 360 : nil)
-    }
-
-    private var sheetPanel: some View {
-        ZStack {
-            Color.clear.contentShape(Rectangle()).onTapGesture { dismiss() }
-                .accessibilityHidden(true)
-            GeometryReader { container in
-                let margins = drivePaneMargins(in: container, includesHorizontalFold: true)
-                VStack(spacing: 8) {
-                    fileSummary(compact: container.size.height - margins.top - margins.bottom < 400)
-                    menuDivider
-                    ViewThatFits(in: .vertical) {
-                        menuActions.fixedSize(horizontal: false, vertical: true)
-                        ScrollView { menuActions }.scrollBounceBehavior(.basedOnSize)
-                    }
-                }
-                .padding(10)
-                .background {
-                    Color.clear.contentShape(RoundedRectangle(cornerRadius: 26)).onTapGesture {}
-                        .accessibilityHidden(true)
-                }
-                .frame(maxWidth: 460)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .padding(margins)
-            }
-        }
-    }
     private func fileSummary(compact: Bool) -> some View {
         HStack(alignment: .top, spacing: 10) {
             if !compact, !typeSize.isAccessibilitySize {
@@ -473,37 +423,30 @@ struct DriveRemoteVideoActions: View {
     }
 
     private var menuActions: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: typeSize >= .xxLarge ? 1 : 2)
-        return VStack(spacing: 2) {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
-                DriveRemoteMenuOption(title: saved ? "Video saved" : "Save video",
-                                      hint: saved ? nil : "Saves a copy for offline playback.",
-                                      image: saved ? "PlayerSaved" : "PlayerSave", selected: saved,
-                                      action: saved ? nil : { save(moveAfter: false) })
-                DriveRemoteDownloadOption(clipID: clip.id, record: library.savedVideo(clip.id),
-                                          saved: saved, cache: library.offline) { save(moveAfter: false) }
-            }
+        VStack(spacing: 2) {
+            DriveRemoteMenuOption(title: saved ? "Video saved" : "Save video",
+                                  hint: saved ? nil : "Saves a copy for offline playback.",
+                                  image: saved ? "PlayerSaved" : "PlayerSave", selected: saved,
+                                  action: saved ? nil : { save(moveAfter: false) })
+            DriveRemoteDownloadOption(clipID: clip.id, record: library.savedVideo(clip.id),
+                                      saved: saved, cache: library.offline) { save(moveAfter: false) }
             if let record = library.savedVideo(clip.id), record.state == .failed {
                 ErrorNote(message: record.failure ?? "Download failed").padding(.horizontal, 8)
             }
-            DriveRemoteMenuOption(title: "Export video", hint: "MP4 and M4A export", glyph: .driveShare) {
-                exporting = true
-            }
-            menuDivider.padding(.vertical, 5)
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
-                DriveRemoteMenuOption(title: "Rename", hint: saved ? nil : "Save this video first.",
-                                      glyph: .edit) { renaming = true }.disabled(!saved)
-                DriveRemoteMenuOption(title: "Move to folder", hint: saved ? nil : "Saves the video before moving it.",
-                                      glyph: .driveFolder) {
-                    if saved { moving = true } else { save(moveAfter: true) }
-                }
+            DriveRemoteMenuOption(title: "Export video", hint: "MP4 and M4A export", glyph: .driveShare,
+                                  tint: Color(red: 0.16, green: 0.72, blue: 0.90)) { exporting = true }
+            DriveRemoteMenuOption(title: "Rename", hint: saved ? nil : "Save this video first.", glyph: .edit) {
+                renaming = true
+            }.disabled(!saved)
+            DriveRemoteMenuOption(title: "Move to folder", hint: saved ? nil : "Saves the video before moving it.",
+                                  glyph: .driveFolder, tint: Color(red: 0.22, green: 0.68, blue: 0.37)) {
+                if saved { moving = true } else { save(moveAfter: true) }
             }
             menuDivider.padding(.vertical, 5)
             DriveRemoteMenuOption(title: "Delete", detail: saved ? "Removes the saved copy only." : nil,
                                   hint: saved ? nil : "No saved copy to remove.",
-                                  glyph: .close, tint: GlamoStyle.danger, role: .destructive) {
-                deleting = true
-            }.disabled(!saved)
+                                  glyph: .close, tint: GlamoStyle.danger, role: .destructive) { deleting = true }
+                .disabled(!saved)
             if let error { ErrorNote(message: error).padding(.horizontal, 10) }
         }
     }
@@ -530,8 +473,8 @@ struct DriveRemoteVideoActions: View {
         }
     }
     private func finishSaving() {
+        resumeSavingAfterPrompt = !saved && quota.mayCollect(premium: commerce.premium)
         collectionPrompt = false
-        if !saved, quota.mayCollect(premium: commerce.premium) { save(moveAfter: moveAfterSaving) }
     }
 }
 
@@ -563,14 +506,14 @@ private struct DriveRemoteMenuOption: View {
             Group {
                 if let image { Image(image).resizable().scaledToFit() }
                 else {
-                    Glyph(symbol: glyph, size: 16, tint: tint)
-                        .frame(width: 28, height: 28)
-                        .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                    Glyph(symbol: glyph, size: 17, tint: .white)
+                        .frame(width: 32, height: 32)
+                        .background(tint, in: RoundedRectangle(cornerRadius: 9))
                 }
             }
-            .frame(width: 28, height: 28).accessibilityHidden(true)
+            .frame(width: 32, height: 32).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                LocalizedText(title).driveFont(14, relativeTo: .subheadline, weight: .medium)
+                LocalizedText(title).driveFont(16, relativeTo: .subheadline, weight: .medium)
                     .foregroundStyle(role == .destructive || selected ? tint : DriveStyle.ink)
                 if let detail {
                     LocalizedText(detail).font(.glam(.caption))
@@ -639,7 +582,7 @@ private struct DriveRemoteDownloadOption: View {
         DriveRemoteMenuOption(title: title, detail: detail,
                               hint: record?.state == .failed ? record?.failure : saved ? nil : "Saves the video before downloading.",
                               glyph: .driveActivity,
-                              tint: Color(red: 0.70, green: 0.34, blue: 0.09), progress: progress,
+                              tint: Color(red: 0.98, green: 0.58, blue: 0.15), progress: progress,
                               action: record?.state == .ready || record?.state == .downloading ? nil : {
             if saved { cache.enqueue(clipID) } else { save() }
         })
@@ -995,7 +938,7 @@ struct StorageManagementSheet: View {
                 }
             }.padding(drivePaneMargins(in: container, includesHorizontalFold: true))
         }.driveScreenBackground()
-            .sheet(item: $options) { DriveItemSheet(item: .file($0), pausePlayback: pauseLocalPlayback) }
+            .driveDialog(item: $options) { DriveItemSheet(item: .file($0), pausePlayback: pauseLocalPlayback) }
             .task(id: revision) {
                 let files = library.movies.map { ($0.id, library.url(for: $0)) }
                 let result = await Task.detached(priority: .utility) {

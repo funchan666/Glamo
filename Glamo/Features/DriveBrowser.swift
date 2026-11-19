@@ -11,6 +11,7 @@ struct DriveBrowser: View {
         case search(close: () -> Void)
     }
 
+    @Environment(\.driveBottomOverlayInset) private var bottomOverlayInset
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var api: APIClient
@@ -35,7 +36,6 @@ struct DriveBrowser: View {
     @State private var showImporter = false
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var editingPhoto: PracticeRecording?
     @State private var showNewFolder = false
     @State private var showingPlus = false
     @State private var options: DriveItem?
@@ -139,23 +139,22 @@ struct DriveBrowser: View {
             selectedPhoto = nil
             importPhoto(selected)
         }
-        .sheet(isPresented: $choosingImportSource, onDismiss: presentImportPicker) { importSources }
-        .sheet(isPresented: $showNewFolder) {
+        .driveDialog(isPresented: $choosingImportSource, onDismiss: presentImportPicker) { importSources }
+        .driveDialog(isPresented: $showNewFolder) {
             DriveNameSheet(title: "New folder", startingName: "") { name in
                 try library.createFolder(named: name, parentID: currentFolderID)
             }
         }
-        .sheet(item: $options) { item in
+        .driveDialog(item: $options) { item in
             DriveItemSheet(item: item, pausePlayback: pausePlayback)
         }
-        .sheet(item: $editingPhoto) { EditorSheet(initialMovie: $0) }
         .fullScreenCover(isPresented: $showingPlus) { MembershipView() }
         .fullScreenCover(item: $searchRequest) { request in
             VideoSearchResultsView(search: request.query) { query, clip in
                 library.record(link: query, title: clip.title)
             }
         }
-        .sheet(isPresented: $showingSearchGuide) { VideoSearchGuideSheet() }
+        .driveDialog(isPresented: $showingSearchGuide, maxWidth: 460, height: 560) { VideoSearchGuideSheet() }
     }
 
     private func searchWorkspace(folders: [VideoFolder], movies: [PracticeRecording],
@@ -227,17 +226,18 @@ struct DriveBrowser: View {
 
     private func searchEmptyLibrary(width: CGFloat) -> some View {
         let contentWidth = max(0, min(width, 680) - DriveStyle.pageInset * 2)
-        let artworkWidth = min(248, contentWidth * 0.8)
+        let artworkWidth = min(216, contentWidth * 0.64)
         let stackedActions = contentWidth < libraryActionWidth * 2 + 12 || typeSize >= .xxLarge
         let actionLayout = stackedActions ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
 
         return VStack(spacing: 20) {
             VStack(spacing: 12) {
-                Image("DriveShelf").resizable().interpolation(.high).scaledToFill()
-                    // Crop the asset's transparent margins, keeping the shelf at its original proportions.
-                    .frame(width: artworkWidth, height: artworkWidth * 0.46).clipped()
-                    .environment(\.layoutDirection, .leftToRight)
-                    .accessibilityHidden(true).allowsHitTesting(false)
+                if !typeSize.isAccessibilitySize {
+                    Image("DriveShelf").resizable().interpolation(.high).scaledToFit()
+                        .frame(width: artworkWidth, height: artworkWidth)
+                        .environment(\.layoutDirection, .leftToRight)
+                        .accessibilityHidden(true).allowsHitTesting(false)
+                }
 
                 VStack(spacing: 6) {
                     LocalizedText("No videos here yet")
@@ -331,7 +331,7 @@ struct DriveBrowser: View {
                     } else if folder != nil {
                         emptyOpenedFolder
                     } else {
-                        DriveWorkspaceEmpty(artwork: "DriveShelf", artworkWidth: min(width * 0.64, height * 0.48, 176),
+                        DriveWorkspaceEmpty(artwork: "DriveShelf", artworkWidth: min(width * 0.56, height * 0.40, 220),
                                             title: "No files yet", message: "Add your first file to keep everything in one place.") {
                             Button(action: openImportSources) {
                                 LocalizedText("Add files")
@@ -339,10 +339,10 @@ struct DriveBrowser: View {
                                 .disabled(library.importingVideo || showImporter || showPhotoPicker)
                                 .accessibilityIdentifier("drive.import")
                         }
-                        .frame(minHeight: max(0, height - 82))
+                        .frame(minHeight: max(0, height - 82 - bottomOverlayInset))
                     }
                 }
-                .padding(.horizontal, DriveStyle.pageInset).padding(.bottom, 24)
+                .padding(.horizontal, DriveStyle.pageInset).padding(.bottom, 24 + bottomOverlayInset)
                 .frame(maxWidth: 680).frame(maxWidth: .infinity)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -516,29 +516,25 @@ struct DriveBrowser: View {
     }
 
     private var importSources: some View {
-        GeometryReader { container in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    SheetHeading(title: "Import videos", inset: false) { choosingImportSource = false }
-                    importSourceButton(.files, title: "Import from Files", detail: "Select one or more videos.",
-                                       glyph: .driveFolder, tint: GlamoStyle.paperMuted)
-                        .accessibilityIdentifier("video.importFiles")
-                    importSourceButton(.photos, title: "Import from Photos", detail: "Pick a video to open in the editor.",
-                                       glyph: .feed, tint: GlamoStyle.surface)
-                        .accessibilityIdentifier("video.importPhotos")
-                    if case .files = surface {
-                        Button { chooseImportSource(.newFolder) } label: {
-                            LocalizedText("New folder")
-                        }
-                        .buttonStyle(CompactActionStyle())
-                    }
-                }
-                .pageHorizontalMargins().padding(.top, 12).padding(.bottom, 24)
-                .frame(maxWidth: 560).frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 8) {
+            SheetHeading(title: "Import videos", inset: false) { choosingImportSource = false }
+            importSourceButton(.files, title: "Import from Files", detail: "Select one or more videos.",
+                               glyph: .driveFolder, tint: GlamoStyle.paper)
+                .accessibilityIdentifier("video.importFiles")
+            importSourceButton(.photos, title: "Import from Photos", detail: "Pick a video to add to your library.",
+                               glyph: .feed, tint: GlamoStyle.paper)
+                .accessibilityIdentifier("video.importPhotos")
+            if case .files = surface {
+                Divider().overlay(DriveStyle.separator)
+                Button { chooseImportSource(.newFolder) } label: {
+                    HStack(spacing: 12) {
+                        Glyph(symbol: .driveAdd, size: 20, tint: DriveStyle.accent).frame(width: 42)
+                        LocalizedText("New folder").driveFont(16, relativeTo: .subheadline)
+                        Spacer(minLength: 0)
+                    }.frame(minHeight: 48).contentShape(Rectangle())
+                }.buttonStyle(PressStyle())
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .padding(drivePaneMargins(in: container))
-        }.glamoScreenBackground().presentationDetents([.medium, .large])
+        }.padding(16).foregroundStyle(DriveStyle.ink)
     }
 
     private func importSourceButton(_ source: ImportSource, title: String, detail: String,
@@ -590,9 +586,8 @@ struct DriveBrowser: View {
         Task {
             defer { library.finishVideoImport() }
             do {
-                let file = try await library.importPhoto(selection, folderID: destination)
+                _ = try await library.importPhoto(selection, folderID: destination)
                 pausePlayback()
-                editingPhoto = file
             } catch { showImportError(error) }
         }
     }
@@ -780,7 +775,7 @@ struct DriveBrowser: View {
                 }
             }
             .padding(.horizontal, 16)
-            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+            .driveGlassCard()
         }
     }
 
@@ -979,7 +974,7 @@ struct DriveBrowser: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+        .driveGlassCard()
     }
 
     private func fileCell(_ movie: PracticeRecording, queue: [PracticeRecording], tile: Bool, compactTile: Bool = false) -> some View {
@@ -1007,7 +1002,7 @@ private struct DriveGroupedRows<Item: Identifiable, Row: View>: View {
             }
         }
         .padding(.horizontal, 10)
-        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+        .driveGlassCard()
     }
 }
 
@@ -1299,7 +1294,7 @@ struct DriveSharedFilesView: View {
             }
         }
         .driveScreenBackground()
-        .sheet(item: $options) { DriveItemSheet(item: $0, pausePlayback: pausePlayback) }
+        .driveDialog(item: $options) { DriveItemSheet(item: $0, pausePlayback: pausePlayback) }
     }
 }
 
@@ -1311,6 +1306,7 @@ struct DriveRecentView: View {
         var title: String { self == .saved ? "Saved" : "Viewed" }
     }
 
+    @Environment(\.driveBottomOverlayInset) private var bottomOverlayInset
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.locale) private var locale
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -1347,7 +1343,7 @@ struct DriveRecentView: View {
                                 .padding(.top, 20)
                         } else if saved.isEmpty && viewed.isEmpty && library.favorites.isEmpty && library.recentRemotePlayback.isEmpty {
                             DriveWorkspaceEmpty(artwork: "DriveRecentArtwork",
-                                                artworkWidth: min(container.size.width * 0.54, container.size.height * 0.46, 176),
+                                                artworkWidth: min(container.size.width * 0.56, container.size.height * 0.40, 220),
                                                 title: "No recent activity", message: "Files you save or open will appear here.") {
                                 Button(action: browse) {
                                     LocalizedText("Browse files")
@@ -1358,7 +1354,7 @@ struct DriveRecentView: View {
                                         .contentShape(Rectangle())
                                 }.buttonStyle(PressStyle())
                             }
-                            .frame(minHeight: max(0, container.size.height - 82))
+                            .frame(minHeight: max(0, container.size.height - 82 - bottomOverlayInset))
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
                                 recentSection(.saved, queue: saved)
@@ -1367,14 +1363,14 @@ struct DriveRecentView: View {
                             .padding(.top, 8)
                         }
                     }
-                    .padding(.horizontal, DriveStyle.pageInset).padding(.bottom, 24)
+                    .padding(.horizontal, DriveStyle.pageInset).padding(.bottom, 24 + bottomOverlayInset)
                     .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
         }
         .driveScreenBackground()
-        .sheet(item: $options) { item in
+        .driveDialog(item: $options) { item in
             DriveItemSheet(item: item, pausePlayback: pausePlayback)
         }
         .overlay {
@@ -1462,7 +1458,7 @@ struct DriveRecentView: View {
             .driveFont(14, relativeTo: .footnote).foregroundStyle(DriveStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+            .driveGlassCard()
     }
 
     private struct HistoryEntry: Identifiable {
@@ -1489,7 +1485,7 @@ struct DriveRecentView: View {
                 if let file = entry.file {
                     historyRow(file, section: section, queue: queue,
                                detail: entry.date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale)))
-                        .background(.white, in: RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
+                        .driveGlassCard()
                 } else if let clip = entry.clip {
                     DriveRemoteVideoRows(clips: [clip], viewingHistory: section == .viewed,
                                          playbackQueue: section == .saved ? library.favorites : library.recentRemotePlayback.map(\.clip))
@@ -1810,53 +1806,21 @@ private struct DriveTabEmptyState<Header: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let artworkWidth = typeSize.isAccessibilitySize ? 0 : min(paneSize.width, 480, paneSize.height * 0.70)
-        let artworkHeight = artworkWidth * 0.52
-        let overlapFraction: CGFloat = 0.13
-
         VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                header()
-                    .pageHorizontalMargins().padding(.top, 16)
-                    .frame(maxWidth: 680, alignment: .leading).frame(maxWidth: .infinity)
-                if artworkWidth > 0 {
-                    Color.clear.frame(height: artworkHeight * (1 - overlapFraction))
-                        .accessibilityHidden(true).allowsHitTesting(false)
-                }
-            }
-            .background(alignment: .bottom) {
-                if artworkWidth > 0 {
-                    Image(artwork).resizable().interpolation(.high).scaledToFit()
-                        .frame(width: artworkWidth, height: artworkHeight)
-                        .mask {
-                            LinearGradient(stops: [
-                                .init(color: .clear, location: 0),
-                                .init(color: .clear, location: overlapFraction),
-                                .init(color: .white, location: 0.21),
-                                .init(color: .white, location: 0.96),
-                                .init(color: .clear, location: 1)
-                            ], startPoint: .top, endPoint: .bottom)
-                        }
-                        .accessibilityHidden(true).allowsHitTesting(false)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                LocalizedText(title).font(.glam(.title2, weight: .semibold))
-                    .accessibilityAddTraits(.isHeader)
-                LocalizedText(message).font(.glam(.subheadline))
-                    .foregroundStyle(GlamoStyle.secondary).fixedSize(horizontal: false, vertical: true)
+            header()
+                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 8)
+                .frame(maxWidth: 680).frame(maxWidth: .infinity)
+            DriveWorkspaceEmpty(artwork: artwork,
+                                artworkWidth: min(paneSize.width * 0.56, paneSize.height * 0.40, 220),
+                                title: title, message: message) {
                 Button(action: browse) {
-                    Label { LocalizedText("Go to Files") } icon: {
-                        Glyph(symbol: .driveFolder, size: 16, tint: GlamoStyle.accent)
-                    }
-                }.buttonStyle(CompactActionStyle()).padding(.top, 4)
-            }
-            .pageHorizontalMargins()
-            .padding(.top, artworkWidth > 0 ? 4 : 16).padding(.bottom, 24)
-            .frame(maxWidth: 680, alignment: .leading).frame(maxWidth: .infinity)
+                    LocalizedText("Browse files").driveFont(17, relativeTo: .headline, weight: .semibold)
+                        .foregroundStyle(DriveStyle.accent).padding(.horizontal, 12).frame(minHeight: 44)
+                }.buttonStyle(PressStyle())
+            }.frame(minHeight: max(0, paneSize.height - 140))
         }
     }
+
 }
 
 struct DrivePageTitle: View {
@@ -1925,10 +1889,8 @@ struct DriveProfileAvatar: View {
     let size: CGFloat
 
     var body: some View {
-        Image("GlamoLaunchMark").resizable().scaledToFit()
-            .frame(width: size * 0.74, height: size * 0.74)
-            .frame(width: size, height: size)
-            .background(DriveStyle.ink, in: Circle())
+        Image("GlamoLaunchMark").resizable().scaledToFill()
+            .frame(width: size, height: size).clipShape(Circle())
             .accessibilityHidden(true)
     }
 }
@@ -1971,9 +1933,6 @@ enum DriveItem: Identifiable {
 }
 
 private struct DriveListOptionsButton: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @State private var showingMenu = false
     let item: DriveItem
     let pausePlayback: () -> Void
     let fallback: () -> Void
@@ -1983,20 +1942,9 @@ private struct DriveListOptionsButton: View {
         case .file(let file): ("File options", file.displayName)
         case .folder(let folder): ("Folder options", folder.name)
         }
-
-        IconButton(symbol: .driveMore, label: metadata.label, tint: DriveStyle.secondary, glyphSize: 14) {
-            if typeSize.isAccessibilitySize || verticalSizeClass == .compact {
-                fallback()
-            } else {
-                showingMenu = true
-            }
-        }
-        .accessibilityValue(Text(verbatim: metadata.name))
-        .popover(isPresented: $showingMenu, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-            DriveItemSheet(item: item, pausePlayback: pausePlayback, compactMenu: true)
-                .presentationBackground(.regularMaterial)
-                .presentationCompactAdaptation(.popover)
-        }
+        IconButton(symbol: .driveMore, label: metadata.label, tint: DriveStyle.secondary,
+                   glyphSize: 14, action: fallback)
+            .accessibilityValue(Text(verbatim: metadata.name))
     }
 }
 
@@ -2007,15 +1955,13 @@ struct DriveItemSheet: View {
     @Environment(\.layoutDirection) private var layoutDirection
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
-    @ScaledMetric(relativeTo: .subheadline) private var videoActionColumnWidth: CGFloat = 152
     let item: DriveItem
     let pausePlayback: () -> Void
     private let closeVideoOptions: (() -> Void)?
-    private let compactMenu: Bool
     private var returnsToVideoOptions = false
     @State private var mode: Mode = .actions
     @State private var videoDetail: Mode?
-    @State private var editing = false
+    @State private var exporting = false
     @State private var paywall = false
     @State private var share: SharedFile?
     @State private var sharing = false
@@ -2029,12 +1975,10 @@ struct DriveItemSheet: View {
         var id: Self { self }
     }
 
-    init(item: DriveItem, pausePlayback: @escaping () -> Void, closeVideoOptions: (() -> Void)? = nil,
-         compactMenu: Bool = false) {
+    init(item: DriveItem, pausePlayback: @escaping () -> Void, closeVideoOptions: (() -> Void)? = nil) {
         self.item = item
         self.pausePlayback = pausePlayback
         self.closeVideoOptions = closeVideoOptions
-        self.compactMenu = compactMenu
     }
 
     private init(item: DriveItem, pausePlayback: @escaping () -> Void, opening detail: Mode) {
@@ -2081,26 +2025,18 @@ struct DriveItemSheet: View {
 
     var body: some View {
         Group {
-            if let closeVideoOptions, case .file(let file) = current {
-                DriveVideoBottomOverlay(title: optionsTitle, columnWidth: videoActionColumnWidth, close: {
-                    if !sharing { closeVideoOptions() }
-                }) { columns in
-                    let actions = videoActions(for: file, columns: columns)
-                    return ViewThatFits(in: .vertical) {
-                        actions.fixedSize(horizontal: false, vertical: true)
-                        ScrollView { actions }.scrollBounceBehavior(.basedOnSize)
-                    }
+            if let closeVideoOptions {
+                DriveFloatingDialog(overVideo: true, close: { if !sharing { closeVideoOptions() } }) {
+                    sheetContent
                 }
-            } else if compactMenu {
-                compactActions
             } else {
                 sheetContent
             }
         }
         .allowsHitTesting(!sharing)
         .interactiveDismissDisabled(sharing)
-        .sheet(isPresented: $editing) {
-            if case .file(let movie) = current { EditorSheet(initialMovie: movie) }
+        .fullScreenCover(isPresented: $exporting) {
+            if case .file(let movie) = current { EditorSheet(initialMovie: movie, exportOnly: true) }
         }
         .fullScreenCover(isPresented: $paywall) { MembershipView(requiredBenefit: .mediaExport) }
         .sheet(item: $share) { file in
@@ -2108,198 +2044,78 @@ struct DriveItemSheet: View {
                 if case .completed = outcome, let id = file.recordingID { library.recordSharedFile(id) }
             })
         }
-        .sheet(item: $videoDetail) { detail in
+        .driveDialog(item: $videoDetail) { detail in
             DriveItemSheet(item: item, pausePlayback: pausePlayback, opening: detail)
         }
     }
 
     private var sheetContent: some View {
-        GeometryReader { container in
-            VStack(spacing: 0) {
-                sheetHeader
-                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 4)
-                    .frame(maxWidth: 560).frame(maxWidth: .infinity)
-                switch mode {
-                case .actions:
-                    sheetScroll { actionsPanel }
-                case .rename:
-                    DriveNameForm(startingName: currentName) { name in
-                        switch current {
-                        case .file(let file): try library.renameFile(file.id, to: name)
-                        case .folder(let folder): try library.renameFolder(folder.id, to: name)
-                        }
-                        returnToActions()
-                    }
-                case .move:
-                    sheetScroll { movePanel }
-                case .remove:
-                    sheetScroll { removalPanel }
-                        .safeAreaInset(edge: .bottom, spacing: 0) {
-                            DriveSheetFooter {
-                                ViewThatFits(in: .horizontal) {
-                                    HStack(spacing: 10) { removalActions(disabled: false) }
-                                    VStack(spacing: 8) { removalActions(disabled: false) }
-                                }
-                            }
-                        }
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            SheetHeading(title: sheetTitle, inset: false) {
+                if let closeVideoOptions { closeVideoOptions() } else { dismiss() }
             }
-            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
-        }
-        .glamoScreenBackground()
-    }
-
-    @ViewBuilder private var sheetHeader: some View {
-        if mode == .actions {
-            SheetHeading(title: sheetTitle, inset: false) { dismiss() }
-        } else {
-            HStack(spacing: 10) {
-                IconButton(symbol: .back, label: "Back", glass: true, action: returnToActions)
-                    .rotationEffect(.degrees(layoutDirection == .leftToRight ? 0 : 180))
-                LocalizedText(sheetTitle).font(.glam(.headline))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityAddTraits(.isHeader)
-            }
-        }
-    }
-
-    private func sheetScroll<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        ScrollView {
-            content()
-                .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 24)
-                .frame(maxWidth: 560).frame(maxWidth: .infinity)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-    }
-
-    private var actionsPanel: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if case .file(let file) = current, sharing || shareError != nil || share != nil {
-                shareStatus(for: file)
-            } else {
+            switch mode {
+            case .actions:
                 itemSummary
-                    .padding(14)
-                    .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
-            }
-            if case .file(let file) = current {
-                favoriteOption(file)
-                fileActions(file)
-            }
-            errorMessage
-            managementActions
-            option(removalDetails.title, glyph: .close, tint: GlamoStyle.danger) { openDetail(.remove) }
-                .background(GlamoStyle.danger.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
-        }
-    }
-
-    private var compactActions: some View {
-        let rows = VStack(spacing: 0) {
-            if case .file(let file) = current {
-                favoriteOption(file)
-                if sharing || shareError != nil || share != nil {
-                    shareStatus(for: file).padding(.bottom, 8)
+                Divider().overlay(DriveStyle.separator)
+                if case .file(let file) = current {
+                    favoriteOption(file)
+                    if sharing || shareError != nil || share != nil { shareStatus(for: file) }
+                    if !file.isAudio {
+                        compactOption("Export video", glyph: .driveShare,
+                                      tint: Color(red: 0.98, green: 0.58, blue: 0.15), action: beginExport)
+                    }
+                    compactOption(shareError == nil ? "Share file" : "Retry sharing", glyph: .driveShare,
+                                  tint: Color(red: 0.16, green: 0.72, blue: 0.90)) { shareFile(file) }
+                        .disabled(sharing)
                 }
-                if !file.isAudio {
-                    compactOption("Edit video", glyph: .edit, tint: Color(red: 0.95, green: 0.55, blue: 0.22),
-                                  action: beginEditing)
+                compactOption("Rename", glyph: .edit, tint: DriveStyle.accent) { openDetail(.rename) }
+                compactOption("Move to folder", glyph: .driveFolder, tint: Color(red: 0.22, green: 0.68, blue: 0.37)) {
+                    openDetail(.move)
                 }
-                compactOption(shareError == nil ? "Share file" : "Retry sharing", glyph: .driveShare,
-                              tint: Color(red: 0.16, green: 0.72, blue: 0.90)) { shareFile(file) }
-                    .disabled(sharing)
+                Divider().overlay(DriveStyle.separator)
+                compactOption("Delete", glyph: .close, tint: GlamoStyle.danger) { openDetail(.remove) }
+                errorMessage
+            case .rename:
+                DriveNameForm(startingName: currentName, cancel: returnToActions) { name in
+                    switch current {
+                    case .file(let file): try library.renameFile(file.id, to: name)
+                    case .folder(let folder): try library.renameFolder(folder.id, to: name)
+                    }
+                    returnToActions()
+                }
+            case .move:
+                ScrollView { movePanel }.scrollBounceBehavior(.basedOnSize)
+                    .frame(height: typeSize.isAccessibilitySize ? 420 : 340)
+                Button(action: returnToActions) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
+            case .remove:
+                Text(verbatim: currentName).driveFont(15, relativeTo: .subheadline, weight: .medium)
+                    .lineLimit(3).truncationMode(.middle)
+                LocalizedText(removalDetails.explanation).driveFont(14, relativeTo: .footnote)
+                    .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                errorMessage
+                DriveDialogActions { removalActions(disabled: false) }
             }
-            compactOption("Rename", glyph: .edit, tint: DriveStyle.accent) { openDetail(.rename) }
-            compactOption("Move to folder", glyph: .driveFolder, tint: Color(red: 0.22, green: 0.68, blue: 0.37)) {
-                openDetail(.move)
-            }
-            Divider().overlay(.white.opacity(0.35))
-            compactOption("Delete", glyph: .close, tint: GlamoStyle.danger) { openDetail(.remove) }
         }
-
-        return ViewThatFits(in: .vertical) {
-            rows.fixedSize(horizontal: false, vertical: true)
-            ScrollView { rows }.scrollBounceBehavior(.basedOnSize)
-        }
-        .padding(10)
-        .frame(width: 218)
-        .frame(maxHeight: 330)
-        .foregroundStyle(DriveStyle.ink)
+        .padding(16).foregroundStyle(DriveStyle.ink).preferredColorScheme(.light)
     }
 
     private func compactOption(_ title: String, glyph: GlamoGlyph, tint: Color,
                                action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                Glyph(symbol: glyph, size: 16, tint: .white)
-                    .frame(width: 30, height: 30)
+            HStack(spacing: 12) {
+                Glyph(symbol: glyph, size: 17, tint: .white)
+                    .frame(width: 32, height: 32)
                     .background(tint, in: RoundedRectangle(cornerRadius: 9))
-                LocalizedText(title)
-                    .driveFont(15, relativeTo: .subheadline)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                LocalizedText(title).driveFont(16, relativeTo: .subheadline)
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 5).padding(.vertical, 6)
-            .frame(minHeight: 48)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PressStyle())
-    }
-
-    private func videoActions(for file: PracticeRecording, columns: [GridItem]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if sharing || shareError != nil || share != nil {
-                shareStatus(for: file)
-                    .environment(\.colorScheme, .light)
-            }
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 2) {
-                videoOption(file.isFavorite == true ? "Remove from saved" : "Save video", glyph: .feed) {
-                    perform { try library.toggleFileFavorite(file.id) }
-                }
-                if !file.isAudio {
-                    videoOption("Edit video", glyph: .edit, action: beginEditing)
-                }
-                videoOption(shareError == nil ? "Share file" : "Retry sharing", glyph: .driveShare) {
-                    shareFile(file)
-                }
-                .disabled(sharing)
-                videoOption("Rename", glyph: .edit) { openDetail(.rename) }
-                videoOption("Move to folder", glyph: .driveFolder) { openDetail(.move) }
-            }
-
-            Divider().overlay(Color.white.opacity(0.18)).allowsHitTesting(false).accessibilityHidden(true)
-            videoOption(removalDetails.title, glyph: .close, role: .destructive) { openDetail(.remove) }
-        }
-    }
-
-    private func videoOption(_ title: String, glyph: GlamoGlyph, role: ButtonRole? = nil,
-                             action: @escaping () -> Void) -> some View {
-        let destructive = role == .destructive
-        let tint = destructive ? Color(red: 1, green: 0.72, blue: 0.76) : Color(red: 0.66, green: 0.84, blue: 1)
-        return Button(role: role, action: action) {
-            HStack(spacing: 10) {
-                Glyph(symbol: glyph, size: 16, tint: tint)
-                    .frame(width: 30, height: 30)
-                    .background(tint.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
-                LocalizedText(title)
-                    .font(.glam(.subheadline, weight: .semibold))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .foregroundStyle(destructive ? tint : .white)
-            .padding(.horizontal, 8).padding(.vertical, 6)
-            .frame(minHeight: 44)
-            .background(destructive ? GlamoStyle.danger.opacity(0.28) : .clear,
-                        in: RoundedRectangle(cornerRadius: 10))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PressStyle())
+            }.padding(.vertical, 2).frame(minHeight: 48).contentShape(Rectangle())
+        }.buttonStyle(PressStyle())
     }
 
     private func openDetail(_ detail: Mode) {
-        if closeVideoOptions != nil || compactMenu {
+        if closeVideoOptions != nil {
             videoDetail = detail
         } else {
             mode = detail
@@ -2335,7 +2151,8 @@ struct DriveItemSheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: currentName)
-                    .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
+                    .font(.glam(.headline)).lineLimit(typeSize.isAccessibilitySize ? 4 : 2).truncationMode(.middle)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 switch current {
                 case .file(let movie):
@@ -2345,17 +2162,6 @@ struct DriveItemSheet: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder private func fileActions(_ file: PracticeRecording) -> some View {
-        if file.isAudio {
-            fileActionButtons(file)
-        } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { fileActionButtons(file) }
-                VStack(spacing: 8) { fileActionButtons(file) }
-            }
         }
     }
 
@@ -2374,29 +2180,9 @@ struct DriveItemSheet: View {
         }.buttonStyle(PressStyle())
     }
 
-    @ViewBuilder private func fileActionButtons(_ file: PracticeRecording) -> some View {
-        if !file.isAudio {
-            Button(action: beginEditing) {
-                Label { LocalizedText("Edit video") } icon: {
-                    Glyph(symbol: .edit, size: 17, tint: GlamoStyle.onAccent)
-                }
-            }
-            .buttonStyle(GlamoActionStyle())
-        }
-        Button {
-            shareFile(file)
-        } label: {
-            Label { LocalizedText(shareError == nil ? "Share file" : "Retry sharing") } icon: {
-                Glyph(symbol: .driveShare, size: 17, tint: file.isAudio && !sharing ? GlamoStyle.onAccent : GlamoStyle.accent)
-            }
-        }
-        .buttonStyle(GlamoActionStyle(primary: file.isAudio))
-        .disabled(sharing)
-    }
-
-    private func beginEditing() {
+    private func beginExport() {
         pausePlayback()
-        editing = true
+        exporting = true
     }
 
     private func shareStatus(for file: PracticeRecording) -> some View {
@@ -2456,15 +2242,6 @@ struct DriveItemSheet: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-    }
-
-    private var managementActions: some View {
-        VStack(spacing: 0) {
-            option("Rename", glyph: .edit, showsArrow: true) { openDetail(.rename) }
-            Divider().overlay(GlamoStyle.line).padding(.horizontal, 12)
-            option("Move to folder", glyph: .driveFolder, showsArrow: true) { openDetail(.move) }
-        }
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: GlamoStyle.surface)
     }
 
     private var movePanel: some View {
@@ -2531,33 +2308,8 @@ struct DriveItemSheet: View {
         ([filesTitle] + folders.map(\.name)).joined(separator: " / ")
     }
 
-    private var removalPanel: some View {
-        let details = removalDetails
-        return VStack(alignment: .leading, spacing: 14) {
-            itemSummary
-                .padding(14)
-                .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
-
-            VStack(alignment: .leading, spacing: 5) {
-                LocalizedText(details.containsItems ? "Folder contains items" : "After deletion")
-                    .font(.glam(.subheadline, weight: .semibold))
-                    .foregroundStyle(details.containsItems ? GlamoStyle.danger : GlamoStyle.ink)
-                    .accessibilityAddTraits(.isHeader)
-                LocalizedText(details.explanation)
-                    .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
-            }
-            .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(details.containsItems ? GlamoStyle.danger.opacity(0.08) : GlamoStyle.surface,
-                        in: RoundedRectangle(cornerRadius: 14))
-
-            errorMessage
-        }
-    }
-
     @ViewBuilder private func removalActions(disabled: Bool) -> some View {
-        ActionButton(title: "Cancel", primary: false, action: returnToActions)
+        Button(action: returnToActions) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
         Button(role: .destructive) {
             perform {
                 switch current {
@@ -2566,17 +2318,8 @@ struct DriveItemSheet: View {
                 }
                 dismiss()
             }
-        } label: {
-            LocalizedText("Delete")
-                .font(.glam(.subheadline, weight: .semibold))
-                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .frame(minWidth: 44, maxWidth: .infinity, minHeight: 52)
-                .foregroundStyle(disabled ? GlamoStyle.secondary : GlamoStyle.onAccent)
-                .background(disabled ? GlamoStyle.raised : GlamoStyle.danger, in: Capsule())
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(PressStyle()).disabled(disabled)
+        } label: { LocalizedText("Delete") }
+        .buttonStyle(DriveDialogButtonStyle(destructive: true)).disabled(disabled)
     }
 
     @ViewBuilder private var errorMessage: some View {
@@ -2596,23 +2339,6 @@ struct DriveItemSheet: View {
                 : "The empty folder will be removed from Vifol."
             return ("Delete folder", explanation, containsItems)
         }
-    }
-
-    private func option(_ title: String, glyph: GlamoGlyph, tint: Color = GlamoStyle.ink, showsArrow: Bool = false,
-                        action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Glyph(symbol: glyph, size: 18, tint: showsArrow ? GlamoStyle.accent : tint)
-                LocalizedText(title).font(.glam(.subheadline, weight: .semibold))
-                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                if showsArrow {
-                    Glyph(symbol: .back, size: 12, tint: GlamoStyle.secondary)
-                        .rotationEffect(.degrees(layoutDirection == .leftToRight ? 180 : 0))
-                }
-            }.foregroundStyle(tint).padding(.horizontal, 14).padding(.vertical, 10).frame(minHeight: 50)
-                .contentShape(Rectangle())
-        }.buttonStyle(PressStyle())
     }
 
     private func destination(_ target: MoveDestination?) -> some View {
@@ -2701,112 +2427,63 @@ struct DriveNameSheet: View {
     let save: (String) throws -> Void
 
     var body: some View {
-        GeometryReader { container in
-            VStack(spacing: 0) {
-                SheetHeading(title: title, inset: false) { dismiss() }
-                    .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 4)
-                    .frame(maxWidth: 560).frame(maxWidth: .infinity)
-                DriveNameForm(startingName: startingName, creatingFolder: true) { name in
-                    try save(name)
-                    dismiss()
-                }
+        VStack(alignment: .leading, spacing: 14) {
+            LocalizedText(title).driveFont(17, relativeTo: .headline, weight: .semibold)
+                .accessibilityAddTraits(.isHeader)
+            DriveNameForm(startingName: startingName, creatingFolder: startingName.isEmpty, cancel: { dismiss() }) { name in
+                try save(name)
+                dismiss()
             }
-            .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
-        }.glamoScreenBackground()
+        }.padding(18).foregroundStyle(DriveStyle.ink)
     }
 }
 
 private struct DriveNameForm: View {
     let creatingFolder: Bool
+    let cancel: () -> Void
     let save: (String) throws -> Void
     private let startingName: String
     @State private var name: String
     @State private var error: String?
     @FocusState private var nameFocused: Bool
 
-    init(startingName: String, creatingFolder: Bool = false, save: @escaping (String) throws -> Void) {
+    init(startingName: String, creatingFolder: Bool = false, cancel: @escaping () -> Void,
+         save: @escaping (String) throws -> Void) {
         self.startingName = startingName
         self.creatingFolder = creatingFolder
+        self.cancel = cancel
         self.save = save
         _name = State(initialValue: startingName)
     }
 
-    private var nameIsEmpty: Bool {
-        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    private var nameIsEmpty: Bool { name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if creatingFolder {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 10) {
-                            Glyph(symbol: .driveFolder, size: 19, tint: GlamoStyle.accent)
-                                .frame(width: 34, height: 34)
-                                .background(GlamoStyle.paper, in: RoundedRectangle(cornerRadius: 9))
-                            LocalizedText("Folder name").font(.glam(.subheadline, weight: .semibold))
-                        }.accessibilityHidden(true)
-                        nameField
-                        if let error { ErrorNote(message: error) }
-                    }
-                    .padding(14)
-                    .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
-                } else {
-                    renameFields
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            if !creatingFolder {
+                VStack(alignment: .leading, spacing: 3) {
+                    LocalizedText("Current name").driveFont(12, relativeTo: .caption, weight: .medium)
+                    Text(verbatim: startingName).driveFont(14, relativeTo: .subheadline).lineLimit(3).truncationMode(.middle)
+                }.foregroundStyle(DriveStyle.secondary).accessibilityElement(children: .combine)
             }
-            .pageHorizontalMargins().padding(.top, 8).padding(.bottom, 16)
-            .frame(maxWidth: 560).frame(maxWidth: .infinity)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            DriveSheetFooter {
-                ActionButton(title: creatingFolder ? "Create folder" : "Save name", action: commit)
-                    .disabled(nameIsEmpty)
+            TextField(LocalizedStringKey(creatingFolder ? "Folder name" : "New name"), text: $name)
+                .driveFont(15, relativeTo: .body)
+                .foregroundStyle(DriveStyle.ink).tint(DriveStyle.accent)
+                .padding(.horizontal, 12).padding(.vertical, 11).frame(minHeight: 44)
+                .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 12))
+                .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(nameFocused ? DriveStyle.accent : GlamoStyle.line) }
+                .autocorrectionDisabled().submitLabel(.done).focused($nameFocused).onSubmit(commit)
+                .accessibilityLabel(LocalizedStringKey(creatingFolder ? "Folder name" : "New name"))
+            if let message = error ?? (nameIsEmpty && !creatingFolder ? "Enter a new name." : nil) {
+                ErrorNote(message: message).fixedSize(horizontal: false, vertical: true)
+            }
+            DriveDialogActions {
+                Button(action: cancel) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
+                Button(action: commit) { LocalizedText(creatingFolder ? "Create folder" : "Save name") }
+                    .buttonStyle(DriveDialogButtonStyle(primary: true)).disabled(nameIsEmpty)
             }
         }
         .onChange(of: name) { _, _ in error = nil }
-    }
-
-    @ViewBuilder private var renameFields: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            LocalizedText("Current name")
-                .font(.glam(.caption, weight: .semibold)).foregroundStyle(GlamoStyle.secondary)
-            Text(verbatim: startingName)
-                .font(.glam(.headline)).fixedSize(horizontal: false, vertical: true)
-        }
-        .multilineTextAlignment(.leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
-        .accessibilityElement(children: .combine)
-
-        VStack(alignment: .leading, spacing: 6) {
-            LocalizedText("New name")
-                .font(.glam(.subheadline, weight: .semibold))
-                .accessibilityHidden(true)
-            nameField
-            if let message = nameIsEmpty ? "Enter a new name." : error {
-                ErrorNote(message: message)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private var nameField: some View {
-        TextField(LocalizedStringKey(creatingFolder ? "Folder name" : "New name"), text: $name,
-                  prompt: Text(verbatim: ""))
-            .autocorrectionDisabled().submitLabel(.done)
-            .focused($nameFocused)
-            .glamoField()
-            .overlay {
-                if nameFocused {
-                    RoundedRectangle(cornerRadius: 14).strokeBorder(GlamoStyle.accent)
-                        .allowsHitTesting(false)
-                }
-            }
-            .onSubmit(commit)
     }
 
     private func commit() {
@@ -2814,17 +2491,5 @@ private struct DriveNameForm: View {
         error = nil
         do { try save(name) }
         catch { self.error = error.localizedDescription }
-    }
-}
-
-private struct DriveSheetFooter<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        content()
-            .pageHorizontalMargins().padding(.vertical, 8)
-            .frame(maxWidth: 560).frame(maxWidth: .infinity)
-            .background(.regularMaterial, ignoresSafeAreaEdges: [.horizontal, .bottom])
-            .overlay(alignment: .top) { Divider().overlay(GlamoStyle.line).allowsHitTesting(false) }
     }
 }

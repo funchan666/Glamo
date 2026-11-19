@@ -1,25 +1,25 @@
 import SwiftUI
 import UIKit
 
-// Limestone surfaces and an ink blue accent keep video frames distinct.
+// Shared palette from the supplied Vifol design (APP UI / 323:4903).
 enum GlamoStyle {
-    static let background = Color(red: 0.973, green: 0.969, blue: 0.949)
-    static let surface = Color(red: 1, green: 0.997, blue: 0.984)
-    static let raised = Color(red: 0.910, green: 0.921, blue: 0.933)
-    static let accent = Color(red: 0.153, green: 0.271, blue: 0.666)
-    static let playbackProgress = Color(red: 0.68, green: 0.28, blue: 0.11)
-    static let onAccent = Color(red: 0.992, green: 0.985, blue: 0.961)
-    static let ink = Color(red: 0.098, green: 0.137, blue: 0.204)
-    static let secondary = Color(red: 0.302, green: 0.349, blue: 0.429)
-    static let paper = Color(red: 0.929, green: 0.941, blue: 0.965)
-    static let paperMuted = Color(red: 0.851, green: 0.896, blue: 0.977)
-    static let line = Color(red: 0.833, green: 0.863, blue: 0.903)
+    static let background = DriveStyle.background
+    static let surface = Color.white
+    static let raised = Color(red: 229 / 255, green: 229 / 255, blue: 234 / 255)
+    static let accent = DriveStyle.accent
+    static let playbackProgress = DriveStyle.accent
+    static let onAccent = Color.white
+    static let ink = DriveStyle.ink
+    static let secondary = DriveStyle.secondary
+    static let paper = Color(red: 247 / 255, green: 248 / 255, blue: 252 / 255)
+    static let paperMuted = Color(red: 223 / 255, green: 235 / 255, blue: 252 / 255)
+    static let line = Color(red: 228 / 255, green: 228 / 255, blue: 234 / 255)
     static let controlLine = Color(red: 0.424, green: 0.475, blue: 0.565)
     static let danger = Color(red: 0.647, green: 0.176, blue: 0.212)     // #A52D36
 }
 
 enum DriveStyle {
-    static let background = Color(red: 242 / 255, green: 241 / 255, blue: 248 / 255)
+    static let background = Color(red: 242 / 255, green: 241 / 255, blue: 247 / 255)
     static let accent = Color(red: 0, green: 130 / 255, blue: 251 / 255)
     static let link = Color(red: 0, green: 101 / 255, blue: 200 / 255)
     static let folder = Color(red: 238 / 255, green: 170 / 255, blue: 23 / 255)
@@ -30,6 +30,119 @@ enum DriveStyle {
     static let pageInset: CGFloat = 24
     static let cardRadius: CGFloat = 24
     static let tabWidth: CGFloat = 344
+}
+
+private struct DriveFloatingPresentationKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct DriveBottomOverlayInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var driveBottomOverlayInset: CGFloat {
+        get { self[DriveBottomOverlayInsetKey.self] }
+        set { self[DriveBottomOverlayInsetKey.self] = newValue }
+    }
+
+    var driveFloatingPresentation: Bool {
+        get { self[DriveFloatingPresentationKey.self] }
+        set { self[DriveFloatingPresentationKey.self] = newValue }
+    }
+}
+
+/// A real native presentation owns dismissal and child system sheets. Only its
+/// app-owned content floats; the background does not become an opaque drawer.
+struct DriveFloatingDialog<Content: View>: View {
+    var maxWidth: CGFloat = 360
+    var height: CGFloat? = nil
+    var overVideo = false
+    var close: (() -> Void)? = nil
+    @ViewBuilder let content: () -> Content
+    @State private var contentHeight: CGFloat = 300
+
+    var body: some View {
+        GeometryReader { container in
+            let margins = drivePaneMargins(in: container, includesHorizontalFold: true)
+            let width = max(0, min(maxWidth, container.size.width - margins.leading - margins.trailing - 32))
+            let capacity = max(0, container.size.height - margins.top - margins.bottom - 32)
+            ZStack {
+                Color.black.opacity(overVideo ? 0.12 : 0.18)
+                    .ignoresSafeArea(.container, edges: .all)
+                    .contentShape(Rectangle())
+                    .onTapGesture { close?() }
+                    .accessibilityHidden(true)
+                Group {
+                    if let height {
+                        content().frame(height: min(height, capacity))
+                    } else {
+                        ScrollView {
+                            content()
+                                .frame(maxWidth: .infinity)
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                                    contentHeight = $0
+                                }
+                        }
+                        .scrollBounceBehavior(.basedOnSize)
+                        .scrollDismissesKeyboard(.interactively)
+                        .frame(height: min(capacity, contentHeight))
+                    }
+                }
+                .frame(width: width)
+                .environment(\.driveFloatingPresentation, true)
+                .glamoGlass(in: RoundedRectangle(cornerRadius: 24), tint: .white)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .shadow(color: .black.opacity(0.12), radius: 28, y: 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(margins)
+            }
+        }
+        .presentationBackground(.clear)
+        .accessibilityAddTraits(.isModal)
+    }
+}
+
+struct DriveDialogButtonStyle: ButtonStyle {
+    var primary = false
+    var destructive = false
+    @Environment(\.isEnabled) private var enabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .driveFont(15, relativeTo: .subheadline, weight: .semibold)
+            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
+            .foregroundStyle(destructive ? Color(red: 1, green: 0.24, blue: 0.30) : primary ? .white : DriveStyle.ink)
+            .background(primary && !destructive ? DriveStyle.accent : Color(red: 0.78, green: 0.78, blue: 0.80), in: Capsule())
+            .opacity(enabled ? (configuration.isPressed ? 0.75 : 1) : 0.45)
+            .contentShape(Capsule())
+    }
+}
+
+struct DriveDialogActions<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ViewBuilder let content: () -> Content
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8))
+                                                  : AnyLayout(HStackLayout(spacing: 10))
+        layout { content() }
+    }
+}
+
+private struct GlamoScreenSurface: ViewModifier {
+    let color: Color
+    @Environment(\.driveFloatingPresentation) private var floating
+    func body(content: Content) -> some View {
+        if floating {
+            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background { color.ignoresSafeArea(.container, edges: .all).allowsHitTesting(false).accessibilityHidden(true) }
+                .presentationBackground(color)
+        }
+    }
 }
 
 struct DrivePrimaryButtonStyle: ButtonStyle {
@@ -78,12 +191,16 @@ struct AssetMask: View {
 
 enum GlamoGlyph: String, CaseIterable {
     case feed, edit, link, search
+    case tabHome, tabFiles, tabProfile
     case play, pause, close, back, sound, folder
     case driveFolder, driveRecent, driveActivity, driveSettings, driveGrid, driveList, driveAdd, driveMore, driveExpand, driveShare
     var assetName: String { "Glyph" + rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
     var fallback: String {
         switch self {
         case .feed: "Video"
+        case .tabHome: "Home"
+        case .tabFiles: "Files"
+        case .tabProfile: "Profile"
         case .edit: "Edit"
         case .link: "Link"
         case .search: "Search"
@@ -179,12 +296,12 @@ private struct GlamoGlass<S: InsettableShape>: ViewModifier {
             content.background(tint, in: shape)
                 .overlay { shape.strokeBorder(GlamoStyle.line).allowsHitTesting(false) }
         } else if #available(iOS 26.0, *) {
-            content.glassEffect(.regular.tint(tint.opacity(mediaBackdrop ? 0.84 : 0.52))
+            content.glassEffect(.regular.tint(tint.opacity(mediaBackdrop ? 0.52 : 0.34))
                 .interactive(interactive && !reduceMotion), in: shape)
         } else {
             content.background {
                 shape.fill(.regularMaterial)
-                    .overlay { shape.fill(tint.opacity(mediaBackdrop ? 0.84 : 0.58)) }
+                    .overlay { shape.fill(tint.opacity(mediaBackdrop ? 0.52 : 0.36)) }
                     .overlay { shape.strokeBorder(GlamoStyle.surface.opacity(0.82)) }
                     .allowsHitTesting(false).accessibilityHidden(true)
             }
@@ -348,6 +465,26 @@ private struct OutsideInputTap: ViewModifier {
 }
 
 extension View {
+    func driveDialog<Content: View>(isPresented: Binding<Bool>, maxWidth: CGFloat = 360,
+                                   height: CGFloat? = nil, onDismiss: (() -> Void)? = nil,
+                                   @ViewBuilder content: @escaping () -> Content) -> some View {
+        fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
+            DriveFloatingDialog(maxWidth: maxWidth, height: height, content: content)
+        }
+    }
+
+    func driveDialog<Item: Identifiable, Content: View>(item: Binding<Item?>, maxWidth: CGFloat = 360,
+                                                       height: CGFloat? = nil, onDismiss: (() -> Void)? = nil,
+                                                       @ViewBuilder content: @escaping (Item) -> Content) -> some View {
+        fullScreenCover(item: item, onDismiss: onDismiss) { value in
+            DriveFloatingDialog(maxWidth: maxWidth, height: height) { content(value) }
+        }
+    }
+
+    func driveGlassCard(radius: CGFloat = DriveStyle.cardRadius) -> some View {
+        glamoGlass(in: RoundedRectangle(cornerRadius: radius), tint: .white)
+    }
+
     func driveScreenBackground() -> some View {
         glamoScreenBackground(DriveStyle.background)
             .foregroundStyle(DriveStyle.ink)
@@ -355,9 +492,7 @@ extension View {
     }
 
     func glamoCard(radius: CGFloat = 22, fill: Color = GlamoStyle.surface, border: Color = GlamoStyle.line) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius)
-        return background(fill, in: shape)
-            .overlay { shape.strokeBorder(border).allowsHitTesting(false) }
+        glamoGlass(in: RoundedRectangle(cornerRadius: radius), tint: fill)
     }
 
     func glamoGlass<S: InsettableShape>(in shape: S, tint: Color = GlamoStyle.surface,
@@ -385,13 +520,7 @@ extension View {
             .preferredColorScheme(.light)
     }
     func glamoScreenBackground(_ color: Color) -> some View {
-        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background {
-                color.ignoresSafeArea(.container, edges: .all)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-            .presentationBackground(color)
+        modifier(GlamoScreenSurface(color: color))
     }
     // A readable column that follows the available container width.
     func glamoPage() -> some View {
@@ -423,7 +552,7 @@ struct SheetHeading: View {
     private var heading: some View {
         HStack {
             if let title {
-                LocalizedText(title).font(.glam(.headline, editorial: true))
+                LocalizedText(title).font(.glam(.headline))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -439,12 +568,12 @@ struct SectionLabel: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline) {
-                LocalizedText(title).font(.glam(.title3, editorial: true))
+                LocalizedText(title).font(.glam(.title3))
                 Spacer(minLength: 12)
                 if let detail { LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary) }
             }
             VStack(alignment: .leading, spacing: 6) {
-                LocalizedText(title).font(.glam(.title3, editorial: true))
+                LocalizedText(title).font(.glam(.title3))
                 if let detail { LocalizedText(detail).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary) }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }

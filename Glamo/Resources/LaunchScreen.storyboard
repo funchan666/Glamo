@@ -52,7 +52,7 @@
     <resources>
         <image name="GlamoLaunchMark" width="108" height="108"/>
         <image name="GlamoLaunchLoading" width="28" height="28"/>
-        <namedColor name="LaunchBackground"><color red="0.973" green="0.969" blue="0.949" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></namedColor>
+        <namedColor name="LaunchBackground"><color red="0.9490196078" green="0.9450980392" blue="0.9686274510" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></namedColor>
         <namedColor name="LaunchLoadingTint"><color red="0.349" green="0.427" blue="0.596" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></namedColor>
     </resources>
 </document>
