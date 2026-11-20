@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// Shared palette from the supplied Vifol design (APP UI / 323:4903).
+// Shared palette from the supplied Ecloud design (APP UI / 412:8146).
 enum GlamoStyle {
     static let background = DriveStyle.background
     static let surface = Color.white
@@ -30,6 +30,8 @@ enum DriveStyle {
     static let pageInset: CGFloat = 24
     static let cardRadius: CGFloat = 24
     static let tabWidth: CGFloat = 344
+    static let dialogWidth: CGFloat = 376
+    static let dialogRadius: CGFloat = 32
 }
 
 private struct DriveFloatingPresentationKey: EnvironmentKey {
@@ -55,7 +57,7 @@ extension EnvironmentValues {
 /// A real native presentation owns dismissal and child system sheets. Only its
 /// app-owned content floats; the background does not become an opaque drawer.
 struct DriveFloatingDialog<Content: View>: View {
-    var maxWidth: CGFloat = 360
+    var maxWidth: CGFloat = DriveStyle.dialogWidth
     var height: CGFloat? = nil
     var overVideo = false
     var close: (() -> Void)? = nil
@@ -65,8 +67,9 @@ struct DriveFloatingDialog<Content: View>: View {
     var body: some View {
         GeometryReader { container in
             let margins = drivePaneMargins(in: container, includesHorizontalFold: true)
-            let width = max(0, min(maxWidth, container.size.width - margins.leading - margins.trailing - 32))
+            let width = max(0, min(maxWidth, container.size.width - margins.leading - margins.trailing - 48))
             let capacity = max(0, container.size.height - margins.top - margins.bottom - 32)
+            let shape = RoundedRectangle(cornerRadius: DriveStyle.dialogRadius)
             ZStack {
                 Color.black.opacity(overVideo ? 0.12 : 0.18)
                     .ignoresSafeArea(.container, edges: .all)
@@ -91,9 +94,8 @@ struct DriveFloatingDialog<Content: View>: View {
                 }
                 .frame(width: width)
                 .environment(\.driveFloatingPresentation, true)
-                .glamoGlass(in: RoundedRectangle(cornerRadius: 24), tint: .white)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.12), radius: 28, y: 14)
+                .clipShape(shape)
+                .glamoGlass(in: shape, tint: .white)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(margins)
             }
@@ -107,15 +109,19 @@ struct DriveDialogButtonStyle: ButtonStyle {
     var primary = false
     var destructive = false
     @Environment(\.isEnabled) private var enabled
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .driveFont(15, relativeTo: .subheadline, weight: .semibold)
+        let isPrimary = primary && !destructive
+        let deleteInk = contrast == .increased ? GlamoStyle.danger : Color(red: 241 / 255, green: 84 / 255, blue: 87 / 255)
+        let neutralInk = Color(red: 37 / 255, green: 38 / 255, blue: 42 / 255)
+        return configuration.label
+            .driveFont(20, relativeTo: .body, weight: .semibold)
             .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12).padding(.vertical, 9)
-            .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
-            .foregroundStyle(destructive ? Color(red: 1, green: 0.24, blue: 0.30) : primary ? .white : DriveStyle.ink)
-            .background(primary && !destructive ? DriveStyle.accent : Color(red: 0.78, green: 0.78, blue: 0.80), in: Capsule())
+            .frame(minWidth: 44, maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(destructive ? deleteInk : isPrimary ? .white : neutralInk)
+            .background(isPrimary ? DriveStyle.accent : Color(white: 195 / 255), in: Capsule())
             .opacity(enabled ? (configuration.isPressed ? 0.75 : 1) : 0.45)
             .contentShape(Capsule())
     }
@@ -126,7 +132,7 @@ struct DriveDialogActions<Content: View>: View {
     @ViewBuilder let content: () -> Content
     var body: some View {
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8))
-                                                  : AnyLayout(HStackLayout(spacing: 10))
+                                                  : AnyLayout(HStackLayout(spacing: 16))
         layout { content() }
     }
 }
@@ -160,6 +166,19 @@ struct DrivePrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(Color.white)
             .background(DriveStyle.accent, in: RoundedRectangle(cornerRadius: radius))
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
+            .contentShape(Rectangle())
+    }
+}
+
+struct DriveEmptyActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .driveFont(17, relativeTo: .headline, weight: .semibold)
+            .foregroundStyle(DriveStyle.link)
+            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 12).frame(minWidth: 44, minHeight: 44)
+            .opacity(enabled ? (configuration.isPressed ? 0.65 : 1) : 0.45)
             .contentShape(Rectangle())
     }
 }
@@ -296,7 +315,7 @@ private struct GlamoGlass<S: InsettableShape>: ViewModifier {
             content.background(tint, in: shape)
                 .overlay { shape.strokeBorder(GlamoStyle.line).allowsHitTesting(false) }
         } else if #available(iOS 26.0, *) {
-            content.glassEffect(.regular.tint(tint.opacity(mediaBackdrop ? 0.52 : 0.34))
+            content.glassEffect(.regular.tint(tint.opacity(mediaBackdrop ? 0.28 : 0.22))
                 .interactive(interactive && !reduceMotion), in: shape)
         } else {
             content.background {
@@ -465,7 +484,7 @@ private struct OutsideInputTap: ViewModifier {
 }
 
 extension View {
-    func driveDialog<Content: View>(isPresented: Binding<Bool>, maxWidth: CGFloat = 360,
+    func driveDialog<Content: View>(isPresented: Binding<Bool>, maxWidth: CGFloat = DriveStyle.dialogWidth,
                                    height: CGFloat? = nil, onDismiss: (() -> Void)? = nil,
                                    @ViewBuilder content: @escaping () -> Content) -> some View {
         fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
@@ -473,7 +492,7 @@ extension View {
         }
     }
 
-    func driveDialog<Item: Identifiable, Content: View>(item: Binding<Item?>, maxWidth: CGFloat = 360,
+    func driveDialog<Item: Identifiable, Content: View>(item: Binding<Item?>, maxWidth: CGFloat = DriveStyle.dialogWidth,
                                                        height: CGFloat? = nil, onDismiss: (() -> Void)? = nil,
                                                        @ViewBuilder content: @escaping (Item) -> Content) -> some View {
         fullScreenCover(item: item, onDismiss: onDismiss) { value in

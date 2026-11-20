@@ -16,8 +16,8 @@ MARKETING_VERSION = 1.0.0
 CURRENT_PROJECT_VERSION = 1
 CODE_SIGN_STYLE = Automatic
 DEVELOPMENT_TEAM =
-// Google official iOS demo configuration. Both ad types request Google's official
-// test units while this is YES. Turn off and replace before publishing.
+// Official Google iOS demo App ID. App-open, rewarded and interstitial use demo
+// ad units in this mode. Set NO and supply production IDs when switching over.
 GLAMO_ADS_TEST_MODE = YES
 GLAMO_GOOGLE_ADS_APP_ID = ca-app-pub-3940256099942544~1458002511
 OTHER_LDFLAGS = $(inherited) -ObjC

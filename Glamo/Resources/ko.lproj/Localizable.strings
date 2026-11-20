@@ -10,7 +10,7 @@
 "A full year of Plus" = "Plus 1년 이용";
 "No results? Check your input, or ask the sender for a new link." = "결과가 없나요? 입력 내용을 확인하거나 보낸 사람에게 새 링크를 요청하세요.";
 "A little luck, on us" = "작은 보너스를 드려요";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Vifol에 안전하게 연결할 수 없습니다. 네트워크나 VPN을 확인하고 다시 시도하세요. 문제가 계속되면 서비스가 일시적으로 중단되었을 수 있습니다.";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Ecloud에 안전하게 연결할 수 없습니다. 네트워크나 VPN을 확인하고 다시 시도하세요. 문제가 계속되면 서비스가 일시적으로 중단되었을 수 있습니다.";
 "Access password" = "접근 비밀번호";
 "Access through %@." = "%@까지 이용 가능";
 "Ads are unavailable with your current privacy choices." = "현재 개인정보 설정으로는 광고를 이용할 수 없습니다.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "사진 앱에서 가져오기";
 "Choose your language" = "언어를 선택하세요";
 "Clear" = "지우기";
-"Vifol is starting" = "Vifol 시작 중";
-"Vifol’s online service is not configured yet. Local editing is available." = "Vifol 온라인 서비스가 아직 설정되지 않았습니다. 로컬 편집은 이용할 수 있습니다.";
+"Ecloud is starting" = "Ecloud 시작 중";
+"Ecloud’s online service is not configured yet. Local editing is available." = "Ecloud 온라인 서비스가 아직 설정되지 않았습니다. 로컬 편집은 이용할 수 있습니다.";
 "Close" = "닫기";
 "Confirming your purchase…" = "구매 확인 중…";
 "Connecting your lesson feed…" = "레슨 피드 연결 중…";
@@ -62,7 +62,7 @@
 "Delete folder" = "폴더 삭제";
 "After deletion" = "삭제 후";
 "Folder contains items" = "폴더에 항목이 있어요";
-"The empty folder will be removed from Vifol." = "이 빈 폴더가 Vifol에서 삭제돼요.";
+"The empty folder will be removed from Ecloud." = "이 빈 폴더가 Ecloud에서 삭제돼요.";
 "Dismiss message" = "메시지 닫기";
 "Edit" = "편집";
 "Edit a local video" = "로컬 영상 편집";
@@ -213,7 +213,7 @@
 "Terms of Use" = "이용약관";
 "Test ads require Google's sample iOS App ID." = "테스트 광고에는 Google의 샘플 iOS 앱 ID가 필요합니다.";
 "The ad finished, but its reward could not be saved. %@" = "광고는 끝났지만 보상을 저장하지 못했습니다. %@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "Vifol의 사본이 삭제됩니다. 사진이나 파일의 원본은 그대로 유지됩니다.";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "Ecloud의 사본이 삭제됩니다. 사진이나 파일의 원본은 그대로 유지됩니다.";
 "The document was interrupted. Please try again." = "문서가 중단되었습니다. 다시 시도하세요.";
 "The export finished but could not be added to your library. %@" = "내보내기는 완료했지만 보관함에 추가하지 못했습니다. %@";
 "The request could not be completed." = "요청을 완료하지 못했습니다.";
@@ -261,7 +261,7 @@
 "Plus is already active." = "이미 Plus를 이용 중이에요.";
 "Your original stays untouched. Exports are saved to your local library." = "원본은 그대로 유지됩니다. 내보낸 파일은 기기의 보관함에 저장됩니다.";
 "Your purchase is waiting for approval." = "구매 승인 대기 중입니다.";
-"Your session has expired. Please sign in again." = "세션이 만료되었습니다. 다시 로그인하세요.";
+"Your connection to Ecloud expired. Try again." = "Ecloud 연결이 만료됐어요. 다시 시도해 주세요.";
 "month" = "월";
 "per %@" = "/ %@";
 "year" = "년";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "이 광고를 끝까지 보면 오늘 무제한으로 시청할 수 있습니다.";
 "Connect to refresh your allowance." = "이용 한도를 새로고침하려면 인터넷에 연결하세요.";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "Vifol 링크 또는 레슨 코드";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "Ecloud 링크 또는 레슨 코드";
 "Paste" = "붙여넣기";
-"Use a lesson link or code shared through Vifol." = "Vifol를 통해 공유받은 레슨 링크나 코드를 사용하세요.";
-"Copy a Vifol link or lesson code first, then tap Paste." = "먼저 Vifol 링크나 레슨 코드를 복사한 뒤 붙여넣기를 누르세요.";
-"1. Copy a Vifol link" = "1. Vifol 링크 복사";
+"Use a lesson link or code shared through Ecloud." = "Ecloud를 통해 공유받은 레슨 링크나 코드를 사용하세요.";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "먼저 Ecloud 링크나 레슨 코드를 복사한 뒤 붙여넣기를 누르세요.";
+"1. Copy a Ecloud link" = "1. Ecloud 링크 복사";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "붙여넣기를 누르거나 받은 레슨 코드를 그대로 입력하세요. 코드는 대소문자를 구분합니다.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "레슨 열기를 눌러 일치하는 레슨을 찾은 뒤 스와이프하여 시청하세요.";
 
@@ -357,20 +357,18 @@
 "Web search" = "웹 검색";
 "Opening page…" = "페이지 여는 중…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "Plus 혜택";
-"MP4 export up to 1080p" = "최대 1080p MP4 내보내기";
-"M4A audio export" = "M4A 오디오 내보내기";
 "Choose your plan" = "구독 플랜 선택";
 "Reload plans" = "플랜 다시 불러오기";
 "Subscribe to Plus" = "Plus 구독하기";
 
 /* App startup and video links */
-"Opening Vifol…" = "Vifol 여는 중…";
-"Couldn’t connect to Vifol" = "Vifol에 연결하지 못했어요";
-"Connecting to Vifol…" = "Vifol에 연결 중…";
+"Opening Ecloud…" = "Ecloud 여는 중…";
+"Couldn’t connect to Ecloud" = "Ecloud에 연결하지 못했어요";
+"Connecting to Ecloud…" = "Ecloud에 연결 중…";
 "Ad privacy choices" = "광고 개인정보 설정";
-"Couldn’t open the Vifol website. Try again." = "Vifol 웹사이트를 열지 못했어요. 다시 시도해 주세요.";
+"Couldn’t open the Ecloud website. Try again." = "Ecloud 웹사이트를 열지 못했어요. 다시 시도해 주세요.";
 "No match found" = "일치하는 항목이 없어요";
 "Check the URL with the person who shared it." = "공유한 사람에게 URL을 확인해 주세요.";
 "Search the web" = "웹에서 검색";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "열리면 위아래로 쓸어 넘겨 영상을 둘러보세요.";
 "There’s no playable video here." = "재생할 수 있는 영상이 없어요.";
 "Copy a video URL, then try pasting again." = "동영상 URL을 복사한 뒤 다시 붙여넣으세요.";
-"Connect to Vifol, then try opening the URL again." = "Vifol에 연결한 뒤 URL을 다시 열어 보세요.";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "Vifol에서 파일을 삭제해요. 사진이나 파일 앱에 있는 원본은 그대로 남아요.";
+"Connect to Ecloud, then try opening the URL again." = "Ecloud에 연결한 뒤 URL을 다시 열어 보세요.";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "Ecloud에서 파일을 삭제해요. 사진이나 파일 앱에 있는 원본은 그대로 남아요.";
 "%@ item" = "%@개";
 "%@ items" = "%@개";
 "Export a video or audio file from Tools to save it here." = "도구에서 영상이나 오디오를 내보내면 여기에 저장돼요.";
@@ -418,8 +416,6 @@
 "Export quality" = "내보내기 화질";
 "Find your export in Library › Exports. Your original stays intact." = "내보낸 파일은 보관함의 ‘내보낸 파일’에 있어요. 원본은 그대로 남아요.";
 "Couldn’t save the export to your library. %@" = "내보낸 파일을 보관함에 저장하지 못했어요. %@";
-"Unlimited online viewing" = "온라인 동영상 무제한 시청";
-"Skip launch ads" = "앱 시작 광고 없음";
 "View plans" = "구독 플랜 보기";
 "View Plus details" = "Plus 상세 보기";
 "Plus is active" = "Plus 이용 중";
@@ -485,6 +481,7 @@
 "Folders" = "폴더";
 "Folder options" = "폴더 옵션";
 "No videos here yet" = "아직 동영상이 없어요";
+"No videos in this folder" = "이 폴더에 동영상이 없어요";
 "No matching files" = "일치하는 파일이 없어요";
 "Import videos from Files or Photos." = "파일 또는 사진 앱에서 동영상을 가져오세요.";
 "Show all videos" = "모든 동영상 보기";
@@ -528,6 +525,7 @@
 "Previous" = "이전";
 "Next" = "다음";
 "On this device" = "이 기기에 저장됨";
+"Play videos" = "동영상 재생";
 "Play queue" = "재생 대기열";
 "Now playing" = "재생 중";
 "Current file" = "현재 파일";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "동영상 보관함에서 파일을 내보내고 공유하세요.";
-"Plus includes file export and sharing." = "Plus에서 파일을 내보내고 공유할 수 있어요.";
 "Save a separate MP4 copy of your edits." = "편집한 동영상을 별도의 MP4 파일로 저장하세요.";
 "Keep just the soundtrack as an M4A file." = "오디오 트랙만 M4A 파일로 저장하세요.";
-"Share files" = "파일 공유";
 "Send an original file or an export to another app." = "원본이나 내보낸 파일을 다른 앱으로 보내세요.";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "프리미엄 시작하기";
 "Maybe Later" = "나중에";
 "Upgrade Now" = "지금 업그레이드";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "해상도";
 "Auto" = "자동";
 "Fit video" = "화면에 맞추기";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "파일에서 파일 추가를 탭한 다음 파일 또는 사진을 선택하세요. 동영상은 현재 열려 있는 폴더로 복사돼요.";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "iOS 공유 시트에서 공유를 완료한 파일이 표시돼요. 취소하거나 실패한 공유는 추가되지 않아요.";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "캐시된 응답과 만료된 공유용 사본을 삭제해요. 라이브러리의 동영상과 폴더, 최근 공유용 사본은 유지돼요.";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "Plus에는 온라인 동영상 무제한 시청, 시작 광고 제거, MP4 및 M4A 내보내기, 파일 공유가 포함돼요. 기기에 저장된 동영상은 계속 재생할 수 있어요.";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "다운로드 대기 중";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "일일 저장 한도에 도달했어요";
 "Watch a full ad to save more videos." = "광고를 끝까지 시청하면 동영상을 더 저장할 수 있어요.";
 "Watch ad to save more" = "광고 보고 저장 횟수 늘리기";
-"Unlimited video saves" = "동영상 무제한 저장";
 "Your saving allowance has been updated." = "동영상 저장 가능 횟수가 업데이트되었어요.";
 "More saves added. Your viewing allowance stays the same." = "저장 횟수가 추가되었어요. 시청 가능 횟수는 그대로 유지돼요.";
 "Offline downloads" = "오프라인 다운로드";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "파일, 영상 URL 또는 코드";
 "Search files, video URLs or codes" = "파일, 영상 URL 또는 코드 검색";
 "How to search" = "검색 방법";
-"Connect to Vifol, then search again." = "Vifol에 연결한 후 다시 검색하세요.";
+"Connect to Ecloud, then search again." = "Ecloud에 연결한 후 다시 검색하세요.";
 "Try another file name, or search a video URL or code." = "다른 파일 이름을 입력하거나 영상 URL 또는 코드를 검색하세요.";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "검색창에 영상 URL 또는 코드를 붙여넣고 검색을 누르세요. 공유된 텍스트의 대소문자를 그대로 유지하세요.";
 "Search your files" = "내 파일 검색";
 "Enter a file or folder name to filter your library as you type." = "파일이나 폴더 이름을 입력하면 입력하는 동안 라이브러리가 필터링됩니다.";
 "Pick a video to add to your library." = "보관함에 추가할 동영상을 선택하세요.";
 "User Agreement" = "사용자 약관";
+"No saved links yet" = "아직 저장된 링크가 없어요";
+"Search a video URL, code or file name to get started." = "동영상 URL, 코드 또는 파일 이름을 검색해 시작하세요.";
+"No results" = "검색 결과가 없어요";
+"Try a different search." = "다른 검색어로 시도해 보세요.";
+"Couldn’t load files" = "파일을 불러오지 못했어요";
+"No transfers yet" = "아직 전송 내역이 없어요";
+
+// Player queue and file feedback.
+"File %@ of %@" = "파일 %@ / %@";
+"Not enough device space" = "기기 저장 공간이 부족해요";
+"Free up space on this device to download the file." = "파일을 다운로드하려면 이 기기의 저장 공간을 확보해 주세요.";
+"OK" = "확인";
+"Enter a folder name." = "폴더 이름을 입력해 주세요.";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "최대 10TB의 클라우드 저장 공간";
+"Ad-free" = "광고 없음";
+"Preview unsaved shared photos and videos" = "저장하지 않은 공유 사진과 동영상 미리보기";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "클라우드 저장 공간과 공유 파일 미리보기는 클라우드 드라이브가 출시되면 이용할 수 있어요.";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "Plus는 광고를 제거해요. 클라우드 드라이브 출시 후에는 최대 10TB의 저장 공간을 이용하고 저장하지 않은 공유 사진과 동영상을 미리 볼 수 있어요.";

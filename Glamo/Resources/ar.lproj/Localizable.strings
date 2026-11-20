@@ -10,7 +10,7 @@
 "A full year of Plus" = "عام كامل من Plus";
 "No results? Check your input, or ask the sender for a new link." = "لا توجد نتائج؟ تحقق مما أدخلته أو اطلب رابطًا جديدًا من المُرسل.";
 "A little luck, on us" = "مكافأة صغيرة منا";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "تعذر إنشاء اتصال آمن بـ Vifol. تحقق من الشبكة أو VPN ثم أعد المحاولة. إذا استمرت المشكلة فقد تكون الخدمة غير متاحة مؤقتًا.";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "تعذر إنشاء اتصال آمن بـ Ecloud. تحقق من الشبكة أو VPN ثم أعد المحاولة. إذا استمرت المشكلة فقد تكون الخدمة غير متاحة مؤقتًا.";
 "Access password" = "كلمة مرور الوصول";
 "Access through %@." = "متاح حتى %@.";
 "Ads are unavailable with your current privacy choices." = "الإعلانات غير متاحة وفق خيارات الخصوصية الحالية.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "استيراد من تطبيق الصور";
 "Choose your language" = "اختر لغتك";
 "Clear" = "مسح";
-"Vifol is starting" = "جارٍ بدء Vifol";
-"Vifol’s online service is not configured yet. Local editing is available." = "لم تُهيَّأ خدمة Vifol عبر الإنترنت بعد. التحرير المحلي متاح.";
+"Ecloud is starting" = "جارٍ بدء Ecloud";
+"Ecloud’s online service is not configured yet. Local editing is available." = "لم تُهيَّأ خدمة Ecloud عبر الإنترنت بعد. التحرير المحلي متاح.";
 "Close" = "إغلاق";
 "Confirming your purchase…" = "جارٍ تأكيد الشراء…";
 "Connecting your lesson feed…" = "جارٍ الاتصال بقائمة الدروس…";
@@ -62,7 +62,7 @@
 "Delete folder" = "حذف المجلد";
 "After deletion" = "بعد الحذف";
 "Folder contains items" = "يحتوي المجلد على عناصر";
-"The empty folder will be removed from Vifol." = "سيُحذف هذا المجلد الفارغ من Vifol.";
+"The empty folder will be removed from Ecloud." = "سيُحذف هذا المجلد الفارغ من Ecloud.";
 "Dismiss message" = "إغلاق الرسالة";
 "Edit" = "تحرير";
 "Edit a local video" = "تحرير فيديو محلي";
@@ -213,7 +213,7 @@
 "Terms of Use" = "شروط الاستخدام";
 "Test ads require Google's sample iOS App ID." = "تتطلب الإعلانات التجريبية معرّف تطبيق iOS التجريبي من Google.";
 "The ad finished, but its reward could not be saved. %@" = "اكتمل الإعلان، لكن تعذر حفظ المكافأة. %@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "ستُحذف النسخة الموجودة في Vifol. سيبقى الأصل في الصور أو الملفات دون تغيير.";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "ستُحذف النسخة الموجودة في Ecloud. سيبقى الأصل في الصور أو الملفات دون تغيير.";
 "The document was interrupted. Please try again." = "انقطع تحميل المستند. أعد المحاولة.";
 "The export finished but could not be added to your library. %@" = "اكتمل التصدير، لكن تعذرت إضافته إلى المكتبة. %@";
 "The request could not be completed." = "تعذر إكمال الطلب.";
@@ -261,7 +261,7 @@
 "Plus is already active." = "عضوية Plus مفعّلة بالفعل.";
 "Your original stays untouched. Exports are saved to your local library." = "يبقى الأصل دون تغيير. تُحفظ الملفات المصدَّرة في المكتبة المحلية.";
 "Your purchase is waiting for approval." = "عملية شرائك تنتظر الموافقة.";
-"Your session has expired. Please sign in again." = "انتهت الجلسة. سجّل الدخول مجددًا.";
+"Your connection to Ecloud expired. Try again." = "انتهى اتصالك بـ Ecloud. حاول مرة أخرى.";
 "month" = "شهر";
 "per %@" = "لكل %@";
 "year" = "سنة";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "أكمل هذا الإعلان لمشاهدات غير محدودة اليوم.";
 "Connect to refresh your allowance." = "اتصل بالإنترنت لتحديث حصتك.";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "رابط Vifol أو رمز الدرس";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "رابط Ecloud أو رمز الدرس";
 "Paste" = "لصق";
-"Use a lesson link or code shared through Vifol." = "استخدم رابط درس أو رمزًا تمت مشاركته عبر Vifol.";
-"Copy a Vifol link or lesson code first, then tap Paste." = "انسخ رابط Vifol أو رمز الدرس أولًا، ثم اضغط على لصق.";
-"1. Copy a Vifol link" = "1. انسخ رابط Vifol";
+"Use a lesson link or code shared through Ecloud." = "استخدم رابط درس أو رمزًا تمت مشاركته عبر Ecloud.";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "انسخ رابط Ecloud أو رمز الدرس أولًا، ثم اضغط على لصق.";
+"1. Copy a Ecloud link" = "1. انسخ رابط Ecloud";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "اضغط على لصق أو أدخل رمز الدرس كما وصلك تمامًا. الرموز حساسة لحالة الأحرف.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "اضغط على فتح الدرس للعثور على الدروس المطابقة، ثم اسحب للمشاهدة.";
 
@@ -357,20 +357,18 @@
 "Web search" = "بحث الويب";
 "Opening page…" = "جارٍ فتح الصفحة…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "مزايا Plus";
-"MP4 export up to 1080p" = "تصدير MP4 بدقة تصل إلى 1080p";
-"M4A audio export" = "تصدير الصوت بصيغة M4A";
 "Choose your plan" = "اختر خطة اشتراك";
 "Reload plans" = "إعادة تحميل الخطط";
 "Subscribe to Plus" = "اشترك في Plus";
 
 /* App startup and video links */
-"Opening Vifol…" = "جارٍ فتح Vifol…";
-"Couldn’t connect to Vifol" = "تعذّر الاتصال بـ Vifol";
-"Connecting to Vifol…" = "جارٍ الاتصال بـ Vifol…";
+"Opening Ecloud…" = "جارٍ فتح Ecloud…";
+"Couldn’t connect to Ecloud" = "تعذّر الاتصال بـ Ecloud";
+"Connecting to Ecloud…" = "جارٍ الاتصال بـ Ecloud…";
 "Ad privacy choices" = "خيارات خصوصية الإعلانات";
-"Couldn’t open the Vifol website. Try again." = "تعذّر فتح موقع Vifol. حاول مرة أخرى.";
+"Couldn’t open the Ecloud website. Try again." = "تعذّر فتح موقع Ecloud. حاول مرة أخرى.";
 "No match found" = "لم يُعثر على نتائج مطابقة";
 "Check the URL with the person who shared it." = "تحقّقي من عنوان URL مع الشخص الذي شاركه.";
 "Search the web" = "البحث على الويب";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "بعد الفتح، مرّري للأعلى أو للأسفل لتصفّح الفيديوهات.";
 "There’s no playable video here." = "لا يوجد فيديو يمكن تشغيله هنا.";
 "Copy a video URL, then try pasting again." = "انسخي عنوان URL لفيديو، ثم أعيدي محاولة اللصق.";
-"Connect to Vifol, then try opening the URL again." = "اتصلي بـ Vifol، ثم حاولي فتح عنوان URL مرة أخرى.";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "سيُحذف الملف من Vifol. وتبقى النسخة الأصلية في «الصور» أو «الملفات».";
+"Connect to Ecloud, then try opening the URL again." = "اتصلي بـ Ecloud، ثم حاولي فتح عنوان URL مرة أخرى.";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "سيُحذف الملف من Ecloud. وتبقى النسخة الأصلية في «الصور» أو «الملفات».";
 "%@ item" = "%@ عنصر";
 "%@ items" = "العناصر (%@)";
 "Export a video or audio file from Tools to save it here." = "صدّري فيديو أو ملفًا صوتيًا من «الأدوات» لحفظه هنا.";
@@ -418,8 +416,6 @@
 "Export quality" = "جودة التصدير";
 "Find your export in Library › Exports. Your original stays intact." = "ستجدين الملف في «المكتبة» ضمن «الملفات المصدَّرة». وتبقى النسخة الأصلية كما هي.";
 "Couldn’t save the export to your library. %@" = "تعذّر حفظ الملف المصدَّر في المكتبة. %@";
-"Unlimited online viewing" = "مشاهدة الفيديو عبر الإنترنت بلا حدود";
-"Skip launch ads" = "تخطّي إعلانات بدء التشغيل";
 "View plans" = "عرض الخطط";
 "View Plus details" = "عرض تفاصيل Plus";
 "Plus is active" = "Plus مفعّل";
@@ -485,6 +481,7 @@
 "Folders" = "المجلدات";
 "Folder options" = "خيارات المجلد";
 "No videos here yet" = "لا توجد فيديوهات هنا بعد";
+"No videos in this folder" = "لا توجد فيديوهات في هذا المجلد";
 "No matching files" = "لا توجد ملفات مطابقة";
 "Import videos from Files or Photos." = "استورد مقاطع الفيديو من الملفات أو الصور.";
 "Show all videos" = "عرض كل مقاطع الفيديو";
@@ -528,6 +525,7 @@
 "Previous" = "السابق";
 "Next" = "التالي";
 "On this device" = "على هذا الجهاز";
+"Play videos" = "تشغيل الفيديوهات";
 "Play queue" = "قائمة التشغيل";
 "Now playing" = "قيد التشغيل";
 "Current file" = "الملف الحالي";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "صدّر الملفات وشاركها من مكتبة الفيديو.";
-"Plus includes file export and sharing." = "يشمل Plus تصدير الملفات ومشاركتها.";
 "Save a separate MP4 copy of your edits." = "احفظ نسخة منفصلة من الفيديو المُعدّل بصيغة MP4.";
 "Keep just the soundtrack as an M4A file." = "احفظ المسار الصوتي وحده في ملف M4A.";
-"Share files" = "مشاركة الملفات";
 "Send an original file or an export to another app." = "أرسل ملفًا أصليًا أو ملفًا مُصدّرًا إلى تطبيق آخر.";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "احصل على بريميوم";
 "Maybe Later" = "ربما لاحقًا";
 "Upgrade Now" = "ترقية الآن";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "الدقة";
 "Auto" = "تلقائي";
 "Fit video" = "ملاءمة الفيديو";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "في «الملفات»، اضغط على «إضافة ملفات» واختر «الملفات» أو «الصور». تُنسخ الفيديوهات إلى المجلد المفتوح.";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "تظهر الملفات هنا بعد إتمام مشاركتها من خلال لوحة مشاركة iOS. لا تُضاف المشاركات الملغاة أو الفاشلة.";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "يمسح الاستجابات المخزنة مؤقتًا ونُسخ المشاركة المنتهية. تُحفظ فيديوهات مكتبتك ومجلداتها ونُسخ المشاركة الحديثة.";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "تتضمن Plus مشاهدة عبر الإنترنت بلا حدود، ومن دون إعلانات عند التشغيل، والتصدير بصيغتي MP4 وM4A، ومشاركة الملفات. يظل تشغيل الفيديوهات المحلية متاحًا.";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "في انتظار التنزيل";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "تم بلوغ حد الحفظ اليومي";
 "Watch a full ad to save more videos." = "شاهد إعلانًا كاملًا لحفظ المزيد من الفيديوهات.";
 "Watch ad to save more" = "شاهد إعلانًا لحفظ المزيد";
-"Unlimited video saves" = "حفظ فيديوهات بلا حدود";
 "Your saving allowance has been updated." = "تم تحديث رصيد حفظ الفيديوهات.";
 "More saves added. Your viewing allowance stays the same." = "أُضيفت مرات حفظ إضافية. رصيد المشاهدات لم يتغير.";
 "Offline downloads" = "التنزيلات دون اتصال";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "ملفات أو روابط فيديو أو رموز";
 "Search files, video URLs or codes" = "البحث عن ملفات أو روابط فيديو أو رموز";
 "How to search" = "كيفية البحث";
-"Connect to Vifol, then search again." = "اتصل بـ Vifol، ثم حاول البحث مجددًا.";
+"Connect to Ecloud, then search again." = "اتصل بـ Ecloud، ثم حاول البحث مجددًا.";
 "Try another file name, or search a video URL or code." = "جرّب اسم ملف آخر، أو ابحث برابط فيديو أو رمز.";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "ألصق رابط الفيديو أو الرمز في حقل البحث، ثم اضغط على بحث. حافظ على الأحرف الكبيرة والصغيرة كما تمت مشاركتها تمامًا.";
 "Search your files" = "ابحث في ملفاتك";
 "Enter a file or folder name to filter your library as you type." = "أدخل اسم ملف أو مجلد لتصفية مكتبتك أثناء الكتابة.";
 "Pick a video to add to your library." = "اختر فيديو لإضافته إلى مكتبتك.";
 "User Agreement" = "اتفاقية المستخدم";
+"No saved links yet" = "لا توجد روابط محفوظة بعد";
+"Search a video URL, code or file name to get started." = "ابحث برابط فيديو أو رمز أو اسم ملف للبدء.";
+"No results" = "لا توجد نتائج";
+"Try a different search." = "جرّب بحثًا مختلفًا.";
+"Couldn’t load files" = "تعذّر تحميل الملفات";
+"No transfers yet" = "لا توجد عمليات نقل بعد";
+
+// Player queue and file feedback.
+"File %@ of %@" = "الملف %@ من %@";
+"Not enough device space" = "مساحة الجهاز غير كافية";
+"Free up space on this device to download the file." = "أفرغ بعض المساحة على هذا الجهاز لتنزيل الملف.";
+"OK" = "حسنًا";
+"Enter a folder name." = "أدخل اسمًا للمجلد.";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "مساحة تخزين سحابية تصل إلى 10 تيرابايت";
+"Ad-free" = "بلا إعلانات";
+"Preview unsaved shared photos and videos" = "معاينة الصور والفيديوهات المشتركة قبل حفظها";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "تتوفر مساحة التخزين السحابي ومعاينة الملفات المشتركة قبل حفظها عند إطلاق خدمة التخزين السحابي.";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "يزيل Plus الإعلانات. ستتوفر مساحة تخزين تصل إلى 10 تيرابايت ومعاينة الصور والفيديوهات المشتركة قبل حفظها عند إطلاق خدمة التخزين السحابي.";

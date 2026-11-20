@@ -65,13 +65,17 @@ struct AccountDecisionDialog: View {
     @AccessibilityFocusState private var titleFocused: Bool
     var body: some View {
         DriveFloatingDialog {
-            VStack(alignment: .leading, spacing: 12) {
-                LocalizedText(title).driveFont(17, relativeTo: .headline, weight: .semibold)
-                    .foregroundStyle(DriveStyle.ink)
-                    .accessibilityAddTraits(.isHeader).accessibilityFocused($titleFocused)
-                LocalizedText(message).driveFont(14, relativeTo: .subheadline)
-                    .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
-                if showsPolicies { PolicyLinks() }
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    LocalizedText(title).driveFont(20, relativeTo: .headline, weight: .semibold)
+                        .foregroundStyle(DriveStyle.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader).accessibilityFocused($titleFocused)
+                    LocalizedText(message).driveFont(14, relativeTo: .subheadline)
+                        .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                    if showsPolicies { PolicyLinks() }
+                }
+                .padding(.horizontal, 16)
                 DriveDialogActions {
                     if let cancel {
                         Button(action: cancel) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
@@ -79,7 +83,8 @@ struct AccountDecisionDialog: View {
                     Button(action: confirm) { LocalizedText(confirmTitle) }
                         .buttonStyle(DriveDialogButtonStyle(primary: !destructive, destructive: destructive))
                 }
-            }.padding(18)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 18)
         }
         .interactiveDismissDisabled()
         .onAppear { titleFocused = true }
@@ -311,7 +316,7 @@ struct AccountSettingsSection: View {
                 Button(action: showActivity) {
                     AccountMenuRow(title: "Transfers", detail: library.importingVideo ? "Importing videos…" : nil,
                                    symbol: .driveActivity,
-                                   tint: Color(red: 0.15, green: 0.71, blue: 0.90))
+                                   tint: Color(red: 0.08, green: 0.79, blue: 0.91))
                 }.accessibilityIdentifier("account.transfers")
                 rowDivider
                 Button { Task { await clearCache() } } label: {
@@ -323,16 +328,17 @@ struct AccountSettingsSection: View {
                 rowDivider
                 Button { helpPresented = true } label: {
                     AccountMenuRow(title: "Help & feedback", symbol: .driveList,
-                                   tint: Color(red: 0.18, green: 0.67, blue: 0.40))
+                                   tint: Color(red: 0.17, green: 0.78, blue: 0.34))
                 }.accessibilityIdentifier("account.help")
                 rowDivider
                 Button { agreementsPresented = true } label: {
                     AccountMenuRow(title: "User Agreement", symbol: .driveList,
-                                   tint: Color(red: 0.90, green: 0.24, blue: 0.29))
+                                   tint: Color(red: 0.96, green: 0.31, blue: 0.33))
                 }
                 .disabled(!hasAgreements)
                 .accessibilityIdentifier("account.agreements")
             }
+            .padding(.vertical, 4)
             .driveGlassCard()
 
             if let cacheMessage {
@@ -378,7 +384,7 @@ struct AccountSettingsSection: View {
     }
 
     private var rowDivider: some View {
-        Divider().overlay(DriveStyle.separator).padding(.leading, 60).padding(.trailing, 16)
+        Divider().overlay(GlamoStyle.line).padding(.leading, 64).padding(.trailing, 16)
     }
 }
 
@@ -501,7 +507,7 @@ private struct AccountHelpView: View {
     private let topics: [(String, String)] = [
         ("Import videos", "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open."),
         ("Clear cache", "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept."),
-        ("Vifol Plus", "Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available.")
+        ("Ecloud Plus", "Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches.")
     ]
 
     var body: some View {
@@ -556,7 +562,7 @@ private struct AccountHelpView: View {
                             ActionButton(title: "Support website", primary: false) {
                                 websiteError = nil
                                 openURL(website) { accepted in
-                                    if !accepted { websiteError = "Couldn’t open the Vifol website. Try again." }
+                                    if !accepted { websiteError = "Couldn’t open the Ecloud website. Try again." }
                                 }
                             }.accessibilityIdentifier("account.officialWebsite")
                         }
@@ -583,13 +589,13 @@ private struct AccountMenuRow: View {
     let symbol: GlamoGlyph
     var tint = DriveStyle.accent
     var body: some View {
-        let rowTitle = LocalizedText(title).driveFont(15, relativeTo: .subheadline, weight: .medium)
+        let rowTitle = LocalizedText(title).driveFont(14, relativeTo: .subheadline)
             .foregroundStyle(DriveStyle.ink)
             .fixedSize(horizontal: false, vertical: true)
-        return HStack(spacing: 12) {
-            Glyph(symbol: symbol, size: 17, tint: .white)
+        return HStack(spacing: 14) {
+            Glyph(symbol: symbol, size: 18, tint: .white)
                 .frame(width: 32, height: 32)
-                .background(tint, in: Circle())
+                .background(tint, in: RoundedRectangle(cornerRadius: 12))
                 .accessibilityHidden(true)
             if let detail {
                 let value = LocalizedText(detail).driveFont(14, relativeTo: .footnote)
@@ -613,7 +619,8 @@ private struct AccountMenuRow: View {
                 .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 0 : 180))
                 .frame(width: 20, height: 24)
                 .allowsHitTesting(false).accessibilityHidden(true)
-        }.padding(.horizontal, 16).padding(.vertical, 8)
+        }
+            .padding(.leading, 18).padding(.trailing, 16).padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
             .contentShape(.interaction, Rectangle())
     }

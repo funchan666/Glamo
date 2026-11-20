@@ -22,13 +22,13 @@ final class DrivePlaybackSession: ObservableObject {
             .sink { [weak self] _ in self?.clearCompletion() }
     }
 
-    func open(_ file: PracticeRecording, among files: [PracticeRecording], library: LibraryStore) {
+    func open(_ file: PracticeRecording, among files: [PracticeRecording], library: LibraryStore, expanded: Bool = true) {
         self.library = library
         queue = files.map(\.id)
         if !queue.contains(file.id) { queue.insert(file.id, at: 0) }
         if currentID != file.id || playback.error != nil { load(file) }
         else { playback.play() }
-        expanded = true
+        self.expanded = expanded
     }
 
     func files(in library: LibraryStore) -> [PracticeRecording] {
@@ -115,7 +115,6 @@ final class DrivePlaybackSession: ObservableObject {
 struct DrivePlayerView: View {
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AccessibilityFocusState private var videoOptionsFocused: Bool
     @ObservedObject var session: DrivePlaybackSession
@@ -126,6 +125,7 @@ struct DrivePlayerView: View {
     @State private var showingVideoOptions = false
     @State private var scrubbing = false
     @State private var headerHeight: CGFloat = 48
+    @State private var videoTransportHeight: CGFloat = 82
 
     var body: some View {
         GeometryReader { container in
@@ -169,7 +169,7 @@ struct DrivePlayerView: View {
                                       : AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
 
         return ScrollViewReader { scroll in
-            let locateCurrent = { scroll.scrollTo(movie.id) }
+            let locateCurrent = { scroll.scrollTo(movie.id, anchor: .center) }
             let locateInHeader = files.count > 1 && showingQueue && width >= 260
 
             VStack(spacing: 0) {
@@ -186,7 +186,8 @@ struct DrivePlayerView: View {
                             playbackPanel(movie, files: files, height: stageHeight, railWidth: railWidth)
                             if files.count > 1 {
                                 DrivePlayerQueue(playback: session.playback, isExpanded: $showingQueue,
-                                                 files: files, current: movie, select: session.select,
+                                                 files: files, current: movie, hasFinished: session.hasFinished,
+                                                 select: session.select,
                                                  locateCurrent: locateCurrent)
                                     .frame(maxWidth: queueBesideVideo ? 300 : .infinity, alignment: .leading)
                             }
@@ -232,31 +233,48 @@ struct DrivePlayerView: View {
         let short = height < 400
         let compactControls = short || width < 280 || typeSize.isAccessibilitySize
         let showingOverlay = showingVideoOptions || showingVideoRates
+        let scrollTransport = height < 228 || (typeSize.isAccessibilitySize && height < 370)
+        let transport = DriveTransport(playback: session.playback, scrubbing: $scrubbing,
+                                       previous: session.neighbor(-1, in: files), next: next,
+                                       open: session.select, cinema: true, toggleCinema: { cinema.toggle() },
+                                       compactRail: false,
+                                       stacksVideoActions: width < 350 && typeSize.isAccessibilitySize,
+                                       showingVideoRates: $showingVideoRates)
+            .frame(maxWidth: 1000)
+            .pageHorizontalMargins()
+            .padding(.bottom, short ? 4 : 0)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                videoTransportHeight = $0
+            }
 
         return VStack(spacing: 4) {
             immersiveHeader(movie)
                 .pageHorizontalMargins()
                 .padding(.top, short ? 4 : 10)
 
-            GeometryReader { space in
+            if scrollTransport {
                 ScrollView {
-                    playbackFeedback(movie, next: next, overVideo: true, compact: compactControls)
-                        .pageHorizontalMargins()
-                        .padding(.vertical, 6)
-                        .frame(maxWidth: .infinity, minHeight: space.size.height)
+                    VStack(spacing: 8) {
+                        playbackFeedback(movie, next: next, overVideo: true, compact: true)
+                            .pageHorizontalMargins()
+                            .padding(.vertical, 6)
+                            .frame(maxWidth: .infinity)
+                        transport
+                    }
                 }
                 .scrollBounceBehavior(.basedOnSize)
+            } else {
+                GeometryReader { space in
+                    ScrollView {
+                        playbackFeedback(movie, next: next, overVideo: true, compact: compactControls)
+                            .pageHorizontalMargins()
+                            .padding(.vertical, 6)
+                            .frame(maxWidth: .infinity, minHeight: space.size.height)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                }
+                transport
             }
-
-            DriveTransport(playback: session.playback, scrubbing: $scrubbing,
-                           previous: session.neighbor(-1, in: files), next: next,
-                           open: session.select, cinema: true, toggleCinema: { cinema.toggle() },
-                           compactRail: short && width >= 580,
-                           stacksVideoActions: width < 350 && typeSize.isAccessibilitySize,
-                           showingVideoRates: $showingVideoRates)
-                .frame(maxWidth: 840)
-                .pageHorizontalMargins()
-                .padding(.bottom, short ? 4 : 0)
         }
         .background {
             DrivePlayerPicture(playback: session.playback, isAudio: movie.isAudio, immersive: true)
@@ -281,7 +299,10 @@ struct DrivePlayerView: View {
                                closeVideoOptions: { showingVideoOptions = false })
                     .transition(.opacity)
             } else if showingVideoRates {
-                DriveVideoSpeedOverlay(playback: session.playback) { showingVideoRates = false }
+                DriveVideoSpeedOverlay(playback: session.playback, landscape: width > height,
+                                       bottomClearance: scrollTransport ? 0 : videoTransportHeight) {
+                    showingVideoRates = false
+                }
                     .transition(.opacity)
             }
         }
@@ -358,7 +379,6 @@ struct DrivePlayerView: View {
 
     private var labeledMinimizeButton: some View {
         let arrow = Glyph(symbol: .back, size: 16, tint: GlamoStyle.accent)
-            .rotationEffect(.degrees(layoutDirection == .leftToRight ? 0 : 180))
             .accessibilityHidden(true)
         return Button(action: minimizePlayer) {
             ViewThatFits(in: .horizontal) {
@@ -403,14 +423,19 @@ private struct DrivePlayerQueue: View {
     @ObservedObject var playback: PlaybackController
     @Binding var isExpanded: Bool
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.locale) private var locale
     let files: [PracticeRecording]
     let current: PracticeRecording
+    let hasFinished: Bool
     let select: (PracticeRecording) -> Void
     let locateCurrent: () -> Void
 
     private var currentStatus: String {
         if playback.error != nil { return "Playback failed" }
-        if playback.isLoading { return "Loading…" }
+        if playback.isLoading {
+            return playback.player.currentItem?.status == .readyToPlay ? "Buffering…" : "Loading…"
+        }
+        if hasFinished && !playback.intendsPlayback { return "Playback finished" }
         return playback.isPlaying ? "Now playing" : "Current file"
     }
 
@@ -421,7 +446,13 @@ private struct DrivePlayerQueue: View {
                 .font(.glam(.subheadline, weight: .medium)).foregroundStyle(GlamoStyle.ink)
                 .lineLimit(typeSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
             LocalizedText(status)
-                .font(.glam(.footnote, weight: .semibold)).foregroundStyle(GlamoStyle.accent)
+                .font(.glam(.footnote, weight: .semibold))
+                .foregroundStyle(playback.error == nil ? DriveStyle.link : GlamoStyle.danger)
+            if let index = files.firstIndex(where: { $0.id == current.id }) {
+                LocalizedText("File %@ of %@", (index + 1).formatted(.number.locale(locale)),
+                              files.count.formatted(.number.locale(locale)))
+                    .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
+            }
         }
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
@@ -503,7 +534,8 @@ private struct DriveQueueRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let currentStatus {
                     LocalizedText(currentStatus)
-                        .font(.glam(.footnote, weight: .semibold)).foregroundStyle(GlamoStyle.accent)
+                        .font(.glam(.footnote, weight: .semibold))
+                        .foregroundStyle(currentStatus == "Playback failed" ? GlamoStyle.danger : DriveStyle.link)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(verbatim: file.displayName)
@@ -553,15 +585,12 @@ private struct DrivePlayerPicture: View {
 
     private func gravity(in canvas: CGSize) -> AVLayerVideoGravity? {
         guard immersive, canvas.width > 0, canvas.height > 0 else { return nil }
-        return .resizeAspectFill
+        return canvas.width > canvas.height ? .resizeAspect : .resizeAspectFill
     }
 }
 
 private struct DrivePlaybackFeedback: View {
     @ObservedObject var playback: PlaybackController
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var phase
     let movie: PracticeRecording
     let hasFinished: Bool
     let playNext: (() -> Void)?
@@ -573,20 +602,60 @@ private struct DrivePlaybackFeedback: View {
         if let error = playback.error {
             errorNotice(error)
         } else if !playback.isLoading && hasFinished && !playback.intendsPlayback {
-            completionNotice
+            DrivePlaybackEndNotice(playNext: playNext) {
+                playback.seek(0)
+                playback.play()
+            }
         } else {
             VStack(spacing: 8) {
+                if playback.isLoading {
+                    DrivePlaybackActivityNotice(title: movie.displayName,
+                                                buffering: playback.player.currentItem?.status == .readyToPlay)
+                }
                 if overVideo { DrivePlaybackControls(playback: playback, overVideo: true, compact: compact) }
-                if playback.isLoading { loadingNotice }
             }
         }
     }
 
-    private var completionNotice: some View {
-        let replayButton = Button {
-            playback.seek(0)
-            playback.play()
-        } label: {
+    private func errorNotice(_ error: String) -> some View {
+        let details = VStack(alignment: .leading, spacing: 5) {
+            LocalizedText("Playback failed")
+                .font(.glam(.headline)).foregroundStyle(GlamoStyle.danger)
+                .accessibilityAddTraits(.isHeader)
+            LocalizedText(error)
+                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+        }
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+
+        let retryButton = Button(action: retry) {
+            LocalizedText("Retry")
+        }
+        .buttonStyle(GlamoActionStyle(fillsWidth: false))
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                details
+                Spacer(minLength: 0)
+                retryButton
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                details
+                retryButton
+            }
+        }
+        .frame(maxWidth: 400, alignment: .leading)
+        .padding(14)
+        .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: GlamoStyle.surface, mediaBackdrop: true)
+    }
+}
+
+struct DrivePlaybackEndNotice: View {
+    let playNext: (() -> Void)?
+    let replay: () -> Void
+
+    var body: some View {
+        let replayButton = Button(action: replay) {
             LocalizedText("Play again")
         }
         .buttonStyle(GlamoActionStyle(primary: playNext == nil))
@@ -623,65 +692,48 @@ private struct DrivePlaybackFeedback: View {
         .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: GlamoStyle.surface, mediaBackdrop: true)
     }
 
-    private var loadingNotice: some View {
+}
+
+struct DrivePlaybackActivityNotice: View {
+    let title: String
+    let buffering: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var phase
+    @State private var revealed = false
+
+    var body: some View {
         let animates = !reduceMotion && phase == .active
         return VStack(alignment: .leading, spacing: 5) {
-            Text(verbatim: movie.displayName)
-                .font(.glam(.headline)).foregroundStyle(GlamoStyle.ink)
-                .lineLimit(typeSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
             HStack(spacing: 6) {
-                AssetMask(name: "GlamoLoadingMark", tint: GlamoStyle.accent)
-                    .frame(width: 22, height: 22)
+                AssetMask(name: "GlamoLoadingMark", tint: .white)
+                    .frame(width: 28, height: 10)
                     .phaseAnimator([false, true]) { content, dimmed in
                         content.opacity(animates && dimmed ? 0.45 : 1)
                     } animation: { _ in
                         animates ? .easeInOut(duration: 0.6) : nil
                     }
                     .accessibilityHidden(true)
-                LocalizedText("Loading…")
-                    .font(.glam(.footnote, weight: .semibold))
-                    .foregroundStyle(GlamoStyle.secondary)
+                LocalizedText(buffering ? "Buffering…" : "Loading…")
+                    .font(.glam(.footnote, weight: .semibold)).foregroundStyle(.white)
             }
+            Text(verbatim: title)
+                .font(.glam(.subheadline)).foregroundStyle(.white.opacity(0.86))
+                .lineLimit(typeSize.isAccessibilitySize ? 3 : 2).truncationMode(.middle)
         }
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 340, alignment: .leading)
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 14), tint: GlamoStyle.paper, mediaBackdrop: true)
+        .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 18), shade: 0.66))
         .accessibilityElement(children: .combine)
         .allowsHitTesting(false)
-    }
-
-    private func errorNotice(_ error: String) -> some View {
-        let details = VStack(alignment: .leading, spacing: 5) {
-            LocalizedText("Playback failed")
-                .font(.glam(.headline)).foregroundStyle(GlamoStyle.danger)
-                .accessibilityAddTraits(.isHeader)
-            LocalizedText(error)
-                .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+        .opacity(revealed ? 1 : 0).accessibilityHidden(!revealed)
+        .task {
+            do { try await Task.sleep(for: .milliseconds(250)); try Task.checkCancellation(); revealed = true }
+            catch { }
         }
-        .multilineTextAlignment(.leading)
-        .fixedSize(horizontal: false, vertical: true)
-
-        let retryButton = Button(action: retry) {
-            LocalizedText("Retry")
-        }
-        .buttonStyle(GlamoActionStyle(fillsWidth: false))
-
-        return ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                details
-                Spacer(minLength: 0)
-                retryButton
-            }
-            VStack(alignment: .leading, spacing: 12) {
-                details
-                retryButton
-            }
-        }
-        .frame(maxWidth: 400, alignment: .leading)
-        .padding(14)
-        .glamoGlass(in: RoundedRectangle(cornerRadius: 16), tint: GlamoStyle.surface, mediaBackdrop: true)
+        .onDisappear { revealed = false }
     }
 }
 
@@ -689,7 +741,6 @@ private struct DriveTransport: View {
     @ObservedObject var playback: PlaybackController
     @Environment(\.scenePhase) private var phase
     @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.layoutDirection) private var layoutDirection
     @Binding var scrubbing: Bool
     let previous: PracticeRecording?
     let next: PracticeRecording?
@@ -702,8 +753,7 @@ private struct DriveTransport: View {
 
     var body: some View {
         if cinema {
-            let layout = compactRail ? AnyLayout(HStackLayout(spacing: 14)) : AnyLayout(VStackLayout(spacing: 0))
-            layout {
+            VStack(spacing: 0) {
                 videoActions.layoutPriority(1)
                 progressPanel
             }
@@ -727,7 +777,7 @@ private struct DriveTransport: View {
                                             showsInlineTimes: true, overVideo: cinema)
         if cinema {
             control.padding(.horizontal, 14)
-                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22).inset(by: 4)))
+                .modifier(DriveVideoGlass(shape: Capsule().inset(by: 5), shade: 0.32))
         } else {
             control.padding(.horizontal, 10).padding(.top, 8)
                 .background(GlamoStyle.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -771,10 +821,9 @@ private struct DriveTransport: View {
     }
 
     private func fileButton(_ file: PracticeRecording?, forward: Bool) -> some View {
-        let pointsRight = forward ? layoutDirection == .leftToRight : layoutDirection == .rightToLeft
         let tint = cinema ? Color.white : (file == nil ? GlamoStyle.secondary : GlamoStyle.accent)
         let arrow = Glyph(symbol: .back, size: 13, tint: tint)
-            .rotationEffect(.degrees((cinema ? forward : pointsRight) ? 180 : 0))
+            .rotationEffect(.degrees(forward ? 180 : 0))
         let button = Button {
             if let file { open(file) }
         } label: {
@@ -844,9 +893,9 @@ struct DrivePlaybackControls: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            row(skipSize: overVideo ? (compact ? 46 : 56) : nil,
-                playSize: overVideo ? (compact ? 60 : 72) : nil,
-                spacing: overVideo && !compact ? 16 : 10)
+            row(skipSize: overVideo ? (compact ? 44 : 52) : nil,
+                playSize: overVideo ? (compact ? 56 : 66) : nil,
+                spacing: overVideo && !compact ? 14 : 10)
             VStack(spacing: 6) {
                 DrivePlayButton(playback: playback, videoDiameter: overVideo ? 56 : nil).fixedSize()
                 HStack(spacing: 8) {
@@ -927,7 +976,8 @@ struct DriveVideoButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .frame(minWidth: diameter, minHeight: diameter)
-            .modifier(DriveVideoGlass(shape: Capsule(), prominent: prominent))
+            .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+            .modifier(DriveVideoGlass(shape: Capsule(), prominent: prominent, interactive: isEnabled))
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
             .opacity(!isEnabled ? 0.45 : (configuration.isPressed ? 0.76 : 1))
@@ -936,25 +986,32 @@ struct DriveVideoButtonStyle: ButtonStyle {
 
 struct DriveVideoGlass<Surface: InsettableShape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let shape: Surface
     var prominent = false
-    var shade = 0.08
+    var shade = 0.25
+    var regular = false
+    var interactive = false
 
-    init(shape: Surface, prominent: Bool = false, shade: Double = 0.08) {
-        self.shape = shape
-        self.prominent = prominent
-        self.shade = shade
-    }
-
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content.background {
-            shape.fill(.ultraThinMaterial)
-                .overlay { shape.fill(.black.opacity(reduceTransparency ? 1 : shade)) }
-                .overlay { shape.fill(.white.opacity(prominent ? 0.24 : 0.12)) }
-                .environment(\.colorScheme, .light)
-                .overlay { shape.strokeBorder(.white.opacity(prominent ? 0.36 : 0.24), lineWidth: 1) }
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        if reduceTransparency {
+            content.background(Color(white: prominent ? 0.27 : 0.16), in: shape)
+                .overlay { shape.strokeBorder(.white.opacity(0.24)).allowsHitTesting(false) }
+        } else if #available(iOS 26.0, *) {
+            let glass: Glass = regular ? .regular : .clear
+            content.glassEffect(glass.tint(prominent ? .white.opacity(0.16) : nil)
+                .interactive(interactive && !reduceMotion), in: shape)
+                .background(.black.opacity(shade), in: shape)
+        } else {
+            content.background {
+                shape.fill(.ultraThinMaterial)
+                    .overlay { shape.fill(.black.opacity(shade)) }
+                    .overlay { shape.strokeBorder(.white.opacity(0.24)) }
+                    .environment(\.colorScheme, .dark)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
     }
 }
@@ -1062,24 +1119,16 @@ struct DriveSpeedButton: View {
 
 struct DriveVideoSpeedOverlay: View {
     @ObservedObject var playback: PlaybackController
-    @ScaledMetric(relativeTo: .subheadline) private var columnWidth: CGFloat = 116
+    let landscape: Bool
+    let bottomClearance: CGFloat
     let close: () -> Void
 
-    init(playback: PlaybackController, close: @escaping () -> Void) {
-        _playback = ObservedObject(wrappedValue: playback)
-        self.close = close
-    }
-
     var body: some View {
-        DriveVideoBottomOverlay(title: "Playback speed", columnWidth: columnWidth, close: close) { columns in
-            let choices = DriveSpeedChoices(playback: playback, columns: columns, overVideo: true, close: close)
-            return ViewThatFits(in: .vertical) {
-                choices.fixedSize(horizontal: false, vertical: true)
-                ScrollViewReader { scroll in
-                    ScrollView { choices }
-                        .scrollBounceBehavior(.basedOnSize)
-                        .onAppear { scroll.scrollTo(playback.speed, anchor: .center) }
-                }
+        ScrollViewReader { scroll in
+            DriveVideoBottomOverlay(title: "Playback speed", landscape: landscape,
+                                    bottomClearance: bottomClearance, close: close) {
+                DriveSpeedChoices(playback: playback, columns: [GridItem(.flexible())], overVideo: true, close: close)
+                    .onAppear { scroll.scrollTo(playback.speed, anchor: .center) }
             }
         }
     }
@@ -1088,35 +1137,65 @@ struct DriveVideoSpeedOverlay: View {
 struct DriveVideoBottomOverlay<Content: View>: View {
     @AccessibilityFocusState private var headingFocused: Bool
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var bodyHeight: CGFloat = 160
+    @State private var headerHeight: CGFloat = 52
     let title: String
-    let columnWidth: CGFloat
+    let landscape: Bool
+    var bottomClearance: CGFloat = 0
+    var centered = false
     let close: () -> Void
-    let content: ([GridItem]) -> Content
+    @ViewBuilder let content: () -> Content
 
     var body: some View {
         GeometryReader { canvas in
-            let short = canvas.size.height < 420
-            let width: CGFloat = short ? 460 : 360
-            let fitsColumns = short && !typeSize.isAccessibilitySize && min(width, canvas.size.width - 32) >= 2 * columnWidth + 32
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: fitsColumns ? 2 : 1)
-            DriveFloatingDialog(maxWidth: width, overVideo: true, close: close) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        LocalizedText(title).driveFont(17, relativeTo: .headline, weight: .semibold)
-                            .fixedSize(horizontal: false, vertical: true)
+            let width: CGFloat = landscape && !typeSize.isAccessibilitySize && !centered ? 248 : 410
+            let bottom = centered ? 0 : min(bottomClearance, max(0, canvas.size.height - headerHeight - 86))
+            let availableHeight = max(0, canvas.size.height - bottom - headerHeight - 24)
+            let alignment: Alignment = centered ? .center : landscape ? .bottomTrailing : .bottom
+
+            ZStack {
+                Color.black.opacity(0.12)
+                    .contentShape(Rectangle()).onTapGesture(perform: close)
+                    .accessibilityHidden(true)
+                VStack(spacing: 0) {
+                    header.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+                    ScrollView {
+                        content()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityAddTraits(.isHeader).accessibilityFocused($headingFocused)
-                        IconButton(symbol: .close, label: "Close", tint: DriveStyle.ink, glyphSize: 14, action: close)
-                            .keyboardShortcut(.cancelAction)
+                            .padding(.horizontal, 8).padding(.bottom, 8)
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bodyHeight = $0 }
                     }
-                    content(columns)
-                }.padding(14).foregroundStyle(DriveStyle.ink).preferredColorScheme(.light)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .frame(height: min(bodyHeight, availableHeight))
+                }
+                .frame(width: min(width, max(0, canvas.size.width - 16)))
+                .foregroundStyle(.white)
+                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22), shade: 0.43, regular: true))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+                .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, bottom + 8)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape, close)
         .onAppear { headingFocused = true }
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            LocalizedText(title).driveFont(16, relativeTo: .headline, weight: .semibold)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader).accessibilityFocused($headingFocused)
+            Button(action: close) {
+                Glyph(symbol: .close, size: 14, tint: .white).frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(PressStyle())
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel("Close")
+        }
+        .padding(.leading, 16).padding(.trailing, 4).padding(.top, 2)
     }
 }
 
@@ -1176,17 +1255,25 @@ private struct DriveSpeedChoices: View {
                 .monospacedDigit().environment(\.layoutDirection, .leftToRight)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Circle().fill(selected ? DriveStyle.accent : .clear)
-                .overlay { Circle().strokeBorder(selected ? DriveStyle.accent : DriveStyle.secondary.opacity(0.35)) }
-                .frame(width: 18, height: 18).accessibilityHidden(true)
+            DriveVideoSelectionIndicator(selected: selected)
         }
-        .foregroundStyle(selected ? DriveStyle.accent : DriveStyle.ink)
+        .foregroundStyle(selected ? Color(red: 0.50, green: 0.80, blue: 1) : .white)
         .padding(.horizontal, 10).padding(.vertical, 7)
         .frame(maxWidth: .infinity, minHeight: 44)
-        .background(selected ? DriveStyle.accent.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 10))
         .contentShape(Rectangle())
     }
 
+}
+
+struct DriveVideoSelectionIndicator: View {
+    let selected: Bool
+
+    var body: some View {
+        Circle().strokeBorder(.white.opacity(selected ? 0.95 : 0.5))
+            .background(selected ? DriveStyle.accent : .clear, in: Circle())
+            .frame(width: 18, height: 18)
+            .accessibilityHidden(true)
+    }
 }
 
 func driveRateText(_ speed: Float, locale: Locale) -> String {
@@ -1216,6 +1303,196 @@ struct DrivePlayerTimes: View {
         }
         .monospacedDigit().foregroundStyle(GlamoStyle.secondary)
         .environment(\.layoutDirection, .leftToRight)
+    }
+}
+
+struct DriveVideoWindow: View {
+    @ObservedObject var playback: PlaybackController
+    @Environment(\.scenePhase) private var phase
+    @Environment(\.locale) private var locale
+    @State private var scrubbing = false
+    @State private var showingRates = false
+    @State private var showingQueue = false
+
+    let movie: PracticeRecording
+    let files: [PracticeRecording]
+    let select: (PracticeRecording) -> Void
+    let expand: () -> Void
+    let close: () -> Void
+
+    private var nextFile: PracticeRecording? {
+        guard let index = files.firstIndex(where: { $0.id == movie.id }),
+              files.indices.contains(index + 1) else { return nil }
+        return files[index + 1]
+    }
+
+    private var resolution: String? {
+        guard let size = playback.player.currentItem?.presentationSize else { return nil }
+        let shortSide = Double(min(size.width, size.height))
+        guard shortSide.isFinite, shortSide > 0 else { return nil }
+        let format = FloatingPointFormatStyle<Double>(locale: locale)
+            .grouping(.never).precision(.fractionLength(0))
+        return format.format(shortSide) + "p"
+    }
+
+    var body: some View {
+        let pictureShape = RoundedRectangle(cornerRadius: 23)
+        Color.black
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .frame(minHeight: 168)
+            .overlay {
+                DrivePlayerPicture(playback: playback, isAudio: movie.isAudio)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
+            .overlay {
+                VStack(spacing: 0) {
+                    titleBar
+                    Spacer(minLength: 0)
+                    playbackStatus
+                    Spacer(minLength: 0)
+                    transport
+                }
+            }
+            .clipShape(pictureShape)
+            .padding(4)
+            .glamoGlass(in: RoundedRectangle(cornerRadius: 27), tint: .white, mediaBackdrop: true)
+            .frame(maxWidth: 440)
+            .driveDialog(isPresented: $showingRates) {
+                VStack(spacing: 10) {
+                    SheetHeading(title: "Playback speed", inset: false) { showingRates = false }
+                    DriveSpeedChoices(playback: playback, columns: [GridItem(.adaptive(minimum: 82), spacing: 8)]) {
+                        showingRates = false
+                    }
+                }
+                .padding(14)
+                .foregroundStyle(GlamoStyle.ink)
+            }
+            .driveDialog(isPresented: $showingQueue, height: 440) { queuePicker }
+    }
+
+    private var titleBar: some View {
+        HStack(spacing: 6) {
+            Text(verbatim: movie.displayName)
+                .font(.glam(.subheadline, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1).truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 12)
+            windowButton(.close, label: "Close player", action: close)
+        }
+        .padding(.trailing, 3)
+        .background {
+            LinearGradient(colors: [.black.opacity(0.72), .black.opacity(0.55), .clear],
+                           startPoint: .top, endPoint: .bottom)
+                .allowsHitTesting(false).accessibilityHidden(true)
+        }
+    }
+
+    @ViewBuilder
+    private var playbackStatus: some View {
+        if playback.error != nil || playback.isLoading {
+            let status = playback.error != nil ? "Playback failed"
+                : playback.player.currentItem?.status == .readyToPlay ? "Buffering…" : "Loading…"
+            LocalizedText(status)
+                .font(.glam(.caption, weight: .semibold)).foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.8)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .modifier(DriveVideoGlass(shape: Capsule(), shade: 0.65))
+                .padding(.horizontal, 12)
+        }
+    }
+
+    private var transport: some View {
+        VStack(spacing: 0) {
+            PlayerProgressControl(playback: playback, timeline: playback.timeline, enabled: !playback.isLoading,
+                                  canResume: phase == .active, scrubbing: $scrubbing, overVideo: true)
+                .id(movie.id)
+                .padding(.horizontal, 9)
+            ViewThatFits(in: .horizontal) {
+                transportButtons(showsResolution: true)
+                transportButtons(showsResolution: false)
+                transportButtons(showsResolution: false, showsRateText: false)
+            }
+        }
+        .padding(.horizontal, 4).padding(.bottom, 3)
+        .background {
+            LinearGradient(colors: [.black.opacity(0.58), .black.opacity(0.86)],
+                           startPoint: .top, endPoint: .bottom)
+                .allowsHitTesting(false).accessibilityHidden(true)
+        }
+        .onChange(of: movie.id) { _, _ in scrubbing = false }
+    }
+
+    private func transportButtons(showsResolution: Bool, showsRateText: Bool = true) -> some View {
+        HStack(spacing: 2) {
+            if playback.error != nil {
+                windowButton(.play, label: "Retry") { select(movie) }
+            } else {
+                DrivePlayButton(playback: playback, videoDiameter: 40).fixedSize()
+            }
+            windowButton(.back, label: "Next file", pointsForward: true) {
+                if let nextFile { select(nextFile) }
+            }
+            .disabled(nextFile == nil)
+            Spacer(minLength: 2)
+            if showsResolution, let resolution {
+                Text(verbatim: resolution)
+                    .font(.glam(.caption2, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(.white).fixedSize()
+            }
+            if showsRateText {
+                DriveSpeedButton(playback: playback, compact: true, showingVideoRates: $showingRates).fixedSize()
+            } else {
+                windowButton(.driveSettings, label: "Playback speed") { showingRates = true }
+                    .accessibilityValue(Text(verbatim: driveRateText(playback.speed, locale: locale)))
+            }
+            windowButton(.driveList, label: "Play queue") { showingQueue = true }
+                .disabled(files.isEmpty)
+            windowButton(.driveExpand, label: "Full screen", action: expand)
+        }
+    }
+
+    private func windowButton(_ symbol: GlamoGlyph, label: String, pointsForward: Bool = false,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Glyph(symbol: symbol, size: 16, tint: .white)
+                .rotationEffect(.degrees(pointsForward ? 180 : 0))
+        }
+        .buttonStyle(DriveVideoButtonStyle(diameter: 34))
+        .accessibilityLabel(LocalizedStringKey(label))
+        .fixedSize()
+    }
+
+    private var queuePicker: some View {
+        VStack(spacing: 8) {
+            SheetHeading(title: "Play queue", inset: false) { showingQueue = false }
+            ScrollViewReader { proxy in
+                let status = playback.isPlaying ? "Now playing" : "Current file"
+                ScrollView {
+                    LazyVStack(spacing: 4) {
+                        ForEach(files) { file in
+                            let active = file.id == movie.id
+                            Button {
+                                showingQueue = false
+                                select(file)
+                            } label: {
+                                DriveQueueRow(file: file, currentStatus: active ? status : nil)
+                            }
+                            .buttonStyle(PressStyle())
+                            .accessibilityAddTraits(active ? .isSelected : [])
+                            .id(file.id)
+                        }
+                    }
+                }
+                .task(id: movie.id) {
+                    await Task.yield()
+                    proxy.scrollTo(movie.id, anchor: .center)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+        }
+        .padding(14)
+        .foregroundStyle(GlamoStyle.ink)
     }
 }
 

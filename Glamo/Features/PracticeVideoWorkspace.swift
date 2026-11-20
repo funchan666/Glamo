@@ -134,7 +134,7 @@ struct VideoImportControls: View {
         guard !(failure is CancellationError),
               !(cocoa.domain == NSCocoaErrorDomain && cocoa.code == NSUserCancelledError),
               !(cocoa.domain == NSURLErrorDomain && cocoa.code == NSURLErrorCancelled) else { return }
-        error = failure.localizedDescription
+        error = DeviceSpaceFailure.description(for: failure)
     }
 }
 
@@ -189,6 +189,7 @@ struct EditorWorkspace: View {
     @State private var cancelledExportFormat: ExportFormat?
     @State private var exportFailure: ExportFailure?
     @State private var exportShareError: String?
+    @State private var showingDeviceSpace = false
     @State private var exportSharePresentation: ExportSharePresentation?
     @State private var shareURL: SharedFile?
     @State private var tool = "Trim"
@@ -279,6 +280,7 @@ struct EditorWorkspace: View {
                     exportSharePresentation?.outcome = outcome
                 })
             }
+            .driveDialog(isPresented: $showingDeviceSpace) { DriveDeviceSpaceNotice() }
             .fullScreenCover(isPresented: $showingExportMembership) { MembershipView(requiredBenefit: .mediaExport) }
             .task {
                 guard !didOpenInitialMovie, selected == nil, let initialMovie else { return }
@@ -881,6 +883,7 @@ struct EditorWorkspace: View {
                 if !Task.isCancelled, editor.error != Self.exportCancelledMessage {
                     let message = editor.error ?? "Export could not finish. Your original video is unchanged."
                     exportFailure = ExportFailure(format: format, message: message)
+                    showingDeviceSpace = message == DeviceSpaceFailure.message
                 }
                 return
             }
@@ -896,8 +899,10 @@ struct EditorWorkspace: View {
                 await presentExportShare(saved)
             } catch is CancellationError { }
             catch {
-                let message = "Couldn’t save the export to your library. \(error.localizedDescription)"
-                exportFailure = ExportFailure(format: format, message: message)
+                let message = DeviceSpaceFailure.description(for: error)
+                showingDeviceSpace = message == DeviceSpaceFailure.message
+                exportFailure = ExportFailure(format: format, message: showingDeviceSpace ? message
+                    : "Couldn’t save the export to your library. \(message)")
             }
         }
         departure.begin { exportTask?.cancel(); editor.cancelExport() }
@@ -933,7 +938,11 @@ struct EditorWorkspace: View {
             }
         } catch is CancellationError { }
         catch {
-            if !Task.isCancelled { exportShareError = error.localizedDescription }
+            if !Task.isCancelled {
+                let message = DeviceSpaceFailure.description(for: error)
+                exportShareError = message
+                showingDeviceSpace = message == DeviceSpaceFailure.message
+            }
         }
     }
 }

@@ -2,7 +2,30 @@ import Foundation
 import AVFoundation
 import Combine
 import CoreTransferable
+import Darwin
+import Photos
 import UniformTypeIdentifiers
+
+enum DeviceSpaceFailure {
+    static let message = "Not enough storage. Free up space and try again."
+    static let downloadMessage = "Free up space on this device to download the file."
+
+    static func description(for failure: Error, downloading: Bool = false) -> String {
+        var errors = [failure as NSError]
+        var seen = Set<ObjectIdentifier>()
+        while let error = errors.popLast() {
+            guard seen.insert(ObjectIdentifier(error)).inserted else { continue }
+            if (error.domain == NSPOSIXErrorDomain && error.code == Int(ENOSPC))
+                || (error.domain == NSCocoaErrorDomain && error.code == CocoaError.fileWriteOutOfSpace.rawValue)
+                || (error.domain == AVError.errorDomain && error.code == AVError.Code.diskFull.rawValue)
+                || (error.domain == PHPhotosError.errorDomain && error.code == PHPhotosError.Code.notEnoughSpace.rawValue) {
+                return downloading ? downloadMessage : message
+            }
+            errors.append(contentsOf: error.underlyingErrors.map { $0 as NSError })
+        }
+        return failure.localizedDescription
+    }
+}
 
 struct VideoImportBatch {
     struct Failure: Identifiable {
@@ -86,7 +109,7 @@ final class LibraryStore: ObservableObject {
             }
             name = name.trimmingCharacters(in: CharacterSet(charactersIn: ". "))
             while name.utf8.count > 160 { name.removeLast() }
-            if name.isEmpty { name = "Vifol video" }
+            if name.isEmpty { name = "Ecloud video" }
             let destination = directory.appendingPathComponent(name).appendingPathExtension(source.pathExtension)
             do {
                 try Task.checkCancellation()
@@ -137,7 +160,7 @@ final class LibraryStore: ObservableObject {
             } catch is CancellationError {
                 break
             } catch {
-                batch.failures.append(.init(name: batch.currentName, message: error.localizedDescription))
+                batch.failures.append(.init(name: batch.currentName, message: DeviceSpaceFailure.description(for: error)))
             }
             batch.processed += 1
             fileImport = batch

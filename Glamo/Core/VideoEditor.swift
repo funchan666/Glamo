@@ -98,7 +98,7 @@ final class VideoEditor: ObservableObject {
         isPreparingPreview = true
         error = nil
         preview.pause()
-        let output = FileManager.default.temporaryDirectory.appendingPathComponent("Glamo-preview-\(previewID).mp4")
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("Ecloud-preview-\(previewID).mp4")
         var retained = false
         defer {
             if !retained { try? FileManager.default.removeItem(at: output) }
@@ -149,7 +149,7 @@ final class VideoEditor: ObservableObject {
         progress = 0
         error = nil
         preview.pause()
-        let output = FileManager.default.temporaryDirectory.appendingPathComponent("Glamo-\(UUID().uuidString).\(audioOnly ? "m4a" : "mp4")")
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("Ecloud-\(UUID().uuidString).\(audioOnly ? "m4a" : "mp4")")
         defer { isExporting = false; exporter = nil }
         var progressTask: Task<Void, Never>?
         defer { progressTask?.cancel() }
@@ -189,7 +189,8 @@ final class VideoEditor: ObservableObject {
             }
         } catch {
             try? FileManager.default.removeItem(at: output)
-            self.error = error is CancellationError ? "Export cancelled. Your original video is unchanged." : error.localizedDescription
+            self.error = error is CancellationError ? "Export cancelled. Your original video is unchanged."
+                : DeviceSpaceFailure.description(for: error)
             return nil
         }
     }

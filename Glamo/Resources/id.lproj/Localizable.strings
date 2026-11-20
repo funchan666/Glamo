@@ -10,7 +10,7 @@
 "A full year of Plus" = "Plus selama setahun";
 "No results? Check your input, or ask the sender for a new link." = "Tidak ada hasil? Periksa masukan Anda atau minta tautan baru kepada pengirim.";
 "A little luck, on us" = "Sedikit bonus untukmu";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Koneksi aman ke Vifol gagal. Periksa jaringan atau VPN, lalu coba lagi. Jika berlanjut, layanan mungkin sementara tidak tersedia.";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Koneksi aman ke Ecloud gagal. Periksa jaringan atau VPN, lalu coba lagi. Jika berlanjut, layanan mungkin sementara tidak tersedia.";
 "Access password" = "Kata sandi akses";
 "Access through %@." = "Akses hingga %@.";
 "Ads are unavailable with your current privacy choices." = "Iklan tidak tersedia dengan pilihan privasi saat ini.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "Impor dari Foto";
 "Choose your language" = "Pilih bahasa";
 "Clear" = "Hapus";
-"Vifol is starting" = "Vifol sedang dimulai";
-"Vifol’s online service is not configured yet. Local editing is available." = "Layanan online Vifol belum dikonfigurasi. Pengeditan lokal tersedia.";
+"Ecloud is starting" = "Ecloud sedang dimulai";
+"Ecloud’s online service is not configured yet. Local editing is available." = "Layanan online Ecloud belum dikonfigurasi. Pengeditan lokal tersedia.";
 "Close" = "Tutup";
 "Confirming your purchase…" = "Mengonfirmasi pembelian…";
 "Connecting your lesson feed…" = "Menghubungkan feed pelajaran…";
@@ -62,7 +62,7 @@
 "Delete folder" = "Hapus folder";
 "After deletion" = "Setelah dihapus";
 "Folder contains items" = "Folder berisi item";
-"The empty folder will be removed from Vifol." = "Folder kosong ini akan dihapus dari Vifol.";
+"The empty folder will be removed from Ecloud." = "Folder kosong ini akan dihapus dari Ecloud.";
 "Dismiss message" = "Tutup pesan";
 "Edit" = "Edit";
 "Edit a local video" = "Edit video lokal";
@@ -213,7 +213,7 @@
 "Terms of Use" = "Ketentuan Penggunaan";
 "Test ads require Google's sample iOS App ID." = "Iklan uji memerlukan ID aplikasi iOS contoh dari Google.";
 "The ad finished, but its reward could not be saved. %@" = "Iklan selesai, tetapi hadiahnya gagal disimpan. %@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "Salinan di Vifol akan dihapus. File asli di Foto atau File tetap utuh.";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "Salinan di Ecloud akan dihapus. File asli di Foto atau File tetap utuh.";
 "The document was interrupted. Please try again." = "Dokumen terputus. Coba lagi.";
 "The export finished but could not be added to your library. %@" = "Ekspor selesai tetapi tidak dapat ditambahkan ke koleksi. %@";
 "The request could not be completed." = "Permintaan tidak dapat diselesaikan.";
@@ -261,7 +261,7 @@
 "Plus is already active." = "Plus sudah aktif.";
 "Your original stays untouched. Exports are saved to your local library." = "Video asli tidak berubah. Hasil ekspor disimpan di koleksi lokal.";
 "Your purchase is waiting for approval." = "Pembelian menunggu persetujuan.";
-"Your session has expired. Please sign in again." = "Sesi kedaluwarsa. Silakan masuk kembali.";
+"Your connection to Ecloud expired. Try again." = "Koneksi ke Ecloud telah berakhir. Coba lagi.";
 "month" = "bulan";
 "per %@" = "per %@";
 "year" = "tahun";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "Selesaikan iklan ini untuk tontonan tanpa batas hari ini.";
 "Connect to refresh your allowance." = "Hubungkan ke internet untuk memperbarui kuota.";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "Tautan Vifol atau kode pelajaran";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "Tautan Ecloud atau kode pelajaran";
 "Paste" = "Tempel";
-"Use a lesson link or code shared through Vifol." = "Gunakan tautan atau kode pelajaran yang dibagikan melalui Vifol.";
-"Copy a Vifol link or lesson code first, then tap Paste." = "Salin tautan Vifol atau kode pelajaran terlebih dahulu, lalu ketuk Tempel.";
-"1. Copy a Vifol link" = "1. Salin tautan Vifol";
+"Use a lesson link or code shared through Ecloud." = "Gunakan tautan atau kode pelajaran yang dibagikan melalui Ecloud.";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "Salin tautan Ecloud atau kode pelajaran terlebih dahulu, lalu ketuk Tempel.";
+"1. Copy a Ecloud link" = "1. Salin tautan Ecloud";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "Ketuk Tempel atau masukkan kode pelajaran persis seperti yang diterima. Kode membedakan huruf besar dan kecil.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "Ketuk Buka pelajaran untuk menemukan pelajaran yang cocok, lalu geser untuk menonton.";
 
@@ -357,20 +357,18 @@
 "Web search" = "Penelusuran web";
 "Opening page…" = "Membuka halaman…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "Manfaat Plus";
-"MP4 export up to 1080p" = "Ekspor MP4 hingga 1080p";
-"M4A audio export" = "Ekspor audio M4A";
 "Choose your plan" = "Pilih paket";
 "Reload plans" = "Muat ulang paket";
 "Subscribe to Plus" = "Berlangganan Plus";
 
 /* App startup and video links */
-"Opening Vifol…" = "Membuka Vifol…";
-"Couldn’t connect to Vifol" = "Gagal terhubung ke Vifol";
-"Connecting to Vifol…" = "Menghubungkan ke Vifol…";
+"Opening Ecloud…" = "Membuka Ecloud…";
+"Couldn’t connect to Ecloud" = "Gagal terhubung ke Ecloud";
+"Connecting to Ecloud…" = "Menghubungkan ke Ecloud…";
 "Ad privacy choices" = "Privasi iklan";
-"Couldn’t open the Vifol website. Try again." = "Situs Vifol tidak dapat dibuka. Coba lagi.";
+"Couldn’t open the Ecloud website. Try again." = "Situs Ecloud tidak dapat dibuka. Coba lagi.";
 "No match found" = "Tidak ada yang cocok";
 "Check the URL with the person who shared it." = "Periksa URL-nya dengan orang yang membagikannya.";
 "Search the web" = "Cari di web";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "Setelah terbuka, geser ke atas atau bawah untuk melihat video lain.";
 "There’s no playable video here." = "Tidak ada video yang bisa diputar.";
 "Copy a video URL, then try pasting again." = "Salin URL video, lalu coba tempel lagi.";
-"Connect to Vifol, then try opening the URL again." = "Hubungkan ke Vifol, lalu coba buka URL-nya lagi.";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "File di Vifol akan dihapus. File asli di Foto atau File tetap ada.";
+"Connect to Ecloud, then try opening the URL again." = "Hubungkan ke Ecloud, lalu coba buka URL-nya lagi.";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "File di Ecloud akan dihapus. File asli di Foto atau File tetap ada.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ item";
 "Export a video or audio file from Tools to save it here." = "Ekspor video atau audio dari Alat untuk menyimpannya di sini.";
@@ -418,8 +416,6 @@
 "Export quality" = "Kualitas ekspor";
 "Find your export in Library › Exports. Your original stays intact." = "Temukan file di Koleksi › Hasil ekspor. File asli tetap utuh.";
 "Couldn’t save the export to your library. %@" = "Hasil ekspor tidak dapat disimpan di pustaka. %@";
-"Unlimited online viewing" = "Tonton video online tanpa batas";
-"Skip launch ads" = "Tanpa iklan pembuka";
 "View plans" = "Lihat paket";
 "View Plus details" = "Lihat detail Plus";
 "Plus is active" = "Plus aktif";
@@ -485,6 +481,7 @@
 "Folders" = "Folder";
 "Folder options" = "Opsi folder";
 "No videos here yet" = "Belum ada video di sini";
+"No videos in this folder" = "Tidak ada video di folder ini";
 "No matching files" = "Tidak ada file yang cocok";
 "Import videos from Files or Photos." = "Impor video dari File atau Foto.";
 "Show all videos" = "Tampilkan semua video";
@@ -528,6 +525,7 @@
 "Previous" = "Sebelumnya";
 "Next" = "Berikutnya";
 "On this device" = "Di perangkat ini";
+"Play videos" = "Putar video";
 "Play queue" = "Antrean pemutaran";
 "Now playing" = "Sedang diputar";
 "Current file" = "File saat ini";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "Ekspor dan bagikan dari pustaka video Anda.";
-"Plus includes file export and sharing." = "Dengan Plus, Anda bisa mengekspor dan membagikan file.";
 "Save a separate MP4 copy of your edits." = "Simpan salinan video yang telah diedit sebagai MP4.";
 "Keep just the soundtrack as an M4A file." = "Simpan trek audionya saja sebagai file M4A.";
-"Share files" = "Bagikan file";
 "Send an original file or an export to another app." = "Kirim file asli atau hasil ekspor ke aplikasi lain.";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "Dapatkan Premium";
 "Maybe Later" = "Nanti saja";
 "Upgrade Now" = "Tingkatkan sekarang";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "Resolusi";
 "Auto" = "Otomatis";
 "Fit video" = "Sesuaikan video";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "Di File, ketuk Tambah file lalu pilih File atau Foto. Video disalin ke folder yang sedang Anda buka.";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "File muncul di sini setelah Anda selesai membagikannya melalui lembar berbagi iOS. Berbagi yang dibatalkan atau gagal tidak ditambahkan.";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "Menghapus respons cache dan salinan berbagi yang kedaluwarsa. Video pustaka, folder, dan salinan berbagi terbaru tetap disimpan.";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "Plus mencakup tontonan online tanpa batas, tanpa iklan saat membuka aplikasi, ekspor MP4 dan M4A, serta berbagi file. Pemutaran video lokal tetap tersedia.";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "Menunggu unduhan";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "Batas simpan harian tercapai";
 "Watch a full ad to save more videos." = "Tonton iklan hingga selesai untuk menyimpan lebih banyak video.";
 "Watch ad to save more" = "Tonton iklan untuk menyimpan lagi";
-"Unlimited video saves" = "Simpan video tanpa batas";
 "Your saving allowance has been updated." = "Kuota penyimpanan video Anda telah diperbarui.";
 "More saves added. Your viewing allowance stays the same." = "Kuota simpan ditambahkan. Kuota tontonan Anda tidak berubah.";
 "Offline downloads" = "Unduhan offline";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "File, URL video, atau kode";
 "Search files, video URLs or codes" = "Cari file, URL video, atau kode";
 "How to search" = "Cara mencari";
-"Connect to Vifol, then search again." = "Hubungkan ke Vifol, lalu cari lagi.";
+"Connect to Ecloud, then search again." = "Hubungkan ke Ecloud, lalu cari lagi.";
 "Try another file name, or search a video URL or code." = "Coba nama file lain, atau cari URL video atau kode.";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Tempel URL video atau kode di kolom pencarian, lalu ketuk Cari. Pertahankan huruf besar dan kecil persis seperti yang dibagikan.";
 "Search your files" = "Cari file Anda";
 "Enter a file or folder name to filter your library as you type." = "Masukkan nama file atau folder untuk memfilter pustaka saat Anda mengetik.";
 "Pick a video to add to your library." = "Pilih video untuk ditambahkan ke pustaka.";
 "User Agreement" = "Perjanjian Pengguna";
+"No saved links yet" = "Belum ada tautan tersimpan";
+"Search a video URL, code or file name to get started." = "Cari URL video, kode, atau nama file untuk memulai.";
+"No results" = "Tidak ada hasil";
+"Try a different search." = "Coba pencarian lain.";
+"Couldn’t load files" = "Tidak dapat memuat file";
+"No transfers yet" = "Belum ada transfer";
+
+// Player queue and file feedback.
+"File %@ of %@" = "File %@ dari %@";
+"Not enough device space" = "Ruang penyimpanan perangkat tidak cukup";
+"Free up space on this device to download the file." = "Kosongkan ruang pada perangkat ini untuk mengunduh file.";
+"OK" = "Oke";
+"Enter a folder name." = "Masukkan nama folder.";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "Penyimpanan cloud hingga 10 TB";
+"Ad-free" = "Bebas iklan";
+"Preview unsaved shared photos and videos" = "Pratinjau foto dan video yang dibagikan sebelum disimpan";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "Penyimpanan cloud dan pratinjau file yang dibagikan sebelum disimpan akan tersedia saat layanan cloud diluncurkan.";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "Plus menghapus iklan. Saat layanan cloud diluncurkan, kamu akan mendapat penyimpanan hingga 10 TB dan bisa melihat foto serta video yang dibagikan sebelum menyimpannya.";

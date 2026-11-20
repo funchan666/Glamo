@@ -122,7 +122,7 @@ struct GlamoStartupView: View {
         }
         .glamoScreenBackground(Color("LaunchBackground"))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Opening Vifol…")
+        .accessibilityLabel("Opening Ecloud…")
     }
 
     private var loadingMark: some View {
@@ -180,6 +180,7 @@ struct GlamoRootView: View {
     @EnvironmentObject private var quota: QuotaStore
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.scenePhase) private var phase
+    @Environment(\.dynamicTypeSize) private var typeSize
     @SceneStorage("drive.mainTab") private var tab: GlamoTab = .recent
     @StateObject private var player = DrivePlaybackSession()
     @State private var destinations: [Destination] = []
@@ -187,22 +188,26 @@ struct GlamoRootView: View {
     @State private var folderOpen = false
     @State private var activityFilter = DriveActivityFilter.all
     @State private var dockOverlayHeight: CGFloat = 0
+    @State private var usesFilesVideoWindow = false
 
     var body: some View {
         GeometryReader { container in
             let pane = drivePaneMargins(in: container, includesHorizontalFold: true)
+            let paneWidth = container.size.width - pane.leading - pane.trailing
+            let paneHeight = container.size.height - pane.top - pane.bottom
             let dockedMovie = player.expanded ? nil : library.movies.first { $0.id == player.currentID }
             let isMainPage = destinations.isEmpty && (tab != .files || !folderOpen)
             let hidesMiniPlayer = destinations.last == .search && searching
+            let showsVideoWindow = usesFilesVideoWindow && tab == .files && destinations.isEmpty
+                && paneWidth >= 320 && paneHeight >= 500 && !typeSize.isAccessibilitySize
+                && !driveHasReservedRegion(container)
             let footer = VStack(spacing: 5) {
                 if let movie = dockedMovie, !hidesMiniPlayer {
-                    DriveMiniPlayer(playback: player.playback, movie: movie,
-                                    expand: { player.expanded = true }, close: player.stop)
+                    playbackFooter(movie, showsVideoWindow: showsVideoWindow)
                         .pageHorizontalMargins()
                 }
                 if isMainPage {
-                    GlamoTabDock(selection: $tab,
-                                 compact: container.size.height - pane.top - pane.bottom < 420)
+                    GlamoTabDock(selection: $tab, compact: paneHeight < 420)
                         .padding(.horizontal, DriveStyle.pageInset)
                 }
             }
@@ -256,7 +261,7 @@ struct GlamoRootView: View {
             else { player.pause() }
         }
         .onChange(of: library.movies.map(\.id)) { _, ids in
-            if let current = player.currentID, !ids.contains(current) { player.stop() }
+            if let current = player.currentID, !ids.contains(current) { stopPlayback() }
         }
         .overlay(alignment: .top) {
             if let message = library.error {
@@ -282,8 +287,9 @@ struct GlamoRootView: View {
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.recent) }.tag(GlamoTab.recent)
             DriveBrowser(surface: .files(search: openFileSearch, profile: { tab = .profile }),
-                         isSearching: .constant(false), play: open, pausePlayback: player.pause,
-                         showActivity: { openActivity(.imports) }, folderVisibility: { folderOpen = $0 })
+                         isSearching: .constant(false), play: openFile, pausePlayback: player.pause,
+                         showActivity: { openActivity(.imports) }, folderVisibility: { folderOpen = $0 },
+                         usesVideoWindow: usesFilesVideoWindow, playVideos: playFilesVideos)
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { tabLabel(.files) }.tag(GlamoTab.files)
             AccountView(showActivity: { openActivity(.all) })
@@ -336,7 +342,38 @@ struct GlamoRootView: View {
     }
 
     private func open(_ file: PracticeRecording, _ files: [PracticeRecording]) {
+        usesFilesVideoWindow = false
         player.open(file, among: files, library: library)
+    }
+
+    private func openFile(_ file: PracticeRecording, _ files: [PracticeRecording]) {
+        if usesFilesVideoWindow && !file.isAudio {
+            player.open(file, among: files.filter { !$0.isAudio }, library: library, expanded: false)
+        } else {
+            open(file, files)
+        }
+    }
+
+    private func playFilesVideos(_ videos: [PracticeRecording]) {
+        guard let first = videos.first(where: { $0.id == player.currentID }) ?? videos.first else { return }
+        usesFilesVideoWindow = true
+        player.open(first, among: videos, library: library, expanded: false)
+    }
+
+    @ViewBuilder
+    private func playbackFooter(_ movie: PracticeRecording, showsVideoWindow: Bool) -> some View {
+        if showsVideoWindow {
+            DriveVideoWindow(playback: player.playback, movie: movie, files: player.files(in: library),
+                             select: player.select, expand: { player.expanded = true }, close: stopPlayback)
+        } else {
+            DriveMiniPlayer(playback: player.playback, movie: movie,
+                            expand: { player.expanded = true }, close: stopPlayback)
+        }
+    }
+
+    private func stopPlayback() {
+        usesFilesVideoWindow = false
+        player.stop()
     }
 
     private func openFileSearch() {
@@ -413,7 +450,7 @@ private struct GlamoTabDock: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .foregroundStyle(selected ? GlamoStyle.accent : DriveStyle.ink)
-                    .shadow(color: .white.opacity(selected ? 0 : 0.85), radius: 2, y: 1)
+                    .shadow(color: .white.opacity(selected ? 0 : 0.64), radius: 1)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 5)
                     .frame(minWidth: 44, maxWidth: .infinity, minHeight: compact ? 44 : 56)
@@ -433,7 +470,6 @@ private struct GlamoTabDock: View {
             Capsule().fill(GlamoStyle.paperMuted)
         } else if #available(iOS 26.0, *) {
             Color.clear
-                .background(.white.opacity(0.18), in: Capsule())
                 .glassEffect(.clear.tint(.white.opacity(0.10)), in: Capsule())
         } else {
             Capsule().fill(.ultraThinMaterial)
@@ -464,10 +500,10 @@ struct ConnectionPanel: View {
     var body: some View {
         VStack(spacing: 16) {
             if let error {
-                MessagePanel(title: "Couldn’t connect to Vifol", message: error)
+                MessagePanel(title: "Couldn’t connect to Ecloud", message: error)
                 ActionButton(title: "Try again", busy: connecting) { attempt += 1 }
             } else {
-                AccountLoadingIndicator(title: "Connecting to Vifol…")
+                AccountLoadingIndicator(title: "Connecting to Ecloud…")
             }
             PolicyLinks()
         }

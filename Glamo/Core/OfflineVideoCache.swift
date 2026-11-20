@@ -57,7 +57,7 @@ private final class OfflineDownloadDelegate: NSObject, URLSessionDownloadDelegat
             let destination = directory.appendingPathComponent(request.generation.uuidString).appendingPathExtension(safeExtension)
             try FileManager.default.moveItem(at: location, to: destination)
             send(.file(request, destination))
-        } catch { send(.completed(request, error.localizedDescription)) }
+        } catch { send(.completed(request, DeviceSpaceFailure.description(for: error, downloading: true))) }
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64,
                     totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
@@ -75,7 +75,7 @@ private final class OfflineDownloadDelegate: NSObject, URLSessionDownloadDelegat
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let request = OfflineRequest(task) else { return }
-        send(.completed(request, error?.localizedDescription))
+        send(.completed(request, error.map { DeviceSpaceFailure.description(for: $0, downloading: true) }))
     }
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
         if let id = session.configuration.identifier { send(.finished(id)) }
@@ -297,7 +297,7 @@ final class OfflineVideoCache: ObservableObject {
                         $0.cacheFilename = url.lastPathComponent
                     }
                 }
-            } catch { fail(request, message: error.localizedDescription) }
+            } catch { fail(request, message: DeviceSpaceFailure.description(for: error, downloading: true)) }
         case .completed(let request, let message):
             if switchedToHLS.remove(request.generation) != nil { return }
             guard isCurrent(request) else {
@@ -324,7 +324,7 @@ final class OfflineVideoCache: ObservableObject {
                     $0.byteCount = attributes.fileSize.map(Int64.init)
                 }
                 progress[request.videoID] = 1
-            } catch { discard(url); fail(request, message: error.localizedDescription) }
+            } catch { discard(url); fail(request, message: DeviceSpaceFailure.description(for: error, downloading: true)) }
         }
     }
 

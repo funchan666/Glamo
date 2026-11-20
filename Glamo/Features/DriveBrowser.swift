@@ -19,7 +19,6 @@ struct DriveBrowser: View {
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @ScaledMetric(relativeTo: .subheadline) private var libraryActionWidth: CGFloat = 152
     @AppStorage("drive.useGrid") private var useGrid = false
     @AppStorage("drive.sortByName") private var sortByName = false
     @AppStorage("drive.recentSearches") private var recentSearchData = Data()
@@ -37,8 +36,9 @@ struct DriveBrowser: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var showNewFolder = false
-    @State private var showingPlus = false
     @State private var options: DriveItem?
+    @State private var showingDeviceSpace = false
+    @State private var usesVideoGrid = true
     @FocusState private var searchFocused: Bool
     let surface: Surface
     @Binding var isSearching: Bool
@@ -46,8 +46,11 @@ struct DriveBrowser: View {
     let pausePlayback: () -> Void
     let showActivity: () -> Void
     var folderVisibility: (Bool) -> Void = { _ in }
+    var usesVideoWindow = false
+    var playVideos: (([PracticeRecording]) -> Void)? = nil
 
     private var searchTerm: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var prefersGrid: Bool { usesVideoWindow ? usesVideoGrid : useGrid }
     private var folder: VideoFolder? { library.folders.first { $0.id == currentFolderID } }
     private var recentSearches: [String] {
         (try? JSONDecoder().decode([String].self, from: recentSearchData)) ?? []
@@ -139,6 +142,12 @@ struct DriveBrowser: View {
             selectedPhoto = nil
             importPhoto(selected)
         }
+        .onChange(of: library.importingVideo) { _, importing in
+            if !importing, library.fileImport?.failures.contains(where: { $0.message == DeviceSpaceFailure.message }) == true {
+                showingDeviceSpace = true
+            }
+        }
+        .driveDialog(isPresented: $showingDeviceSpace) { DriveDeviceSpaceNotice() }
         .driveDialog(isPresented: $choosingImportSource, onDismiss: presentImportPicker) { importSources }
         .driveDialog(isPresented: $showNewFolder) {
             DriveNameSheet(title: "New folder", startingName: "") { name in
@@ -148,9 +157,11 @@ struct DriveBrowser: View {
         .driveDialog(item: $options) { item in
             DriveItemSheet(item: item, pausePlayback: pausePlayback)
         }
-        .fullScreenCover(isPresented: $showingPlus) { MembershipView() }
         .fullScreenCover(item: $searchRequest) { request in
-            VideoSearchResultsView(search: request.query) { query, clip in
+            VideoSearchResultsView(search: request.query, clearSearch: {
+                query = ""
+                searchFocused = true
+            }) { query, clip in
                 library.record(link: query, title: clip.title)
             }
         }
@@ -161,7 +172,6 @@ struct DriveBrowser: View {
                                  width: CGFloat, canUseGrid: Bool, close: @escaping () -> Void) -> some View {
         let hasItems = !folders.isEmpty || !movies.isEmpty || !remoteFiles.isEmpty || !packageCollections.isEmpty
         let showsHistory = searchTerm.isEmpty && !recentSearches.isEmpty && currentFolderID == nil
-        let showsLibrary = !searchFocused && searchTerm.isEmpty
         let compact = verticalSizeClass == .compact
 
         return VStack(spacing: 0) {
@@ -171,143 +181,64 @@ struct DriveBrowser: View {
                 .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 .background(DriveStyle.background, ignoresSafeAreaEdges: [.horizontal, .top])
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let searchError { ErrorNote(message: searchError) }
-                    if needsSearchConnection, api.session == nil { ConnectionPanel() }
-                    if showsLibrary, let folder { filesFolderHeader(folder) }
-                    importStatus
-                    if !searchTerm.isEmpty {
-                        if hasItems { itemList(folders: folders, movies: movies) }
-                        else { noSearchResults }
-                    } else if showsLibrary {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if folder == nil { searchLibraryHeading }
-                            if hasItems {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    fileListToolbar(canUseGrid: canUseGrid, includesLibraryActions: true)
-                                    if !folders.isEmpty { folderShelf(folders, tile: useGrid && canUseGrid) }
-                                    if !movies.isEmpty { videoFiles(movies, canUseGrid: canUseGrid) }
-                                    if !remoteFiles.isEmpty { DriveRemoteVideoRows(clips: remoteFiles) }
-                                    if !packageCollections.isEmpty { DriveCollectionRows(collections: packageCollections) }
-                                }
-                            } else if folder != nil {
-                                emptyOpenedFolder
-                            } else {
-                                searchEmptyLibrary(width: width)
+            GeometryReader { contentSpace in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let searchError { ErrorNote(message: searchError) }
+                        if needsSearchConnection, api.session == nil { ConnectionPanel() }
+                        importStatus
+                        if !searchTerm.isEmpty {
+                            if hasItems { itemList(folders: folders, movies: movies) }
+                            else {
+                                noSearchResults(in: contentSpace.size)
+                                    .frame(minHeight: max(0, contentSpace.size.height - 36))
                             }
+                        } else if let folder {
+                            filesFolderHeader(folder)
+                            if hasItems {
+                                fileListToolbar(canUseGrid: canUseGrid)
+                                itemList(folders: folders, movies: movies)
+                            } else {
+                                emptyOpenedFolder
+                            }
+                        } else if showsHistory {
+                            recentSearchHistory
+                        } else {
+                            DriveWorkspaceEmpty(artwork: "DriveLinkEmptyArtwork",
+                                                artworkWidth: min(width * 0.56, contentSpace.size.height * 0.40, 240),
+                                                title: "No saved links yet",
+                                                message: "Search a video URL, code or file name to get started.") { EmptyView() }
+                                .frame(minHeight: max(0, contentSpace.size.height - 36))
                         }
-                        .padding(.top, folder == nil ? 8 : 0)
                     }
-                    if showsHistory { recentSearchHistory }
+                    .padding(.horizontal, DriveStyle.pageInset)
+                    .padding(.top, compact ? 4 : 12).padding(.bottom, 24)
+                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, DriveStyle.pageInset)
-                .padding(.top, compact ? 4 : 12).padding(.bottom, 24)
-                .frame(maxWidth: 680).frame(maxWidth: .infinity)
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
         }
         .onAppear { query = linkDraft }
         .dismissKeyboardOnOutsideTap($searchFocused, scope: "drive-search-input")
         .accessibilityAction(.escape, close)
     }
 
-    private var searchLibraryHeading: some View {
-        HStack(spacing: 12) {
-            LocalizedText("On this device")
-                .driveFont(20, relativeTo: .title3, weight: .semibold)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            plusButton.fixedSize()
-        }
-    }
-
-    private func searchEmptyLibrary(width: CGFloat) -> some View {
-        let contentWidth = max(0, min(width, 680) - DriveStyle.pageInset * 2)
-        let artworkWidth = min(216, contentWidth * 0.64)
-        let stackedActions = contentWidth < libraryActionWidth * 2 + 12 || typeSize >= .xxLarge
-        let actionLayout = stackedActions ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-
-        return VStack(spacing: 20) {
-            VStack(spacing: 12) {
-                if !typeSize.isAccessibilitySize {
-                    Image("DriveShelf").resizable().interpolation(.high).scaledToFit()
-                        .frame(width: artworkWidth, height: artworkWidth)
-                        .environment(\.layoutDirection, .leftToRight)
-                        .accessibilityHidden(true).allowsHitTesting(false)
-                }
-
-                VStack(spacing: 6) {
-                    LocalizedText("No videos here yet")
-                        .driveFont(20, relativeTo: .title3, weight: .semibold)
-                        .accessibilityAddTraits(.isHeader)
-                    LocalizedText("Import videos from Files or Photos.")
-                        .driveFont(15, relativeTo: .subheadline)
-                        .foregroundStyle(GlamoStyle.secondary)
-                        .frame(maxWidth: 300)
-                }
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
-            }
-
-            actionLayout {
-                searchImportButton
-                searchLibraryAction("New folder", symbol: .driveFolder, prominent: false) {
-                    showNewFolder = true
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 4)
-    }
-
-    private var searchImportButton: some View {
-        searchLibraryAction("Import videos", symbol: .driveAdd, prominent: true, action: openImportSources)
-            .disabled(library.importingVideo || showImporter || showPhotoPicker)
-            .accessibilityIdentifier("drive.import")
-    }
-
-    private func searchLibraryAction(_ title: String, symbol: GlamoGlyph, prominent: Bool,
-                                     action: @escaping () -> Void) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        let label = HStack(spacing: 8) {
-            Glyph(symbol: symbol, size: 16, tint: prominent ? .white : DriveStyle.link)
-            LocalizedText(title)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .driveFont(15, relativeTo: .subheadline, weight: .semibold)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 12).padding(.vertical, 12)
-        .frame(maxWidth: .infinity, minHeight: 48, maxHeight: .infinity)
-        .foregroundStyle(prominent ? Color.white : DriveStyle.ink)
-        .contentShape(shape)
-
-        return Button(action: action) {
-            if prominent {
-                label.background(DriveStyle.link, in: shape)
-            } else {
-                label.glamoGlass(in: shape, tint: .white, interactive: true, mediaBackdrop: true)
-            }
-        }
-        .buttonStyle(PressStyle())
-    }
-
     private func fileWorkspace(folders: [VideoFolder], movies: [PracticeRecording], canUseGrid: Bool,
                                width: CGFloat, height: CGFloat, search: @escaping () -> Void,
                                profile: @escaping () -> Void) -> some View {
         let hasItems = !folders.isEmpty || !movies.isEmpty || !remoteFiles.isEmpty || !packageCollections.isEmpty
+        let videos = movies.filter { !$0.isAudio }
         return VStack(spacing: 0) {
             Group {
                 if let folder {
                     filesFolderHeader(folder)
                 } else {
                     DriveWorkspaceHeader(title: "All Files") {
-                        IconButton(symbol: .search, label: "Search files and folders", tint: DriveStyle.ink, action: search)
-                        addFilesButton
+                        DriveHeaderToolGroup {
+                            IconButton(symbol: .search, label: "Search files and folders", tint: DriveStyle.ink, action: search)
+                            addFilesButton
+                        }
                         DriveProfileButton(action: profile)
                     }
                 }
@@ -319,8 +250,8 @@ struct DriveBrowser: View {
                 VStack(alignment: .leading, spacing: 8) {
                     importStatus
                     if hasItems {
-                        fileListToolbar(canUseGrid: canUseGrid).padding(.top, 4)
-                        if useGrid && canUseGrid {
+                        fileListToolbar(canUseGrid: canUseGrid, videos: videos).padding(.top, 4)
+                        if prefersGrid && canUseGrid {
                             if !folders.isEmpty { folderShelf(folders, tile: true) }
                             if !movies.isEmpty { videoFiles(movies, canUseGrid: canUseGrid) }
                             if !remoteFiles.isEmpty { DriveRemoteVideoRows(clips: remoteFiles) }
@@ -331,7 +262,7 @@ struct DriveBrowser: View {
                     } else if folder != nil {
                         emptyOpenedFolder
                     } else {
-                        DriveWorkspaceEmpty(artwork: "DriveShelf", artworkWidth: min(width * 0.56, height * 0.40, 220),
+                        DriveWorkspaceEmpty(artwork: "DriveShelf", artworkWidth: min(width * 0.46, height * 0.37, 204),
                                             title: "No files yet", message: "Add your first file to keep everything in one place.") {
                             Button(action: openImportSources) {
                                 LocalizedText("Add files")
@@ -377,26 +308,60 @@ struct DriveBrowser: View {
     }
 
     private func itemList(folders: [VideoFolder], movies: [PracticeRecording]) -> some View {
-        VStack(spacing: 10) {
-            DriveGroupedRows(items: folders.map(DriveItem.folder) + movies.map(DriveItem.file)) { item in
-                switch item {
-                case .folder(let folder): folderCell(folder, tile: false)
-                case .file(let movie): fileCell(movie, queue: movies, tile: false)
+        let localItems = folders.map(DriveItem.folder) + movies.map(DriveItem.file)
+        let savedItems = remoteFiles
+        let collections = packageCollections
+        return VStack(spacing: 0) {
+            if !localItems.isEmpty {
+                DriveGroupedRows(items: localItems, hasCard: false) { item in
+                    switch item {
+                    case .folder(let folder): folderCell(folder, tile: false)
+                    case .file(let movie): fileCell(movie, queue: movies, tile: false)
+                    }
                 }
             }
-            if !remoteFiles.isEmpty { DriveRemoteVideoRows(clips: remoteFiles) }
-            if !packageCollections.isEmpty { DriveCollectionRows(collections: packageCollections) }
+            if !savedItems.isEmpty {
+                if !localItems.isEmpty { DriveRowSeparator() }
+                DriveRemoteVideoRows(clips: savedItems, hasCard: false)
+            }
+            if !collections.isEmpty {
+                if !localItems.isEmpty || !savedItems.isEmpty { DriveRowSeparator() }
+                DriveCollectionRows(collections: collections, fileListStyle: true, hasCard: false)
+            }
         }
+        .driveGlassCard()
     }
 
-    private func fileListToolbar(canUseGrid: Bool, includesLibraryActions: Bool = false) -> some View {
+    private func fileListToolbar(canUseGrid: Bool, includesLibraryActions: Bool = false,
+                                 videos: [PracticeRecording]? = nil) -> some View {
         let controls = HStack(spacing: 4) {
             if folder != nil || includesLibraryActions { addFilesButton }
             if includesLibraryActions { newFolderButton }
             if canUseGrid {
-                IconButton(symbol: useGrid ? .driveList : .driveGrid,
-                           label: useGrid ? "List view" : "Grid view", tint: DriveStyle.secondary,
-                           glyphSize: 17) { useGrid.toggle() }
+                IconButton(symbol: prefersGrid ? .driveList : .driveGrid,
+                           label: prefersGrid ? "List view" : "Grid view", tint: DriveStyle.secondary,
+                           glyphSize: 17) {
+                    if usesVideoWindow { usesVideoGrid.toggle() }
+                    else { useGrid.toggle() }
+                }
+            }
+            if let videos, let playVideos {
+                Button {
+                    if !usesVideoWindow { usesVideoGrid = true }
+                    playVideos(videos)
+                } label: {
+                    Glyph(symbol: .play, size: 17, tint: videos.isEmpty ? DriveStyle.secondary : DriveStyle.link)
+                        .frame(width: 44, height: 44)
+                        .glamoGlass(in: Circle(), tint: usesVideoWindow ? GlamoStyle.paperMuted : .white,
+                                    interactive: !videos.isEmpty)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(PressStyle())
+                .disabled(videos.isEmpty)
+                .accessibilityLabel("Play videos")
+                .accessibilityHint(videos.isEmpty ? Text("No videos in this folder") : Text(""))
+                .accessibilityAddTraits(usesVideoWindow ? .isSelected : [])
+                .accessibilityIdentifier("drive.playVideos")
             }
         }
 
@@ -408,7 +373,7 @@ struct DriveBrowser: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 compactSortButton
-                controls
+                controls.frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
@@ -420,7 +385,7 @@ struct DriveBrowser: View {
                 LocalizedText(order)
                     .driveFont(20, relativeTo: .subheadline)
                     .fixedSize(horizontal: false, vertical: true)
-                Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
+                Glyph(symbol: .back, size: 9, tint: DriveStyle.secondary)
                     .rotationEffect(.degrees(layoutDirection == .leftToRight ? -90 : 90))
             }
             .foregroundStyle(DriveStyle.secondary)
@@ -453,15 +418,6 @@ struct DriveBrowser: View {
                     .glamoCard(radius: 12, fill: GlamoStyle.paper).contentShape(Rectangle())
             }.buttonStyle(PressStyle())
         }
-    }
-
-    private var plusButton: some View {
-        PlusShortcut(isMember: commerce.premium) {
-            searchFocused = false
-            showingPlus = true
-        }
-        .disabled(library.importingVideo)
-        .accessibilityIdentifier("home.plus")
     }
 
     private func openParent(of folder: VideoFolder) {
@@ -597,7 +553,9 @@ struct DriveBrowser: View {
         guard !(failure is CancellationError),
               !(error.domain == NSCocoaErrorDomain && error.code == NSUserCancelledError),
               !(error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled) else { return }
-        library.error = failure.localizedDescription
+        let message = DeviceSpaceFailure.description(for: failure)
+        if message == DeviceSpaceFailure.message { showingDeviceSpace = true }
+        else { library.error = message }
     }
 
     private func searchBar(compact: Bool, close: @escaping () -> Void) -> some View {
@@ -710,7 +668,7 @@ struct DriveBrowser: View {
         rememberSearch()
         guard api.session != nil else {
             needsSearchConnection = true
-            searchError = "Connect to Vifol, then search again."
+            searchError = "Connect to Ecloud, then search again."
             return
         }
         searchError = nil
@@ -847,8 +805,8 @@ struct DriveBrowser: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.leading, tile ? 10 : 6).padding(.trailing, tile ? 10 : 0)
-            .padding(.vertical, tile ? 10 : 6)
-            .frame(minHeight: 56)
+            .padding(.vertical, tile ? 10 : 5)
+            .frame(minHeight: tile ? 56 : 53)
             .contentShape(Rectangle())
         }.buttonStyle(PressStyle())
         let more = Group {
@@ -901,7 +859,7 @@ struct DriveBrowser: View {
                 filesHeading(movies.count)
             }
             if !entries.isEmpty {
-                if useGrid, canUseGrid {
+                if prefersGrid, canUseGrid {
                     let columns = previewing
                         ? Array(repeating: GridItem(.flexible(maximum: 280), spacing: 12, alignment: .top), count: entries.count)
                         : [GridItem(.adaptive(minimum: 140, maximum: 264), spacing: 12, alignment: .top)]
@@ -962,23 +920,21 @@ struct DriveBrowser: View {
         }.buttonStyle(CompactActionStyle())
     }
 
-    private var noSearchResults: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            LocalizedText("No matching files")
-                .driveFont(20, relativeTo: .title3, weight: .semibold)
-                .accessibilityAddTraits(.isHeader)
-            LocalizedText("Try another file name, or search a video URL or code.")
-                .driveFont(15, relativeTo: .subheadline)
-                .foregroundStyle(DriveStyle.secondary)
+    private func noSearchResults(in space: CGSize) -> some View {
+        DriveWorkspaceEmpty(artwork: "DriveSearchEmptyArtwork", artworkWidth: min(space.width * 0.56, space.height * 0.40, 240),
+                            title: "No results", message: "Try a different search.") {
+            Button {
+                query = ""
+                searchFocused = true
+            } label: {
+                LocalizedText("Clear search")
+            }.buttonStyle(DriveEmptyActionStyle())
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .driveGlassCard()
     }
 
     private func fileCell(_ movie: PracticeRecording, queue: [PracticeRecording], tile: Bool, compactTile: Bool = false) -> some View {
-        DriveFileCell(movie: movie, tile: tile, compactTile: compactTile, play: {
+        DriveFileCell(movie: movie, tile: tile, compactTile: compactTile,
+                      videoPreview: usesVideoWindow && !movie.isAudio, play: {
             rememberSearch()
             searchFocused = false
             play(movie, queue)
@@ -986,23 +942,41 @@ struct DriveBrowser: View {
     }
 }
 
-private struct DriveGroupedRows<Item: Identifiable, Row: View>: View {
-    let items: [Item]
-    @ViewBuilder let row: (Item) -> Row
+struct DriveRowSeparator: View {
+    var leading: CGFloat = 56
 
     var body: some View {
+        Rectangle().fill(DriveStyle.separator)
+            .frame(height: 1 / displayScale)
+            .padding(.leading, leading).padding(.trailing, 16)
+            .accessibilityHidden(true).allowsHitTesting(false)
+    }
+
+    @Environment(\.displayScale) private var displayScale
+}
+
+struct DriveGroupedRows<Item: Identifiable, Row: View>: View {
+    let items: [Item]
+    var separatorInset: CGFloat = 56
+    var hasCard = true
+    @ViewBuilder let row: (Item) -> Row
+
+    @ViewBuilder var body: some View {
+        if hasCard { rows.driveGlassCard() }
+        else { rows }
+    }
+
+    private var rows: some View {
         LazyVStack(spacing: 0) {
             ForEach(items) { item in
                 VStack(spacing: 0) {
                     if item.id != items.first?.id {
-                        Divider().overlay(DriveStyle.separator).padding(.leading, 48).padding(.trailing, 8)
+                        DriveRowSeparator(leading: separatorInset)
                     }
-                    row(item)
+                    row(item).padding(.horizontal, 10)
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .driveGlassCard()
     }
 }
 
@@ -1011,6 +985,7 @@ struct DriveFileCell: View {
     var tile = false
     var compactTile = false
     var detail: String? = nil
+    var videoPreview = false
     let play: () -> Void
     var options: (() -> Void)? = nil
     var pauseForMenu: (() -> Void)? = nil
@@ -1018,6 +993,7 @@ struct DriveFileCell: View {
     var body: some View {
         if let options {
             DriveBrowserFileCard(movie: movie, tile: tile, compactTile: compactTile, detail: detail,
+                                 videoPreview: videoPreview,
                                  play: play, options: options, pauseForMenu: pauseForMenu)
         } else if tile {
             Button(action: play) {
@@ -1061,7 +1037,7 @@ struct DriveFileCell: View {
 
     private var playMark: some View {
         Glyph(symbol: .play, size: 14, tint: .white)
-            .frame(width: 34, height: 34)
+                            .frame(width: 32, height: 32)
             .background(.black.opacity(0.66), in: Circle())
             .allowsHitTesting(false)
     }
@@ -1076,6 +1052,7 @@ private struct DriveBrowserFileCard: View {
     let tile: Bool
     let compactTile: Bool
     let detail: String?
+    let videoPreview: Bool
     let play: () -> Void
     let options: () -> Void
     let pauseForMenu: (() -> Void)?
@@ -1110,8 +1087,16 @@ private struct DriveBrowserFileCard: View {
                         .aspectRatio(compactTile ? 16.0 / 9.0 : 8.0 / 5.0, contentMode: .fit)
                         .frame(minHeight: 80)
                         .overlay { DriveThumbnail(movie: movie) }
+                        .overlay {
+                            if videoPreview {
+                                Glyph(symbol: .play, size: 15, tint: .white)
+                                    .frame(width: 36, height: 36)
+                                    .modifier(DriveVideoGlass(shape: Circle(), shade: 0.48))
+                                    .allowsHitTesting(false).accessibilityHidden(true)
+                            }
+                        }
                         .overlay(alignment: .bottomLeading) {
-                            previewLabel.padding(7)
+                            if !videoPreview || time != nil { previewLabel.padding(7) }
                         }
                     title.padding(.horizontal, 10).padding(.top, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1139,7 +1124,7 @@ private struct DriveBrowserFileCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: 9))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: movie.displayName)
-                                .driveFont(15, relativeTo: .subheadline, weight: .medium)
+                                .driveFont(15, relativeTo: .subheadline)
                                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).truncationMode(.middle)
                                 .multilineTextAlignment(.leading)
                                 .foregroundStyle(DriveStyle.ink)
@@ -1160,7 +1145,7 @@ private struct DriveBrowserFileCard: View {
                     }
                 }
                 .padding(.leading, 6).padding(.vertical, 5)
-                .frame(minHeight: 56)
+                .frame(minHeight: 53)
                 .contentShape(Rectangle())
             }.buttonStyle(PressStyle())
             if let pauseForMenu {
@@ -1179,12 +1164,12 @@ private struct DriveBrowserFileCard: View {
     }
 
     private var metadata: some View {
-        DriveFileMetadata(movie: movie, detail: detail, showsDuration: false)
+        DriveFileMetadata(movie: movie, detail: detail, showsDuration: false, showsDate: videoPreview)
     }
 
     private var previewLabel: some View {
         HStack(spacing: 5) {
-            Glyph(symbol: .play, size: 12, tint: GlamoStyle.onAccent)
+            if !videoPreview { Glyph(symbol: .play, size: 12, tint: GlamoStyle.onAccent) }
             if let time {
                 Text(verbatim: time)
                     .font(.glam(.caption2, weight: .semibold)).monospacedDigit()
@@ -1206,12 +1191,15 @@ private struct DriveFileMetadata: View {
     let movie: PracticeRecording
     let detail: String?
     var showsDuration = true
+    var showsDate = false
     @Environment(\.locale) private var locale
     var body: some View {
         let format = movie.fileExtension.uppercased()
         let size = movie.byteCount.map { $0.formatted(.byteCount(style: .file).locale(locale)) }
         let duration = showsDuration ? movie.duration.map(durationLabel) : nil
-        let parts = [format.isEmpty ? nil : format, detail ?? size, duration].compactMap { $0 }
+        let date = showsDate ? movie.date.formatted(Date.FormatStyle(date: .numeric, time: .omitted).locale(locale)) : nil
+        let parts = if showsDate { [size, date].compactMap { $0 } }
+                    else { [format.isEmpty ? nil : format, detail ?? size, duration].compactMap { $0 } }
         Text(verbatim: parts.joined(separator: " · "))
             .font(.glam(.caption)).monospacedDigit()
             .foregroundStyle(GlamoStyle.secondary).lineLimit(2)
@@ -1343,8 +1331,9 @@ struct DriveRecentView: View {
                                 .padding(.top, 20)
                         } else if saved.isEmpty && viewed.isEmpty && library.favorites.isEmpty && library.recentRemotePlayback.isEmpty {
                             DriveWorkspaceEmpty(artwork: "DriveRecentArtwork",
-                                                artworkWidth: min(container.size.width * 0.56, container.size.height * 0.40, 220),
-                                                title: "No recent activity", message: "Files you save or open will appear here.") {
+                                                artworkWidth: min(container.size.width * 0.46, container.size.height * 0.37, 204),
+                                                title: "No recent activity", message: "Files you save or open will appear here.",
+                                                messageWidth: 180) {
                                 Button(action: browse) {
                                     LocalizedText("Browse files")
                                         .driveFont(20, relativeTo: .headline, weight: .semibold)
@@ -1392,8 +1381,10 @@ struct DriveRecentView: View {
 
     private var recentHeader: some View {
         DriveWorkspaceHeader(title: "Recents") {
-            IconButton(symbol: .search, label: "Search files and folders", tint: DriveStyle.ink, action: search)
-            IconButton(symbol: .driveActivity, label: "Transfers", tint: DriveStyle.ink, action: showActivity)
+            DriveHeaderToolGroup {
+                IconButton(symbol: .search, label: "Search files and folders", tint: DriveStyle.ink, action: search)
+                IconButton(symbol: .driveActivity, label: "Transfers", tint: DriveStyle.ink, action: showActivity)
+            }
             DriveProfileButton(action: showProfile)
         }
     }
@@ -1405,7 +1396,8 @@ struct DriveRecentView: View {
                 .driveFont(22, relativeTo: .headline, weight: .medium).accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
-            IconButton(symbol: .close, label: section == .saved ? "Clear saved videos" : "Clear playback history", tint: GlamoStyle.danger) {
+            IconButton(symbol: .close, label: section == .saved ? "Clear saved videos" : "Clear playback history",
+                       tint: GlamoStyle.danger, glass: true, glyphSize: 15) {
                 pausePlayback()
                 clearingHistory = true
             }
@@ -1415,12 +1407,14 @@ struct DriveRecentView: View {
     private func historyContent(_ section: History, files: [PracticeRecording]) -> some View {
         let entries = historyEntries(section, files: files)
         let byDay = Dictionary(grouping: entries) { Calendar.current.startOfDay(for: $0.date) }
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 22) {
             if entries.isEmpty { historyEmpty(section) }
             ForEach(byDay.keys.sorted(by: >), id: \.self) { day in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(verbatim: day.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale)))
-                        .driveFont(15, relativeTo: .subheadline).foregroundStyle(DriveStyle.secondary)
+                        .driveFont(20, relativeTo: .subheadline).foregroundStyle(DriveStyle.secondary)
+                        .padding(.horizontal, 12)
+                        .accessibilityAddTraits(.isHeader)
                     historyEntriesRows(byDay[day] ?? [], section: section, queue: files)
                 }
             }
@@ -1480,16 +1474,15 @@ struct DriveRecentView: View {
         return section == .viewed ? Array(sorted.prefix(20)) : sorted
     }
     private func historyEntriesRows(_ entries: [HistoryEntry], section: History, queue: [PracticeRecording]) -> some View {
-        VStack(spacing: 4) {
-            ForEach(entries) { entry in
-                if let file = entry.file {
-                    historyRow(file, section: section, queue: queue,
-                               detail: entry.date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale)))
-                        .driveGlassCard()
-                } else if let clip = entry.clip {
-                    DriveRemoteVideoRows(clips: [clip], viewingHistory: section == .viewed,
-                                         playbackQueue: section == .saved ? library.favorites : library.recentRemotePlayback.map(\.clip))
-                }
+        DriveGroupedRows(items: entries, separatorInset: section == .viewed ? 88 : 56) { entry in
+            let date = entry.date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale))
+            if let file = entry.file {
+                historyRow(file, section: section, queue: queue, detail: date)
+            } else if let clip = entry.clip {
+                let remoteDate = entry.date == .distantPast ? nil : date
+                DriveRemoteVideoRows(clips: [clip], viewingHistory: section == .viewed,
+                                     playbackQueue: section == .saved ? library.favorites : library.recentRemotePlayback.map(\.clip),
+                                     hasCard: false, rowInset: 6, rowDate: remoteDate)
             }
         }
     }
@@ -1500,7 +1493,7 @@ struct DriveRecentView: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
             : AnyLayout(HStackLayout(spacing: 8))
         let viewed = section == .viewed
-        let thumbSize: CGFloat = viewed ? 64 : 34
+        let thumbSize: CGFloat = viewed ? 64 : 32
         let resume: FileViewingPosition? = file.viewing.flatMap { position in
             viewed && position.seconds > 0 && position.seconds < position.duration - 1 ? position : nil
         }
@@ -1519,7 +1512,7 @@ struct DriveRecentView: View {
                             .clipShape(RoundedRectangle(cornerRadius: viewed ? 12 : 8))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: file.displayName)
-                                .driveFont(15, relativeTo: .subheadline, weight: .medium)
+                                .driveFont(15, relativeTo: .subheadline)
                                 .foregroundStyle(DriveStyle.ink).multilineTextAlignment(.leading)
                                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).truncationMode(.middle)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -1539,7 +1532,7 @@ struct DriveRecentView: View {
                     }
                 }
                 .padding(.leading, 6).padding(.vertical, viewed ? 8 : 5)
-                .frame(minHeight: viewed ? 80 : 56)
+                .frame(minHeight: viewed ? 80 : 53)
                 .contentShape(Rectangle())
             }.buttonStyle(PressStyle())
                 .accessibilityHint(Text(LocalizedStringKey(resume == nil ? "Play" : "Continue playing")))
@@ -1566,12 +1559,13 @@ private struct DriveDatedFiles<Row: View>: View {
 
     var body: some View {
         let byDay = Dictionary(grouping: files) { calendar.startOfDay(for: date($0)) }
-        return LazyVStack(alignment: .leading, spacing: 15) {
+        return LazyVStack(alignment: .leading, spacing: 22) {
             ForEach(byDay.keys.sorted(by: >), id: \.self) { day in
                 if let items = byDay[day] {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(verbatim: day.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale)))
                             .driveFont(20, relativeTo: .subheadline).foregroundStyle(DriveStyle.secondary)
+                            .padding(.horizontal, 12)
                             .accessibilityAddTraits(.isHeader)
                         DriveGroupedRows(items: items) { file in
                             row(file, date(file).formatted(
@@ -1594,7 +1588,7 @@ enum DriveActivityFilter: String, CaseIterable {
 
     var emptyTitle: String {
         switch self {
-        case .all: "No files in this view"
+        case .all: "No transfers yet"
         case .imports: "No imported videos"
         case .exports: "No exported files"
         case .downloads: "No offline downloads"
@@ -1636,57 +1630,75 @@ struct DriveActivityView: View {
             (library.importingVideo || library.fileImport != nil)
         let failures = filter == .failed ? (library.fileImport?.failures ?? []) : []
         let downloads = library.savedVideos.filter { filter == .all || filter == .downloads || (filter == .failed && $0.state == .failed) }
-        GeometryReader { container in
-            ScrollView {
-                if movies.isEmpty, !showsImportStatus, failures.isEmpty, downloads.isEmpty {
-                    DriveTabEmptyState(artwork: "DriveActivityArtwork", paneSize: container.size,
-                                       title: filter.emptyTitle, message: filter.emptyMessage,
-                                       browse: browse) {
-                        activityHeader
-                        if !downloads.isEmpty { OfflineTransfersSection(cache: library.offline, records: downloads) }
-                    }
-                } else {
-                    let otherFiles = movies.filter { $0.id != latestExport?.id }
-                    VStack(alignment: .leading, spacing: 17) {
-                        activityHeader
-                        if showsImportStatus { batchStatus(library.fileImport) }
-                        if !failures.isEmpty {
-                            importFailures(failures)
+        VStack(spacing: 0) {
+            activityHeader
+                .padding(.horizontal, DriveStyle.pageInset).padding(.vertical, 8)
+                .frame(maxWidth: 680).frame(maxWidth: .infinity)
+            GeometryReader { container in
+                ScrollView {
+                    if movies.isEmpty, !showsImportStatus, failures.isEmpty, downloads.isEmpty {
+                        DriveWorkspaceEmpty(artwork: "DriveActivityArtwork",
+                                            artworkWidth: min(container.size.width * 0.46, container.size.height * 0.40, 204),
+                                            title: filter.emptyTitle, message: filter.emptyMessage, messageWidth: 190) { EmptyView() }
+                            .frame(minHeight: max(0, container.size.height - 24))
+                            .padding(.horizontal, DriveStyle.pageInset)
+                    } else {
+                        let otherFiles = movies.filter { $0.id != latestExport?.id }
+                        VStack(alignment: .leading, spacing: 20) {
+                            if showsImportStatus { batchStatus(library.fileImport) }
+                            if !failures.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    importFailures(failures)
+                                    ActionButton(title: "Browse files", primary: false, action: browse)
+                                }
                                 .padding(12)
-                                .glamoCard(radius: 16)
-                        }
-                        if let latestExport { exportSummary(latestExport, queue: movies) }
-                        if !otherFiles.isEmpty {
-                            DriveDatedFiles(files: otherFiles, date: \.date) { movie, time in
-                                DriveFileCell(movie: movie, detail: time, play: { play(movie, movies) })
+                                .driveGlassCard()
+                            }
+                            if !downloads.isEmpty { OfflineTransfersSection(cache: library.offline, records: downloads) }
+                            if let latestExport { exportSummary(latestExport, queue: movies) }
+                            if !otherFiles.isEmpty {
+                                DriveDatedFiles(files: otherFiles, date: \.date) { movie, time in
+                                    DriveFileCell(movie: movie, detail: time, play: { play(movie, movies) })
+                                }
                             }
                         }
+                        .padding(.horizontal, DriveStyle.pageInset)
+                        .padding(.top, 12).padding(.bottom, 24)
+                        .frame(maxWidth: 680).frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, DriveStyle.pageInset)
-                    .padding(.top, 8).padding(.bottom, 24)
-                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
         }.driveScreenBackground()
     }
 
     private var activityHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
                 IconButton(symbol: .back, label: "Back", tint: DriveStyle.ink, glass: true, glyphSize: 13, action: back)
-                DrivePageTitle(title: "Transfers")
+                LocalizedText("Transfers")
+                    .driveFont(22, relativeTo: .headline, weight: .medium)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .frame(maxWidth: .infinity)
+                Color.clear.frame(width: 44, height: 44).accessibilityHidden(true)
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(DriveActivityFilter.allCases, id: \.self) { choice in
                         Button { filter = choice } label: {
-                            LocalizedText(choice.rawValue)
+                            let label = LocalizedText(choice.rawValue)
                                 .driveFont(15, relativeTo: .subheadline, weight: .medium)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
                                 .frame(minWidth: 44, minHeight: 44)
+                                .fixedSize(horizontal: true, vertical: false)
                                 .foregroundStyle(filter == choice ? .white : DriveStyle.ink)
-                                .background(filter == choice ? DriveStyle.ink : .white, in: Capsule())
-                                .contentShape(Capsule())
+                            if filter == choice {
+                                label.background(DriveStyle.ink, in: Capsule()).contentShape(Capsule())
+                            } else {
+                                label.glamoGlass(in: Capsule(), tint: GlamoStyle.surface, interactive: true)
+                                    .contentShape(Capsule())
+                            }
                         }
                         .buttonStyle(PressStyle())
                         .accessibilityAddTraits(filter == choice ? .isSelected : [])
@@ -1796,33 +1808,6 @@ struct DriveActivityView: View {
     }
 }
 
-private struct DriveTabEmptyState<Header: View>: View {
-    let artwork: String
-    let paneSize: CGSize
-    let title: String
-    let message: String
-    let browse: () -> Void
-    @ViewBuilder let header: () -> Header
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        VStack(spacing: 0) {
-            header()
-                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 8)
-                .frame(maxWidth: 680).frame(maxWidth: .infinity)
-            DriveWorkspaceEmpty(artwork: artwork,
-                                artworkWidth: min(paneSize.width * 0.56, paneSize.height * 0.40, 220),
-                                title: title, message: message) {
-                Button(action: browse) {
-                    LocalizedText("Browse files").driveFont(17, relativeTo: .headline, weight: .semibold)
-                        .foregroundStyle(DriveStyle.accent).padding(.horizontal, 12).frame(minHeight: 44)
-                }.buttonStyle(PressStyle())
-            }.frame(minHeight: max(0, paneSize.height - 140))
-        }
-    }
-
-}
-
 struct DrivePageTitle: View {
     let title: String
     var body: some View {
@@ -1837,7 +1822,7 @@ struct DriveWorkspaceHeader<Actions: View>: View {
 
     var body: some View {
         let heading = DrivePageTitle(title: title)
-        let tools = HStack(spacing: 0) { actions() }
+        let tools = HStack(spacing: 4) { actions() }
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
                 heading.fixedSize(horizontal: true, vertical: false)
@@ -1853,11 +1838,21 @@ struct DriveWorkspaceHeader<Actions: View>: View {
     }
 }
 
-private struct DriveWorkspaceEmpty<Actions: View>: View {
+private struct DriveHeaderToolGroup<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 0, content: content)
+            .glamoGlass(in: Capsule(), tint: GlamoStyle.surface)
+    }
+}
+
+struct DriveWorkspaceEmpty<Actions: View>: View {
     let artwork: String
     let artworkWidth: CGFloat
     let title: String
     let message: String
+    var messageWidth: CGFloat = 238
     @ViewBuilder let actions: () -> Actions
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -1873,7 +1868,7 @@ private struct DriveWorkspaceEmpty<Actions: View>: View {
                 .driveFont(20, relativeTo: .headline, weight: .semibold).accessibilityAddTraits(.isHeader)
             LocalizedText(message)
                 .driveFont(14, relativeTo: .footnote).foregroundStyle(DriveStyle.secondary)
-                .frame(maxWidth: 238)
+                .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : messageWidth)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) { actions() }.fixedSize(horizontal: true, vertical: false)
                 VStack(spacing: 8) { actions() }
@@ -1967,6 +1962,9 @@ struct DriveItemSheet: View {
     @State private var sharing = false
     @State private var shareByteCount: Int64?
     @State private var shareError: String?
+    @State private var shareOutcome: ShareSheet.Outcome?
+    @State private var sharePresentationID: UUID?
+    @State private var showingDeviceSpace = false
     @State private var error: String?
 
     private enum Mode: Hashable, Identifiable {
@@ -2040,19 +2038,28 @@ struct DriveItemSheet: View {
         }
         .fullScreenCover(isPresented: $paywall) { MembershipView(requiredBenefit: .mediaExport) }
         .sheet(item: $share) { file in
-            ShareSheet(items: [file.url], onCompletion: { outcome in
+            ShareSheet(items: [file.url], onCompletion: { [id = file.id] outcome in
+                guard sharePresentationID == id else { return }
+                shareOutcome = outcome
                 if case .completed = outcome, let id = file.recordingID { library.recordSharedFile(id) }
             })
         }
+        .driveDialog(isPresented: $showingDeviceSpace) { DriveDeviceSpaceNotice() }
         .driveDialog(item: $videoDetail) { detail in
             DriveItemSheet(item: item, pausePlayback: pausePlayback, opening: detail)
         }
     }
 
     private var sheetContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SheetHeading(title: sheetTitle, inset: false) {
-                if let closeVideoOptions { closeVideoOptions() } else { dismiss() }
+        VStack(alignment: .leading, spacing: mode == .actions ? 8 : 16) {
+            if mode == .rename || mode == .remove {
+                LocalizedText(sheetTitle).driveFont(20, relativeTo: .headline, weight: .semibold)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.horizontal, 16)
+            } else {
+                SheetHeading(title: sheetTitle, inset: false) {
+                    if let closeVideoOptions { closeVideoOptions() } else { dismiss() }
+                }
             }
             switch mode {
             case .actions:
@@ -2060,12 +2067,12 @@ struct DriveItemSheet: View {
                 Divider().overlay(DriveStyle.separator)
                 if case .file(let file) = current {
                     favoriteOption(file)
-                    if sharing || shareError != nil || share != nil { shareStatus(for: file) }
+                    if sharing || shareError != nil || share != nil || shareOutcome != nil { shareStatus(for: file) }
                     if !file.isAudio {
                         compactOption("Export video", glyph: .driveShare,
                                       tint: Color(red: 0.98, green: 0.58, blue: 0.15), action: beginExport)
                     }
-                    compactOption(shareError == nil ? "Share file" : "Retry sharing", glyph: .driveShare,
+                    compactOption(shareActionTitle, glyph: .driveShare,
                                   tint: Color(red: 0.16, green: 0.72, blue: 0.90)) { shareFile(file) }
                         .disabled(sharing)
                 }
@@ -2085,15 +2092,17 @@ struct DriveItemSheet: View {
                     returnToActions()
                 }
             case .move:
-                ScrollView { movePanel }.scrollBounceBehavior(.basedOnSize)
-                    .frame(height: typeSize.isAccessibilitySize ? 420 : 340)
+                movePanel
                 Button(action: returnToActions) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
             case .remove:
-                Text(verbatim: currentName).driveFont(15, relativeTo: .subheadline, weight: .medium)
-                    .lineLimit(3).truncationMode(.middle)
-                LocalizedText(removalDetails.explanation).driveFont(14, relativeTo: .footnote)
-                    .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
-                errorMessage
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: currentName).driveFont(15, relativeTo: .subheadline, weight: .medium)
+                        .lineLimit(3).truncationMode(.middle)
+                    LocalizedText(removalDetails.explanation).driveFont(14, relativeTo: .footnote)
+                        .foregroundStyle(DriveStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                    errorMessage
+                }
+                .padding(.horizontal, 16)
                 DriveDialogActions { removalActions(disabled: false) }
             }
         }
@@ -2185,6 +2194,15 @@ struct DriveItemSheet: View {
         exporting = true
     }
 
+    private var shareActionTitle: String {
+        if shareError != nil { return "Retry sharing" }
+        switch shareOutcome {
+        case .some(.failed(_)): return "Retry sharing"
+        case .some(.completed), .some(.cancelled): return "Share again"
+        case nil: return "Share file"
+        }
+    }
+
     private func shareStatus(for file: PracticeRecording) -> some View {
         let layout = typeSize >= .xxLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
                                           : AnyLayout(HStackLayout(alignment: .top, spacing: 14))
@@ -2214,20 +2232,32 @@ struct DriveItemSheet: View {
                 }
             } else if let shareError {
                 Divider().overlay(GlamoStyle.line)
-                VStack(alignment: .leading, spacing: 4) {
-                    LocalizedText("Share preparation failed")
-                        .font(.glam(.subheadline, weight: .semibold)).foregroundStyle(GlamoStyle.danger)
-                        .accessibilityAddTraits(.isHeader)
-                    LocalizedText(shareError)
-                        .font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+                shareFeedback("Share preparation failed", detail: shareError, tint: GlamoStyle.danger)
+            } else if let shareOutcome {
+                Divider().overlay(GlamoStyle.line)
+                switch shareOutcome {
+                case .completed: shareFeedback("Share complete", tint: GlamoStyle.accent)
+                case .cancelled: shareFeedback("Share cancelled", tint: GlamoStyle.ink)
+                case .failed(let message): shareFeedback("Share failed", detail: message, tint: GlamoStyle.danger)
                 }
-                .fixedSize(horizontal: false, vertical: true)
             }
         }
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted, mediaBackdrop: true)
+    }
+
+    private func shareFeedback(_ title: String, detail: String? = nil, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            LocalizedText(title)
+                .font(.glam(.subheadline, weight: .semibold)).foregroundStyle(tint)
+                .accessibilityAddTraits(.isHeader)
+            if let detail {
+                LocalizedText(detail).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.secondary)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func shareDetail(_ title: String, value: String?) -> some View {
@@ -2329,14 +2359,14 @@ struct DriveItemSheet: View {
     private var removalDetails: (title: String, explanation: String, containsItems: Bool) {
         switch current {
         case .file:
-            return ("Delete local copy", "This deletes the file from Vifol. Any original in Photos or Files stays there.", false)
+            return ("Delete local copy", "This deletes the file from Ecloud. Any original in Photos or Files stays there.", false)
         case .folder(let folder):
             let containsItems = library.movies.contains { $0.folderID == folder.id }
                 || library.folders.contains { $0.parentID == folder.id }
                 || library.savedVideos.contains { $0.folderID == folder.id }
             let explanation = containsItems
                 ? "Files and nested folders will move up one level. Your videos will not be deleted."
-                : "The empty folder will be removed from Vifol."
+                : "The empty folder will be removed from Ecloud."
             return ("Delete folder", explanation, containsItems)
         }
     }
@@ -2395,8 +2425,10 @@ struct DriveItemSheet: View {
     }
 
     private func shareFile(_ file: PracticeRecording) {
-        guard !sharing else { return }
+        guard !sharing, share == nil else { return }
         shareError = nil
+        shareOutcome = nil
+        sharePresentationID = nil
         guard commerce.canExportMedia else {
             pausePlayback()
             paywall = true
@@ -2408,15 +2440,41 @@ struct DriveItemSheet: View {
         sharing = true
         Task {
             defer { sharing = false }
-            do { share = SharedFile(url: try await library.shareFile(for: file, commerce: commerce), recordingID: file.id) }
-            catch { shareError = error.localizedDescription }
+            do {
+                let file = SharedFile(url: try await library.shareFile(for: file, commerce: commerce), recordingID: file.id)
+                sharePresentationID = file.id
+                share = file
+            } catch {
+                let message = DeviceSpaceFailure.description(for: error)
+                shareError = message
+                showingDeviceSpace = message == DeviceSpaceFailure.message
+            }
         }
     }
 
     private func perform(_ work: () throws -> Void) {
         error = nil
         do { try work() }
-        catch { self.error = error.localizedDescription }
+        catch { self.error = DeviceSpaceFailure.description(for: error) }
+    }
+}
+
+struct DriveDeviceSpaceNotice: View {
+    @Environment(\.dismiss) private var dismiss
+    var message = DeviceSpaceFailure.message
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LocalizedText("Not enough device space").driveFont(17, relativeTo: .headline, weight: .semibold)
+                .accessibilityAddTraits(.isHeader)
+            LocalizedText(message).driveFont(14, relativeTo: .footnote)
+                .foregroundStyle(DriveStyle.secondary)
+            Button { dismiss() } label: { LocalizedText("OK") }
+                .buttonStyle(DriveDialogButtonStyle(primary: true))
+        }
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(16)
     }
 }
 
@@ -2427,14 +2485,15 @@ struct DriveNameSheet: View {
     let save: (String) throws -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            LocalizedText(title).driveFont(17, relativeTo: .headline, weight: .semibold)
+        VStack(alignment: .leading, spacing: 16) {
+            LocalizedText(title).driveFont(20, relativeTo: .headline, weight: .semibold)
                 .accessibilityAddTraits(.isHeader)
+                .padding(.horizontal, 16)
             DriveNameForm(startingName: startingName, creatingFolder: startingName.isEmpty, cancel: { dismiss() }) { name in
                 try save(name)
                 dismiss()
             }
-        }.padding(18).foregroundStyle(DriveStyle.ink)
+        }.padding(16).foregroundStyle(DriveStyle.ink)
     }
 }
 
@@ -2445,6 +2504,7 @@ private struct DriveNameForm: View {
     private let startingName: String
     @State private var name: String
     @State private var error: String?
+    @State private var editedName = false
     @FocusState private var nameFocused: Bool
 
     init(startingName: String, creatingFolder: Bool = false, cancel: @escaping () -> Void,
@@ -2457,39 +2517,51 @@ private struct DriveNameForm: View {
     }
 
     private var nameIsEmpty: Bool { name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var fieldTitle: String { creatingFolder ? "Folder name" : "New name" }
+    private var validationMessage: String? {
+        error ?? (nameIsEmpty && (editedName || !creatingFolder)
+            ? (creatingFolder ? "Enter a folder name." : "Enter a new name.") : nil)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if !creatingFolder {
                 VStack(alignment: .leading, spacing: 3) {
                     LocalizedText("Current name").driveFont(12, relativeTo: .caption, weight: .medium)
                     Text(verbatim: startingName).driveFont(14, relativeTo: .subheadline).lineLimit(3).truncationMode(.middle)
                 }.foregroundStyle(DriveStyle.secondary).accessibilityElement(children: .combine)
+                    .padding(.horizontal, 16)
             }
-            TextField(LocalizedStringKey(creatingFolder ? "Folder name" : "New name"), text: $name)
-                .driveFont(15, relativeTo: .body)
-                .foregroundStyle(DriveStyle.ink).tint(DriveStyle.accent)
-                .padding(.horizontal, 12).padding(.vertical, 11).frame(minHeight: 44)
-                .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 12))
-                .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(nameFocused ? DriveStyle.accent : GlamoStyle.line) }
-                .autocorrectionDisabled().submitLabel(.done).focused($nameFocused).onSubmit(commit)
-                .accessibilityLabel(LocalizedStringKey(creatingFolder ? "Folder name" : "New name"))
-            if let message = error ?? (nameIsEmpty && !creatingFolder ? "Enter a new name." : nil) {
-                ErrorNote(message: message).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                LocalizedText(fieldTitle).driveFont(12, relativeTo: .caption, weight: .medium)
+                    .accessibilityHidden(true)
+                TextField(LocalizedStringKey(fieldTitle), text: $name)
+                    .driveFont(14, relativeTo: .body)
+                    .foregroundStyle(DriveStyle.ink).tint(DriveStyle.accent)
+                    .padding(.horizontal, 12).padding(.vertical, 11).frame(minHeight: 44)
+                    .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10).strokeBorder(validationMessage != nil ? GlamoStyle.danger
+                            : nameFocused ? DriveStyle.accent : GlamoStyle.line).allowsHitTesting(false)
+                    }
+                    .autocorrectionDisabled().submitLabel(.done).focused($nameFocused).onSubmit(commit)
+                    .accessibilityLabel(LocalizedStringKey(fieldTitle))
+                if let validationMessage { ErrorNote(message: validationMessage).fixedSize(horizontal: false, vertical: true) }
             }
+            .padding(.horizontal, 16)
             DriveDialogActions {
                 Button(action: cancel) { LocalizedText("Cancel") }.buttonStyle(DriveDialogButtonStyle())
                 Button(action: commit) { LocalizedText(creatingFolder ? "Create folder" : "Save name") }
                     .buttonStyle(DriveDialogButtonStyle(primary: true)).disabled(nameIsEmpty)
             }
         }
-        .onChange(of: name) { _, _ in error = nil }
+        .onChange(of: name) { _, _ in editedName = true; error = nil }
     }
 
     private func commit() {
-        guard !nameIsEmpty else { return }
+        guard !nameIsEmpty else { editedName = true; return }
         error = nil
         do { try save(name) }
-        catch { self.error = error.localizedDescription }
+        catch { self.error = DeviceSpaceFailure.description(for: error) }
     }
 }

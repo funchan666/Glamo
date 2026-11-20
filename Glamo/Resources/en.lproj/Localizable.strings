@@ -10,7 +10,7 @@
 "A full year of Plus" = "A full year of Plus";
 "No results? Check your input, or ask the sender for a new link." = "No results? Check your input, or ask the sender for a new link.";
 "A little luck, on us" = "A little luck, on us";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.";
 "Access password" = "Access password";
 "Access through %@." = "Access through %@.";
 "Ads are unavailable with your current privacy choices." = "Ads are unavailable with your current privacy choices.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "Import from Photos";
 "Choose your language" = "Choose your language";
 "Clear" = "Clear";
-"Vifol is starting" = "Vifol is starting";
-"Vifol’s online service is not configured yet. Local editing is available." = "Vifol’s online service is not configured yet. Local editing is available.";
+"Ecloud is starting" = "Ecloud is starting";
+"Ecloud’s online service is not configured yet. Local editing is available." = "Ecloud’s online service is not configured yet. Local editing is available.";
 "Close" = "Close";
 "Confirming your purchase…" = "Confirming your purchase…";
 "Connecting your lesson feed…" = "Connecting your lesson feed…";
@@ -62,7 +62,7 @@
 "Delete folder" = "Delete folder";
 "After deletion" = "After deletion";
 "Folder contains items" = "Folder contains items";
-"The empty folder will be removed from Vifol." = "The empty folder will be removed from Vifol.";
+"The empty folder will be removed from Ecloud." = "The empty folder will be removed from Ecloud.";
 "Dismiss message" = "Dismiss message";
 "Edit" = "Edit";
 "Edit a local video" = "Edit a local video";
@@ -213,7 +213,7 @@
 "Terms of Use" = "Terms of Use";
 "Test ads require Google's sample iOS App ID." = "Test ads require Google's sample iOS App ID.";
 "The ad finished, but its reward could not be saved. %@" = "The ad finished, but its reward could not be saved. %@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "The copy in Vifol will be removed. The original in Photos or Files will stay untouched.";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "The copy in Ecloud will be removed. The original in Photos or Files will stay untouched.";
 "The document was interrupted. Please try again." = "The document was interrupted. Please try again.";
 "The export finished but could not be added to your library. %@" = "The export finished but could not be added to your library. %@";
 "The request could not be completed." = "The request could not be completed.";
@@ -261,7 +261,7 @@
 "Plus is already active." = "Plus is already active.";
 "Your original stays untouched. Exports are saved to your local library." = "Your original stays untouched. Exports are saved to your local library.";
 "Your purchase is waiting for approval." = "Your purchase is waiting for approval.";
-"Your session has expired. Please sign in again." = "Your session has expired. Please sign in again.";
+"Your connection to Ecloud expired. Try again." = "Your connection to Ecloud expired. Try again.";
 "month" = "month";
 "per %@" = "per %@";
 "year" = "year";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "Finish this ad for unlimited views today.";
 "Connect to refresh your allowance." = "Connect to refresh your allowance.";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "Vifol link or lesson code";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "Ecloud link or lesson code";
 "Paste" = "Paste";
-"Use a lesson link or code shared through Vifol." = "Use a lesson link or code shared through Vifol.";
-"Copy a Vifol link or lesson code first, then tap Paste." = "Copy a Vifol link or lesson code first, then tap Paste.";
-"1. Copy a Vifol link" = "1. Copy a Vifol link";
+"Use a lesson link or code shared through Ecloud." = "Use a lesson link or code shared through Ecloud.";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "Copy a Ecloud link or lesson code first, then tap Paste.";
+"1. Copy a Ecloud link" = "1. Copy a Ecloud link";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "Tap Open lesson to find matching lessons, then swipe to watch.";
 
@@ -357,20 +357,18 @@
 "Web search" = "Web search";
 "Opening page…" = "Opening page…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "Plus benefits";
-"MP4 export up to 1080p" = "MP4 export up to 1080p";
-"M4A audio export" = "M4A audio export";
 "Choose your plan" = "Choose your plan";
 "Reload plans" = "Reload plans";
 "Subscribe to Plus" = "Subscribe to Plus";
 
 /* App startup and video links */
-"Opening Vifol…" = "Opening Vifol…";
-"Couldn’t connect to Vifol" = "Couldn’t connect to Vifol";
-"Connecting to Vifol…" = "Connecting to Vifol…";
+"Opening Ecloud…" = "Opening Ecloud…";
+"Couldn’t connect to Ecloud" = "Couldn’t connect to Ecloud";
+"Connecting to Ecloud…" = "Connecting to Ecloud…";
 "Ad privacy choices" = "Ad privacy choices";
-"Couldn’t open the Vifol website. Try again." = "Couldn’t open the Vifol website. Try again.";
+"Couldn’t open the Ecloud website. Try again." = "Couldn’t open the Ecloud website. Try again.";
 "No match found" = "No match found";
 "Check the URL with the person who shared it." = "Check the URL with the person who shared it.";
 "Search the web" = "Search the web";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "Once it opens, swipe up or down to browse videos.";
 "There’s no playable video here." = "There’s no playable video here.";
 "Copy a video URL, then try pasting again." = "Copy a video URL, then try pasting again.";
-"Connect to Vifol, then try opening the URL again." = "Connect to Vifol, then try opening the URL again.";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "This deletes the file from Vifol. Any original in Photos or Files stays there.";
+"Connect to Ecloud, then try opening the URL again." = "Connect to Ecloud, then try opening the URL again.";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "This deletes the file from Ecloud. Any original in Photos or Files stays there.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ items";
 "Export a video or audio file from Tools to save it here." = "Export a video or audio file from Tools to save it here.";
@@ -418,8 +416,6 @@
 "Export quality" = "Export quality";
 "Find your export in Library › Exports. Your original stays intact." = "Find your export in Library › Exports. Your original stays intact.";
 "Couldn’t save the export to your library. %@" = "Couldn’t save the export to your library. %@";
-"Unlimited online viewing" = "Unlimited online viewing";
-"Skip launch ads" = "Skip launch ads";
 "View plans" = "View plans";
 "View Plus details" = "View Plus details";
 "Plus is active" = "Plus is active";
@@ -485,6 +481,7 @@
 "Folders" = "Folders";
 "Folder options" = "Folder options";
 "No videos here yet" = "No videos here yet";
+"No videos in this folder" = "No videos in this folder";
 "No matching files" = "No matching files";
 "Import videos from Files or Photos." = "Import videos from Files or Photos.";
 "Show all videos" = "Show all videos";
@@ -528,6 +525,7 @@
 "Previous" = "Previous";
 "Next" = "Next";
 "On this device" = "On this device";
+"Play videos" = "Play videos";
 "Play queue" = "Play queue";
 "Now playing" = "Now playing";
 "Current file" = "Current file";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "Export and share from your video library.";
-"Plus includes file export and sharing." = "Plus includes file export and sharing.";
 "Save a separate MP4 copy of your edits." = "Save a separate MP4 copy of your edits.";
 "Keep just the soundtrack as an M4A file." = "Keep just the soundtrack as an M4A file.";
-"Share files" = "Share files";
 "Send an original file or an export to another app." = "Send an original file or an export to another app.";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "Get Premium";
 "Maybe Later" = "Maybe Later";
 "Upgrade Now" = "Upgrade Now";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "Resolution";
 "Auto" = "Auto";
 "Fit video" = "Fit video";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open.";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added.";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept.";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available.";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "Waiting to download";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "Daily saving limit reached";
 "Watch a full ad to save more videos." = "Watch a full ad to save more videos.";
 "Watch ad to save more" = "Watch ad to save more";
-"Unlimited video saves" = "Unlimited video saves";
 "Your saving allowance has been updated." = "Your saving allowance has been updated.";
 "More saves added. Your viewing allowance stays the same." = "More saves added. Your viewing allowance stays the same.";
 "Offline downloads" = "Offline downloads";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "Files, video URLs or codes";
 "Search files, video URLs or codes" = "Search files, video URLs or codes";
 "How to search" = "How to search";
-"Connect to Vifol, then search again." = "Connect to Vifol, then search again.";
+"Connect to Ecloud, then search again." = "Connect to Ecloud, then search again.";
 "Try another file name, or search a video URL or code." = "Try another file name, or search a video URL or code.";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared.";
 "Search your files" = "Search your files";
 "Enter a file or folder name to filter your library as you type." = "Enter a file or folder name to filter your library as you type.";
 "Pick a video to add to your library." = "Pick a video to add to your library.";
 "User Agreement" = "User Agreement";
+"No saved links yet" = "No saved links yet";
+"Search a video URL, code or file name to get started." = "Search a video URL, code or file name to get started.";
+"No results" = "No results";
+"Try a different search." = "Try a different search.";
+"Couldn’t load files" = "Couldn’t load files";
+"No transfers yet" = "No transfers yet";
+
+// Player queue and file feedback.
+"File %@ of %@" = "File %@ of %@";
+"Not enough device space" = "Not enough device space";
+"Free up space on this device to download the file." = "Free up space on this device to download the file.";
+"OK" = "OK";
+"Enter a folder name." = "Enter a folder name.";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "Up to 10 TB of cloud storage";
+"Ad-free" = "Ad-free";
+"Preview unsaved shared photos and videos" = "Preview unsaved shared photos and videos";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "Cloud storage and previews of unsaved shared files will be available when the cloud drive launches.";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches.";

@@ -10,7 +10,7 @@
 "A full year of Plus" = "Plusを1年間";
 "No results? Check your input, or ask the sender for a new link." = "結果がない場合は、入力内容を確認するか、送信者に新しいリンクを依頼してください。";
 "A little luck, on us" = "ささやかなボーナスをどうぞ";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Vifolに安全に接続できません。ネットワークやVPNを確認して再試行してください。問題が続く場合、サービスが一時的に利用できない可能性があります。";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Ecloudに安全に接続できません。ネットワークやVPNを確認して再試行してください。問題が続く場合、サービスが一時的に利用できない可能性があります。";
 "Access password" = "アクセス用パスワード";
 "Access through %@." = "%@まで利用できます。";
 "Ads are unavailable with your current privacy choices." = "現在のプライバシー設定では広告を利用できません。";
@@ -46,8 +46,8 @@
 "Import from Photos" = "「写真」から取り込む";
 "Choose your language" = "言語を選択";
 "Clear" = "消去";
-"Vifol is starting" = "Vifolを起動中";
-"Vifol’s online service is not configured yet. Local editing is available." = "Vifolのオンラインサービスは未設定です。端末内の編集は利用できます。";
+"Ecloud is starting" = "Ecloudを起動中";
+"Ecloud’s online service is not configured yet. Local editing is available." = "Ecloudのオンラインサービスは未設定です。端末内の編集は利用できます。";
 "Close" = "閉じる";
 "Confirming your purchase…" = "購入を確認中…";
 "Connecting your lesson feed…" = "レッスンフィードに接続中…";
@@ -62,7 +62,7 @@
 "Delete folder" = "フォルダを削除";
 "After deletion" = "削除後";
 "Folder contains items" = "フォルダに項目があります";
-"The empty folder will be removed from Vifol." = "この空のフォルダはVifolから削除されます。";
+"The empty folder will be removed from Ecloud." = "この空のフォルダはEcloudから削除されます。";
 "Dismiss message" = "メッセージを閉じる";
 "Edit" = "編集";
 "Edit a local video" = "端末内の動画を編集";
@@ -213,7 +213,7 @@
 "Terms of Use" = "利用規約";
 "Test ads require Google's sample iOS App ID." = "テスト広告にはGoogleのサンプルiOSアプリIDが必要です。";
 "The ad finished, but its reward could not be saved. %@" = "広告は完了しましたが、報酬を保存できませんでした。%@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "Vifol内のコピーを削除します。写真やファイルにある元の動画は変更されません。";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "Ecloud内のコピーを削除します。写真やファイルにある元の動画は変更されません。";
 "The document was interrupted. Please try again." = "ドキュメントの読み込みが中断されました。再試行してください。";
 "The export finished but could not be added to your library. %@" = "書き出しは完了しましたが、ライブラリに追加できませんでした。%@";
 "The request could not be completed." = "リクエストを完了できませんでした。";
@@ -261,7 +261,7 @@
 "Plus is already active." = "すでにPlusをご利用中です。";
 "Your original stays untouched. Exports are saved to your local library." = "元の動画は変更されません。書き出したファイルは端末内のライブラリに保存されます。";
 "Your purchase is waiting for approval." = "購入は承認待ちです。";
-"Your session has expired. Please sign in again." = "セッションが切れました。もう一度サインインしてください。";
+"Your connection to Ecloud expired. Try again." = "Ecloudとの接続が切れました。もう一度お試しください。";
 "month" = "月";
 "per %@" = "/ %@";
 "year" = "年";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "広告を最後まで見ると、今日は無制限で視聴できます。";
 "Connect to refresh your allowance." = "利用回数を更新するには接続してください。";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "Vifolのリンクまたはレッスンコード";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "Ecloudのリンクまたはレッスンコード";
 "Paste" = "ペースト";
-"Use a lesson link or code shared through Vifol." = "Vifolで共有されたレッスンのリンクまたはコードを使ってください。";
-"Copy a Vifol link or lesson code first, then tap Paste." = "先にVifolのリンクまたはレッスンコードをコピーしてから「ペースト」をタップしてください。";
-"1. Copy a Vifol link" = "1. Vifolのリンクをコピー";
+"Use a lesson link or code shared through Ecloud." = "Ecloudで共有されたレッスンのリンクまたはコードを使ってください。";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "先にEcloudのリンクまたはレッスンコードをコピーしてから「ペースト」をタップしてください。";
+"1. Copy a Ecloud link" = "1. Ecloudのリンクをコピー";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "「ペースト」をタップするか、受け取ったレッスンコードをそのまま入力してください。大文字と小文字は区別されます。";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "「レッスンを開く」をタップして該当するレッスンを探し、スワイプして視聴します。";
 
@@ -357,20 +357,18 @@
 "Web search" = "ウェブ検索";
 "Opening page…" = "ページを開いています…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "Plusの特典";
-"MP4 export up to 1080p" = "最大1080pのMP4書き出し";
-"M4A audio export" = "M4A音声の書き出し";
 "Choose your plan" = "プランを選択";
 "Reload plans" = "プランを再読み込み";
 "Subscribe to Plus" = "Plusに登録";
 
 /* App startup and video links */
-"Opening Vifol…" = "Vifolを起動中…";
-"Couldn’t connect to Vifol" = "Vifolに接続できませんでした";
-"Connecting to Vifol…" = "Vifolに接続中…";
+"Opening Ecloud…" = "Ecloudを起動中…";
+"Couldn’t connect to Ecloud" = "Ecloudに接続できませんでした";
+"Connecting to Ecloud…" = "Ecloudに接続中…";
 "Ad privacy choices" = "広告のプライバシー設定";
-"Couldn’t open the Vifol website. Try again." = "Vifolのウェブサイトを開けませんでした。もう一度お試しください。";
+"Couldn’t open the Ecloud website. Try again." = "Ecloudのウェブサイトを開けませんでした。もう一度お試しください。";
 "No match found" = "一致する項目が見つかりません";
 "Check the URL with the person who shared it." = "共有した人にURLを確認してください。";
 "Search the web" = "ウェブで検索";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "開いたら、上下にスワイプして動画を切り替えます。";
 "There’s no playable video here." = "再生できる動画がありません。";
 "Copy a video URL, then try pasting again." = "動画のURLをコピーして、もう一度貼り付けてください。";
-"Connect to Vifol, then try opening the URL again." = "Vifolに接続してから、URLを開き直してください。";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "Vifol内のファイルを削除します。「写真」や「ファイル」にある元の動画は残ります。";
+"Connect to Ecloud, then try opening the URL again." = "Ecloudに接続してから、URLを開き直してください。";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "Ecloud内のファイルを削除します。「写真」や「ファイル」にある元の動画は残ります。";
 "%@ item" = "%@件";
 "%@ items" = "%@件";
 "Export a video or audio file from Tools to save it here." = "「ツール」で動画や音声を書き出すと、ここに保存されます。";
@@ -418,8 +416,6 @@
 "Export quality" = "書き出し画質";
 "Find your export in Library › Exports. Your original stays intact." = "書き出したファイルは「ライブラリ」の「書き出し済み」にあります。元の動画はそのまま残ります。";
 "Couldn’t save the export to your library. %@" = "書き出したファイルをライブラリに保存できませんでした。%@";
-"Unlimited online viewing" = "オンライン動画を制限なく視聴";
-"Skip launch ads" = "起動時の広告なし";
 "View plans" = "プランを見る";
 "View Plus details" = "Plusの詳細を見る";
 "Plus is active" = "Plus利用中";
@@ -485,6 +481,7 @@
 "Folders" = "フォルダ";
 "Folder options" = "フォルダの操作";
 "No videos here yet" = "動画はまだありません";
+"No videos in this folder" = "このフォルダに動画はありません";
 "No matching files" = "一致するファイルがありません";
 "Import videos from Files or Photos." = "「ファイル」または「写真」から動画を取り込みます。";
 "Show all videos" = "すべての動画を表示";
@@ -528,6 +525,7 @@
 "Previous" = "前へ";
 "Next" = "次へ";
 "On this device" = "このデバイス上";
+"Play videos" = "動画を再生";
 "Play queue" = "再生キュー";
 "Now playing" = "再生中";
 "Current file" = "現在のファイル";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "動画ライブラリから書き出して共有できます。";
-"Plus includes file export and sharing." = "Plusではファイルの書き出しと共有ができます。";
 "Save a separate MP4 copy of your edits." = "編集した動画を別のMP4ファイルとして保存します。";
 "Keep just the soundtrack as an M4A file." = "音声トラックだけをM4Aファイルとして保存します。";
-"Share files" = "ファイルを共有";
 "Send an original file or an export to another app." = "元のファイルや書き出したファイルを別のアプリに送れます。";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "プレミアムに登録";
 "Maybe Later" = "あとで";
 "Upgrade Now" = "今すぐアップグレード";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "解像度";
 "Auto" = "自動";
 "Fit video" = "全体を表示";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "「ファイル」で「ファイルを追加」をタップし、「ファイル」または「写真」を選びます。動画は現在開いているフォルダにコピーされます。";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "iOSの共有シートで共有を完了したファイルが表示されます。キャンセルまたは失敗した共有は追加されません。";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "キャッシュされた応答と期限切れの共有用コピーを削除します。ライブラリの動画、フォルダ、最近の共有用コピーは保持されます。";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "Plusにはオンライン動画の無制限視聴、起動時広告の非表示、MP4・M4Aの書き出し、ファイル共有が含まれます。ローカル動画は引き続き再生できます。";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "ダウンロード待機中";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "本日の保存回数の上限に達しました";
 "Watch a full ad to save more videos." = "広告を最後まで見ると、保存できる動画が増えます。";
 "Watch ad to save more" = "広告を見て保存回数を増やす";
-"Unlimited video saves" = "動画の保存回数が無制限";
 "Your saving allowance has been updated." = "動画の保存可能回数を更新しました。";
 "More saves added. Your viewing allowance stays the same." = "保存回数を追加しました。視聴可能回数は変わりません。";
 "Offline downloads" = "オフラインダウンロード";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "ファイル・動画URL・コード";
 "Search files, video URLs or codes" = "ファイル・動画URL・コードを検索";
 "How to search" = "検索の使い方";
-"Connect to Vifol, then search again." = "Vifolに接続してから、もう一度検索してください。";
+"Connect to Ecloud, then search again." = "Ecloudに接続してから、もう一度検索してください。";
 "Try another file name, or search a video URL or code." = "別のファイル名を試すか、動画URLやコードを検索してください。";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "検索欄に動画URLまたはコードを貼り付け、「検索」をタップします。共有された文字列の大文字と小文字をそのまま入力してください。";
 "Search your files" = "ファイルを探す";
 "Enter a file or folder name to filter your library as you type." = "ファイル名やフォルダ名を入力すると、入力に合わせてライブラリを絞り込めます。";
 "Pick a video to add to your library." = "ライブラリに追加する動画を選択します。";
 "User Agreement" = "利用規約とプライバシー";
+"No saved links yet" = "保存済みのリンクはありません";
+"Search a video URL, code or file name to get started." = "動画のURL、コード、ファイル名を入力して検索してください。";
+"No results" = "検索結果がありません";
+"Try a different search." = "別のキーワードで検索してください。";
+"Couldn’t load files" = "ファイルを読み込めませんでした";
+"No transfers yet" = "転送履歴はありません";
+
+// Player queue and file feedback.
+"File %@ of %@" = "%@ / %@ 件目";
+"Not enough device space" = "端末の空き容量が不足しています";
+"Free up space on this device to download the file." = "ファイルをダウンロードするには、この端末の空き容量を増やしてください。";
+"OK" = "OK";
+"Enter a folder name." = "フォルダ名を入力してください。";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "最大10 TBのクラウドストレージ";
+"Ad-free" = "広告なし";
+"Preview unsaved shared photos and videos" = "共有された未保存の写真と動画をプレビュー";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "クラウドストレージと共有された未保存のファイルのプレビューは、クラウドドライブの提供開始後に利用できます。";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "Plusでは広告が表示されません。クラウドドライブの提供開始後は、最大10 TBのストレージと共有された未保存の写真や動画のプレビューが利用できます。";

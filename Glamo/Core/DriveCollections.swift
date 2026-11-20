@@ -57,7 +57,7 @@ struct DriveCollection: Codable, Identifiable, Hashable {
 struct LandingResource: Decodable {
     let fields: [String: LandingValue]
     init(from decoder: Decoder) throws { fields = try decoder.singleValueContainer().decode([String: LandingValue].self) }
-    func collection(id requestedID: String? = nil) -> DriveCollection? {
+    func collection(id requestedID: String? = nil, inheritedSort: String? = nil) -> DriveCollection? {
         let disk = fields["netDiskInfo"]?.object ?? fields
         let extra = fields["extraInfo"]?.object ?? [:]
         guard let folder = disk["isFolder"]?.flag else { return nil }
@@ -67,19 +67,23 @@ struct LandingResource: Decodable {
         guard !id.isEmpty else { return nil }
         let name = disk["name"]?.text.nilIfBlank ?? fields["folderName"]?.text.nilIfBlank
             ?? extra["channelName"]?.text.nilIfBlank ?? L10n.text("Untitled clip")
-        let cover = WebAddress.media(folder ? fields["shortCover"]?.text ?? disk["shortCover"]?.text
-                                      : disk["coverImage"]?.text)
+        let cover = folder
+            ? (WebAddress.media(fields["shortCover"]?.text) ?? WebAddress.media(disk["shortCover"]?.text))
+            : WebAddress.media(disk["coverImage"]?.text)
         var clip: LessonClip?
         if !folder {
-            guard let source = WebAddress.media(disk["fileUrl"]?.text ?? disk["m3u8Url"]?.text ?? disk["originUrl"]?.text) else { return nil }
+            let originalURL = WebAddress.media(disk["originUrl"]?.text)
+            guard let source = WebAddress.media(disk["fileUrl"]?.text)
+                ?? WebAddress.media(disk["m3u8Url"]?.text) ?? originalURL else { return nil }
+            let bytes = disk["fileSize"].flatMap { Int64($0.text) }
             clip = LessonClip(id: id, title: name, playbackURL: source, coverURL: cover,
                               shortLink: link.nilIfBlank ?? id, channel: extra["externalLinks"]?.text ?? "",
-                              duration: disk["length"]?.number)
-            clip?.originalURL = WebAddress.media(disk["originUrl"]?.text)
+                              duration: disk["length"]?.number, originalURL: originalURL,
+                              byteCount: bytes.flatMap { $0 > 0 ? $0 : nil })
         }
         let stamp = disk["createTime"]?.number ?? 0
         return DriveCollection(id: id, title: name, coverURL: cover, isFolder: folder, clip: clip,
-                               sort: extra["sortOrder"]?.text.nilIfBlank ?? "1",
+                               sort: inheritedSort ?? extra["sortOrder"]?.text.nilIfBlank ?? "1",
                                addedAt: stamp > 0 ? Date(timeIntervalSince1970: stamp / 1000) : nil)
     }
 }
@@ -109,13 +113,17 @@ final class DriveCollectionStore: ObservableObject {
             try Task.checkCancellation()
             guard token == generation else { return }
             var seen = Set(requestedPage == 1 ? [] : items.map(\.id))
-            let parsed = response.list.compactMap { $0.collection() }.filter { seen.insert($0.id).inserted }
-            if requestedPage == 1 { items = parsed } else { items += parsed }
-            items.sort { a, b in
-                if a.isFolder != b.isFolder { return a.isFolder }
-                if collection.sort == "2" { return (a.addedAt ?? .distantPast) > (b.addedAt ?? .distantPast) }
-                if collection.sort == "3" { return a.title.localizedStandardCompare(b.title) == .orderedAscending }
-                return false
+            let parsed = response.list.compactMap { $0.collection(inheritedSort: collection.sort) }
+                .filter { seen.insert($0.id).inserted }
+            if requestedPage == 1 {
+                items = parsed.sorted { a, b in
+                    if a.isFolder != b.isFolder { return a.isFolder }
+                    if collection.sort == "2" { return (a.addedAt ?? .distantPast) > (b.addedAt ?? .distantPast) }
+                    if collection.sort == "3" { return a.title.localizedStandardCompare(b.title) == .orderedAscending }
+                    return false
+                }
+            } else {
+                items += parsed
             }
             hasMore = !response.list.isEmpty && (response.total.flatMap { Int($0.value) }.map { requestedPage * 10 < $0 } ?? (response.list.count >= 10))
             page += 1

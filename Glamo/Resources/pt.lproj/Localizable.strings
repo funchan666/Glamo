@@ -10,7 +10,7 @@
 "A full year of Plus" = "Um ano de Plus";
 "No results? Check your input, or ask the sender for a new link." = "Sem resultados? Confira o que digitou ou peça um novo link a quem enviou.";
 "A little luck, on us" = "Um pequeno bônus para você";
-"A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Não foi possível estabelecer uma conexão segura com o Vifol. Confira a rede ou VPN e tente novamente. Se persistir, o serviço pode estar temporariamente indisponível.";
+"A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable." = "Não foi possível estabelecer uma conexão segura com o Ecloud. Confira a rede ou VPN e tente novamente. Se persistir, o serviço pode estar temporariamente indisponível.";
 "Access password" = "Senha de acesso";
 "Access through %@." = "Acesso até %@.";
 "Ads are unavailable with your current privacy choices." = "Os anúncios não estão disponíveis com suas opções de privacidade atuais.";
@@ -46,8 +46,8 @@
 "Import from Photos" = "Importar de Fotos";
 "Choose your language" = "Escolha o idioma";
 "Clear" = "Limpar";
-"Vifol is starting" = "Iniciando o Vifol";
-"Vifol’s online service is not configured yet. Local editing is available." = "O serviço online do Vifol ainda não está configurado. A edição local está disponível.";
+"Ecloud is starting" = "Iniciando o Ecloud";
+"Ecloud’s online service is not configured yet. Local editing is available." = "O serviço online do Ecloud ainda não está configurado. A edição local está disponível.";
 "Close" = "Fechar";
 "Confirming your purchase…" = "Confirmando sua compra…";
 "Connecting your lesson feed…" = "Conectando seu feed de aulas…";
@@ -62,7 +62,7 @@
 "Delete folder" = "Apagar pasta";
 "After deletion" = "Depois de apagar";
 "Folder contains items" = "A pasta contém itens";
-"The empty folder will be removed from Vifol." = "A pasta vazia será apagada do Vifol.";
+"The empty folder will be removed from Ecloud." = "A pasta vazia será apagada do Ecloud.";
 "Dismiss message" = "Fechar mensagem";
 "Edit" = "Editar";
 "Edit a local video" = "Editar vídeo local";
@@ -213,7 +213,7 @@
 "Terms of Use" = "Termos de Uso";
 "Test ads require Google's sample iOS App ID." = "Anúncios de teste exigem o ID de app iOS de exemplo do Google.";
 "The ad finished, but its reward could not be saved. %@" = "O anúncio terminou, mas a recompensa não pôde ser salva. %@";
-"The copy in Vifol will be removed. The original in Photos or Files will stay untouched." = "A cópia no Vifol será removida. O original em Fotos ou Arquivos será preservado.";
+"The copy in Ecloud will be removed. The original in Photos or Files will stay untouched." = "A cópia no Ecloud será removida. O original em Fotos ou Arquivos será preservado.";
 "The document was interrupted. Please try again." = "O documento foi interrompido. Tente novamente.";
 "The export finished but could not be added to your library. %@" = "A exportação terminou, mas não pôde ser adicionada à biblioteca. %@";
 "The request could not be completed." = "Não foi possível concluir a solicitação.";
@@ -261,7 +261,7 @@
 "Plus is already active." = "O Plus já está ativo.";
 "Your original stays untouched. Exports are saved to your local library." = "O original é preservado. As exportações são salvas na biblioteca local.";
 "Your purchase is waiting for approval." = "A sua compra aguarda aprovação.";
-"Your session has expired. Please sign in again." = "Sua sessão expirou. Entre novamente.";
+"Your connection to Ecloud expired. Try again." = "Sua conexão com o Ecloud expirou. Tente novamente.";
 "month" = "mês";
 "per %@" = "por %@";
 "year" = "ano";
@@ -322,12 +322,12 @@
 "Finish this ad for unlimited views today." = "Assista a este anúncio até o fim para ter visualizações ilimitadas hoje.";
 "Connect to refresh your allowance." = "Conecte-se para atualizar sua cota.";
 
-// Vifol lesson link entry.
-"Vifol link or lesson code" = "Link do Vifol ou código da aula";
+// Ecloud lesson link entry.
+"Ecloud link or lesson code" = "Link do Ecloud ou código da aula";
 "Paste" = "Colar";
-"Use a lesson link or code shared through Vifol." = "Use um link ou código de aula compartilhado pelo Vifol.";
-"Copy a Vifol link or lesson code first, then tap Paste." = "Copie um link do Vifol ou código de aula e toque em Colar.";
-"1. Copy a Vifol link" = "1. Copie um link do Vifol";
+"Use a lesson link or code shared through Ecloud." = "Use um link ou código de aula compartilhado pelo Ecloud.";
+"Copy a Ecloud link or lesson code first, then tap Paste." = "Copie um link do Ecloud ou código de aula e toque em Colar.";
+"1. Copy a Ecloud link" = "1. Copie um link do Ecloud";
 "Tap Paste or enter the lesson code exactly as received. Codes are case-sensitive." = "Toque em Colar ou digite o código da aula exatamente como recebido. Os códigos diferenciam maiúsculas de minúsculas.";
 "Tap Open lesson to find matching lessons, then swipe to watch." = "Toque em Abrir aula para encontrar aulas correspondentes e deslize para assistir.";
 
@@ -357,20 +357,18 @@
 "Web search" = "Pesquisa na web";
 "Opening page…" = "Abrindo página…";
 
-/* Vifol Plus */
+/* Ecloud Plus */
 "Plus benefits" = "Benefícios do Plus";
-"MP4 export up to 1080p" = "Exportação MP4 até 1080p";
-"M4A audio export" = "Exportação de áudio M4A";
 "Choose your plan" = "Escolha um plano";
 "Reload plans" = "Recarregar planos";
 "Subscribe to Plus" = "Subscrever o Plus";
 
 /* App startup and video links */
-"Opening Vifol…" = "Abrindo o Vifol…";
-"Couldn’t connect to Vifol" = "Não foi possível conectar ao Vifol";
-"Connecting to Vifol…" = "Conectando ao Vifol…";
+"Opening Ecloud…" = "Abrindo o Ecloud…";
+"Couldn’t connect to Ecloud" = "Não foi possível conectar ao Ecloud";
+"Connecting to Ecloud…" = "Conectando ao Ecloud…";
 "Ad privacy choices" = "Privacidade dos anúncios";
-"Couldn’t open the Vifol website. Try again." = "Não foi possível abrir o site do Vifol. Tente novamente.";
+"Couldn’t open the Ecloud website. Try again." = "Não foi possível abrir o site do Ecloud. Tente novamente.";
 "No match found" = "Nenhum resultado encontrado";
 "Check the URL with the person who shared it." = "Confira a URL com quem a compartilhou.";
 "Search the web" = "Buscar na web";
@@ -394,8 +392,8 @@
 "Once it opens, swipe up or down to browse videos." = "Depois de abrir, deslize para cima ou para baixo para ver outros vídeos.";
 "There’s no playable video here." = "Não há vídeo disponível para reprodução.";
 "Copy a video URL, then try pasting again." = "Copie a URL de um vídeo e tente colar novamente.";
-"Connect to Vifol, then try opening the URL again." = "Conecte-se ao Vifol e tente abrir a URL novamente.";
-"This deletes the file from Vifol. Any original in Photos or Files stays there." = "O ficheiro será apagado do Vifol. O original em Fotos ou Ficheiros será mantido.";
+"Connect to Ecloud, then try opening the URL again." = "Conecte-se ao Ecloud e tente abrir a URL novamente.";
+"This deletes the file from Ecloud. Any original in Photos or Files stays there." = "O ficheiro será apagado do Ecloud. O original em Fotos ou Ficheiros será mantido.";
 "%@ item" = "%@ item";
 "%@ items" = "%@ itens";
 "Export a video or audio file from Tools to save it here." = "Exporte um vídeo ou áudio em Ferramentas para salvá-lo aqui.";
@@ -418,8 +416,6 @@
 "Export quality" = "Qualidade da exportação";
 "Find your export in Library › Exports. Your original stays intact." = "Encontre o arquivo em Biblioteca › Exportações. O original será mantido.";
 "Couldn’t save the export to your library. %@" = "Não foi possível guardar o ficheiro exportado na biblioteca. %@";
-"Unlimited online viewing" = "Vídeos online sem limite";
-"Skip launch ads" = "Sem anúncios ao abrir o Vifol";
 "View plans" = "Ver planos";
 "View Plus details" = "Ver detalhes do Plus";
 "Plus is active" = "Plus ativo";
@@ -485,6 +481,7 @@
 "Folders" = "Pastas";
 "Folder options" = "Opções da pasta";
 "No videos here yet" = "Ainda não há vídeos aqui";
+"No videos in this folder" = "Não há vídeos nesta pasta";
 "No matching files" = "Nenhum ficheiro correspondente";
 "Import videos from Files or Photos." = "Importe vídeos de Ficheiros ou de Fotos.";
 "Show all videos" = "Ver todos os vídeos";
@@ -528,6 +525,7 @@
 "Previous" = "Anterior";
 "Next" = "Seguinte";
 "On this device" = "Neste dispositivo";
+"Play videos" = "Reproduzir vídeos";
 "Play queue" = "Fila de reprodução";
 "Now playing" = "Em reprodução";
 "Current file" = "Ficheiro atual";
@@ -559,10 +557,8 @@
 
 /* File library membership */
 "Export and share from your video library." = "Exporte e partilhe a partir da sua biblioteca de vídeos.";
-"Plus includes file export and sharing." = "Com o Plus, pode exportar e partilhar ficheiros.";
 "Save a separate MP4 copy of your edits." = "Guarde uma cópia do vídeo editado em MP4.";
 "Keep just the soundtrack as an M4A file." = "Guarde apenas a faixa de áudio num ficheiro M4A.";
-"Share files" = "Partilhar ficheiros";
 "Send an original file or an export to another app." = "Envie um ficheiro original ou uma exportação para outra app.";
 
 /* Recent, Files and Profile */
@@ -583,7 +579,7 @@
 "Get Premium" = "Obtenha Premium";
 "Maybe Later" = "Talvez mais tarde";
 "Upgrade Now" = "Fazer upgrade agora";
-"Vifol Plus" = "Vifol Plus";
+"Ecloud Plus" = "Ecloud Plus";
 "Resolution" = "Resolução";
 "Auto" = "Automática";
 "Fit video" = "Ajustar vídeo";
@@ -615,7 +611,6 @@
 "In Files, tap Add files and choose Files or Photos. Videos are copied into the folder you have open." = "Em Ficheiros, toque em Adicionar ficheiros e escolha Ficheiros ou Fotografias. Os vídeos são copiados para a pasta que está aberta.";
 "Files appear here after you finish sharing them with the iOS share sheet. Cancelled or failed shares are not added." = "Os ficheiros aparecem aqui após concluir a partilha na folha do iOS. As partilhas canceladas ou falhadas não são adicionadas.";
 "Clears cached responses and expired sharing copies. Your library videos, folders and recent sharing copies are kept." = "Limpa respostas em cache e cópias de partilha expiradas. Mantém os vídeos e as pastas da biblioteca e as cópias de partilha recentes.";
-"Plus includes unlimited online viewing, no launch ads, MP4 and M4A export, and file sharing. Local video playback remains available." = "O Plus inclui visualização online ilimitada, sem anúncios ao abrir, exportação em MP4 e M4A e partilha de ficheiros. A reprodução de vídeos locais continua disponível.";
 
 // Saved videos, offline transfers and playback preferences
 "Waiting to download" = "Aguardando download";
@@ -626,7 +621,6 @@
 "Daily saving limit reached" = "Limite diário de vídeos salvos atingido";
 "Watch a full ad to save more videos." = "Assista a um anúncio completo para salvar mais vídeos.";
 "Watch ad to save more" = "Ver anúncio para salvar mais";
-"Unlimited video saves" = "Salve vídeos sem limites";
 "Your saving allowance has been updated." = "Sua cota para salvar vídeos foi atualizada.";
 "More saves added. Your viewing allowance stays the same." = "Mais salvamentos adicionados. Sua cota de visualizações não muda.";
 "Offline downloads" = "Downloads offline";
@@ -695,10 +689,30 @@
 "Files, video URLs or codes" = "Arquivos, URLs de vídeos ou códigos";
 "Search files, video URLs or codes" = "Buscar arquivos, URLs de vídeos ou códigos";
 "How to search" = "Como buscar";
-"Connect to Vifol, then search again." = "Conecte-se ao Vifol e busque novamente.";
+"Connect to Ecloud, then search again." = "Conecte-se ao Ecloud e busque novamente.";
 "Try another file name, or search a video URL or code." = "Tente outro nome de arquivo ou busque uma URL de vídeo ou um código.";
 "Paste the video URL or code into the search field, then tap Search. Keep uppercase and lowercase letters exactly as shared." = "Cole a URL do vídeo ou o código no campo de busca e toque em Buscar. Mantenha as letras maiúsculas e minúsculas exatamente como no texto compartilhado.";
 "Search your files" = "Busque seus arquivos";
 "Enter a file or folder name to filter your library as you type." = "Digite o nome de um arquivo ou pasta para filtrar sua biblioteca enquanto digita.";
 "Pick a video to add to your library." = "Escolha um vídeo para adicionar à sua biblioteca.";
 "User Agreement" = "Acordo de Utilizador";
+"No saved links yet" = "Ainda não há ligações guardadas";
+"Search a video URL, code or file name to get started." = "Pesquise um URL de vídeo, código ou nome de ficheiro para começar.";
+"No results" = "Sem resultados";
+"Try a different search." = "Experimente outra pesquisa.";
+"Couldn’t load files" = "Não foi possível carregar os ficheiros";
+"No transfers yet" = "Ainda não há transferências";
+
+// Player queue and file feedback.
+"File %@ of %@" = "Arquivo %@ de %@";
+"Not enough device space" = "Espaço insuficiente no dispositivo";
+"Free up space on this device to download the file." = "Libere espaço neste dispositivo para baixar o arquivo.";
+"OK" = "OK";
+"Enter a folder name." = "Digite um nome para a pasta.";
+
+// Ecloud Plus benefits.
+"Up to 10 TB of cloud storage" = "Até 10 TB de armazenamento na nuvem";
+"Ad-free" = "Sem anúncios";
+"Preview unsaved shared photos and videos" = "Prévia de fotos e vídeos compartilhados sem salvar";
+"Cloud storage and previews of unsaved shared files will be available when the cloud drive launches." = "O armazenamento na nuvem e a prévia de arquivos compartilhados sem salvar estarão disponíveis quando o drive na nuvem for lançado.";
+"Plus removes ads. Up to 10 TB of storage and previews of unsaved shared photos and videos will be available when the cloud drive launches." = "O Plus remove os anúncios. Quando o drive na nuvem for lançado, você terá até 10 TB de armazenamento e poderá ver fotos e vídeos compartilhados sem precisar salvá-los.";

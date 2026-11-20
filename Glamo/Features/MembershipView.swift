@@ -44,39 +44,44 @@ struct MembershipView: View {
             let pageWidth: CGFloat = wide ? 880 : 560
             let benefitsFirst = !commerce.premium && requiredBenefit != .unlimitedViewing
             let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 20))
-                              : AnyLayout(VStackLayout(alignment: .leading, spacing: compact ? 12 : 16))
+                              : AnyLayout(VStackLayout(alignment: .leading, spacing: compact ? 12 : 24))
             let feedback = attemptedPurchaseAction ? (commerce.error ?? commerce.message) : nil
             VStack(spacing: 0) {
                 closeButton
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, DriveStyle.pageInset)
-                    .padding(.top, compact ? 0 : 8).padding(.bottom, compact ? 2 : 8)
+                    .padding(.top, compact ? 0 : 8)
                     .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
                     .background(DriveStyle.background, ignoresSafeAreaEdges: [.horizontal, .top])
                 ScrollViewReader { scroll in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: compact ? 12 : 22) {
+                        VStack(alignment: .leading, spacing: compact ? 12 : 24) {
                             membershipHeader
                             layout {
                                 if benefitsFirst {
                                     benefits.frame(maxWidth: wide ? 300 : .infinity, alignment: .leading)
                                 }
-                                offerContent
+                                offerContent(compact: compact)
                                 if !benefitsFirst {
                                     benefits.frame(maxWidth: wide ? 300 : .infinity, alignment: .leading)
                                 }
                             }
-                            purchaseFeedback
-                                .id("membership.purchaseFeedback")
-                            supportLinks
+                            VStack(alignment: .leading, spacing: 8) {
+                                cloudAvailability
+                                if !commerce.premium, selectedPlan != nil { renewalDisclosure }
+                                purchaseFeedback
+                                    .id("membership.purchaseFeedback")
+                                supportLinks
+                            }
+                            .padding(.horizontal, 2)
                         }
                         .padding(.horizontal, DriveStyle.pageInset)
-                        .padding(.top, compact ? 0 : 22).padding(.bottom, 12)
+                        .padding(.top, compact ? 2 : 24).padding(.bottom, 12)
                         .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        bottomBar(pageWidth: pageWidth, compact: paneHeight < 420)
+                        bottomBar(pageWidth: pageWidth, compact: paneHeight < 470 && paneWidth >= 300)
                     }
                     .onChange(of: feedback) { _, value in
                         if value != nil { scroll.scrollTo("membership.purchaseFeedback", anchor: .bottom) }
@@ -107,32 +112,29 @@ struct MembershipView: View {
     }
 
     private var membershipHeader: some View {
-        VStack(spacing: 4) {
-            LocalizedText(commerce.premium ? "Vifol Plus" : "Get Premium")
-                .driveFont(30, relativeTo: .title, weight: .bold)
-                .accessibilityAddTraits(.isHeader)
-            if requiredBenefit == .mediaExport {
-                LocalizedText("Plus includes file export and sharing.")
-                    .driveFont(14, relativeTo: .footnote)
-                    .foregroundStyle(DriveStyle.secondary)
-            }
-        }
-        .multilineTextAlignment(.center)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
+        LocalizedText(commerce.premium ? "Ecloud Plus" : "Get Premium")
+            .driveFont(30, relativeTo: .title, weight: .bold)
+            .accessibilityAddTraits(.isHeader)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
     }
 
     private var benefits: some View {
-        VStack(spacing: 0) {
-            benefit("Unlimited online viewing", symbol: .play)
-            benefit("Unlimited video saves", symbol: .driveFolder)
-            benefit("Skip launch ads", symbol: .close)
-            benefit("MP4 export up to 1080p", symbol: .edit)
-            benefit("M4A audio export", symbol: .sound)
-            benefit("Share files", symbol: .driveShare)
+        VStack(alignment: .leading, spacing: 0) {
+            benefit("Up to 10 TB of cloud storage", symbol: .driveFolder)
+            benefit("Ad-free", symbol: .close)
+            benefit("Preview unsaved shared photos and videos", symbol: .play)
         }
-        .padding(.horizontal, 16).padding(.vertical, 9)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .driveGlassCard()
+    }
+
+    private var cloudAvailability: some View {
+        LocalizedText("Cloud storage and previews of unsaved shared files will be available when the cloud drive launches.")
+            .driveFont(12, relativeTo: .caption)
+            .foregroundStyle(DriveStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func benefit(_ title: String, symbol: GlamoGlyph) -> some View {
@@ -140,20 +142,28 @@ struct MembershipView: View {
             Glyph(symbol: symbol, size: 17, tint: DriveStyle.ink)
                 .frame(width: 22, height: 22)
             LocalizedText(title)
-                .driveFont(15, relativeTo: .subheadline)
+                .driveFont(14, relativeTo: .subheadline)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.vertical, 3)
         .frame(minHeight: 32)
     }
 
-    private var offerContent: some View {
+    private func offerContent(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if commerce.premium {
                 activeMembership
             } else {
                 if api.session == nil { ConnectionPanel() }
-                if !plans.isEmpty { planPicker }
+                if !plans.isEmpty {
+                    planPicker(compact: compact)
+                } else if commerce.loadingPlans || commerce.loadingProducts {
+                    AccountLoadingIndicator(title: "Loading prices…")
+                        .frame(maxWidth: .infinity)
+                        .padding(12)
+                        .driveGlassCard()
+                }
                 if let error = commerce.plansError {
                     ErrorNote(message: error)
                     Button {
@@ -162,19 +172,29 @@ struct MembershipView: View {
                         LocalizedText("Reload plans")
                     }.buttonStyle(CompactActionStyle()).disabled(interactionLocked)
                 }
-                if selectedPlan != nil { renewalDisclosure }
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder private var purchaseFeedback: some View {
-        if attemptedPurchaseAction, commerce.error != nil || commerce.message != nil {
-            VStack(alignment: .leading, spacing: 4) {
-                if let error = commerce.error { ErrorNote(message: error) }
-                if let message = commerce.message {
-                    LocalizedText(message).font(.glam(.subheadline)).foregroundStyle(GlamoStyle.accent)
-                        .fixedSize(horizontal: false, vertical: true)
+        if attemptedPurchaseAction {
+            if let error = commerce.error {
+                ErrorNote(message: error)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let message = commerce.message {
+                Group {
+                    if commerce.busy && message == "Restoring purchases…" {
+                        AccountLoadingIndicator(title: message)
+                    } else {
+                        LocalizedText(message)
+                            .driveFont(15, relativeTo: .subheadline, weight: .medium)
+                            .foregroundStyle(DriveStyle.link)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .driveGlassCard()
             }
         }
     }
@@ -214,57 +234,53 @@ struct MembershipView: View {
             .glamoGlass(in: RoundedRectangle(cornerRadius: 20), tint: GlamoStyle.paperMuted)
     }
 
-    private var planPicker: some View {
-        VStack(spacing: 22) {
+    private func planPicker(compact: Bool) -> some View {
+        VStack(spacing: compact ? 10 : 24) {
             ForEach(plans, id: \.productIdentifier) { plan in
                 planOption(plan)
             }
         }
     }
 
-    private func planCopy(_ product: SKProduct) -> (title: String, billing: String) {
+    private func planCopy(_ product: SKProduct) -> (duration: String, billing: String) {
         let language = AppLanguage.from(locale)
         if let period = product.subscriptionPeriod, period.numberOfUnits == 1 {
             switch period.unit {
             case .month:
-                return (L10n.text("Monthly", language: language), L10n.text("Billed monthly", language: language))
+                return (L10n.text("month", language: language), L10n.text("Billed monthly", language: language))
             case .year:
-                return (L10n.text("Yearly", language: language), L10n.text("Billed yearly", language: language))
+                return (L10n.text("year", language: language), L10n.text("Billed yearly", language: language))
             default:
                 break
             }
         }
         let duration = commerce.period(product, locale: locale)
-        let billing = duration.isEmpty ? "" : L10n.format("Billed every %@", [duration], language: language)
-        return (product.localizedTitle, billing)
+        let billing = duration.isEmpty ? product.localizedTitle : L10n.format("Billed every %@", [duration], language: language)
+        return (duration, billing)
     }
 
     private func planOption(_ product: SKProduct) -> some View {
         let selected = selectedPlan?.productIdentifier == product.productIdentifier
         let price = commerce.price(product)
-        let duration = commerce.period(product, locale: locale)
         let copy = planCopy(product)
         let shape = RoundedRectangle(cornerRadius: DriveStyle.cardRadius)
 
         return Button { selectedID = product.productIdentifier } label: {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(verbatim: duration.isEmpty ? price : "\(price) / \(duration)")
-                        .driveFont(17, relativeTo: .body, weight: .medium)
+                    Text(verbatim: copy.duration.isEmpty ? price : "\(price)/\(copy.duration)")
+                        .driveFont(16, relativeTo: .body, weight: .medium)
                         .monospacedDigit()
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(verbatim: copy.billing.isEmpty ? copy.title : copy.billing)
+                    Text(verbatim: copy.billing)
                         .driveFont(12, relativeTo: .caption)
                         .foregroundStyle(DriveStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Circle()
-                    .fill(selected ? DriveStyle.accent : .clear)
-                    .overlay {
-                        Circle().strokeBorder(selected ? DriveStyle.accent : DriveStyle.secondary.opacity(0.45))
-                    }
-                    .frame(width: 19, height: 19)
+                Circle().strokeBorder(selected ? DriveStyle.accent : DriveStyle.secondary.opacity(0.55),
+                                      lineWidth: selected ? 5 : 1)
+                    .frame(width: 18, height: 18)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, 16).padding(.vertical, 11)
@@ -291,7 +307,7 @@ struct MembershipView: View {
     }
 
     private func bottomBar(pageWidth: CGFloat, compact: Bool) -> some View {
-        let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 8))
+        let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 16))
         return layout {
             if commerce.premium {
                 Button { managingSubscriptions = true } label: {
@@ -302,18 +318,22 @@ struct MembershipView: View {
             }
             Button { dismiss() } label: {
                 LocalizedText("Maybe Later")
-                    .driveFont(17, relativeTo: .body, weight: .semibold)
+                    .driveFont(18, relativeTo: .body, weight: .semibold)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 12).padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: 48)
                     .foregroundStyle(DriveStyle.ink)
                     .glamoGlass(in: Capsule(), tint: .white, interactive: true)
                     .contentShape(Capsule())
             }.buttonStyle(PressStyle()).disabled(purchasing || ads.isPresenting)
         }
-        .padding(.horizontal, 16).padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.top, compact ? 10 : 20).padding(.bottom, compact ? 6 : 10)
         .frame(maxWidth: pageWidth).frame(maxWidth: .infinity)
         .background(DriveStyle.background, ignoresSafeAreaEdges: [.horizontal, .bottom])
+        .overlay(alignment: .top) {
+            GlamoStyle.line.frame(height: 1).allowsHitTesting(false).accessibilityHidden(true)
+        }
     }
 
     private var purchaseAction: some View {
@@ -366,7 +386,7 @@ struct PlusShortcut: View {
                             interactive: true, mediaBackdrop: true)
                 .contentShape(Capsule())
         }.buttonStyle(PressStyle())
-            .accessibilityLabel("Vifol Plus")
+            .accessibilityLabel("Ecloud Plus")
             .accessibilityHint(LocalizedStringKey(isMember ? "Manage membership" : "View plans"))
     }
 }
@@ -382,6 +402,7 @@ struct AccountView: View {
     @EnvironmentObject private var api: APIClient
     @EnvironmentObject private var commerce: CommerceStore
     @EnvironmentObject private var library: LibraryStore
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.locale) private var locale
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var deviceCapacity: Int64?
@@ -395,23 +416,24 @@ struct AccountView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             DrivePageTitle(title: "Profile")
-                .padding(.horizontal, DriveStyle.pageInset).frame(minHeight: 44, alignment: .leading)
-                .padding(.vertical, 8)
+                .padding(.horizontal, DriveStyle.pageInset + 4)
+                .frame(minHeight: 44, alignment: .leading)
+                .padding(.top, 4)
                 .frame(maxWidth: 680, alignment: .leading)
                 .frame(maxWidth: .infinity)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 24) {
                     identity
                     VStack(spacing: 0) {
                         librarySummary
-                        Divider().overlay(DriveStyle.separator).padding(.horizontal, 16)
+                        Divider().overlay(GlamoStyle.line).padding(.horizontal, 16)
                         plusEntry
                     }
                     .driveGlassCard()
                     AccountSettingsSection(showActivity: showActivity)
                 }
-                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 22).padding(.bottom, 24 + bottomOverlayInset)
+                .padding(.horizontal, DriveStyle.pageInset).padding(.top, 24).padding(.bottom, 24 + bottomOverlayInset)
                 .frame(maxWidth: 680).frame(maxWidth: .infinity)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -429,25 +451,45 @@ struct AccountView: View {
         .driveDialog(isPresented: $storagePresented, maxWidth: 460, height: 580) { StorageManagementSheet() }
     }
 
-    private var identity: some View {
+    @ViewBuilder private var identity: some View {
+        if let id = api.session?.userId.value, !id.isEmpty {
+            Button {
+                UIPasteboard.general.string = id
+                copiedAccountID = true
+            } label: {
+                identityCard(accountID: id)
+            }
+            .buttonStyle(PressStyle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(LocalizedStringKey(copiedAccountID ? "Account ID copied" : "Copy account ID"))
+            .accessibilityValue(Text(verbatim: id))
+        } else {
+            identityCard(accountID: nil)
+        }
+    }
+
+    private func identityCard(accountID: String?) -> some View {
         let name = Group {
-            if let id = api.session?.userId.value, !id.isEmpty { LocalizedText("User %@", id) }
-            else { Text(verbatim: "Vifol") }
-        }.driveFont(16, relativeTo: .subheadline, weight: .medium)
+            if let accountID { LocalizedText("User %@", accountID) }
+            else { Text(verbatim: "Ecloud") }
+        }
+        .driveFont(16, relativeTo: .subheadline, weight: .medium)
+        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+        .truncationMode(.middle)
         let badge = Text(verbatim: "Plus")
             .driveFont(10, relativeTo: .caption2, weight: .bold)
             .foregroundStyle(.white)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(DriveStyle.accent, in: RoundedRectangle(cornerRadius: 3))
-        return HStack(spacing: 12) {
+        return HStack(spacing: 16) {
             DriveProfileAvatar(size: 60)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 if commerce.premium {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 8) {
                             name
                             badge
-                        }.fixedSize()
+                        }.fixedSize(horizontal: true, vertical: false)
                         VStack(alignment: .leading, spacing: 4) {
                             name
                             badge
@@ -456,26 +498,23 @@ struct AccountView: View {
                 } else {
                     name
                 }
-                if let id = api.session?.userId.value, !id.isEmpty {
-                    Button {
-                        UIPasteboard.general.string = id
-                        copiedAccountID = true
-                    } label: {
-                        LocalizedText(copiedAccountID ? "Copied" : "Account ID · %@", id)
-                            .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(minHeight: 44, alignment: .leading)
-                            .contentShape(Rectangle())
+                if let accountID {
+                    Group {
+                        if copiedAccountID { LocalizedText("Copied") }
+                        else { LocalizedText("Account ID · %@", accountID) }
                     }
-                    .buttonStyle(PressStyle())
-                    .accessibilityLabel(LocalizedStringKey(copiedAccountID ? "Account ID copied" : "Copy account ID"))
+                    .driveFont(12, relativeTo: .caption)
+                    .foregroundStyle(DriveStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            if accountID != nil { disclosureChevron }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+        .foregroundStyle(DriveStyle.ink)
         .driveGlassCard()
-        .accessibilityElement(children: .contain)
+        .contentShape(RoundedRectangle(cornerRadius: DriveStyle.cardRadius))
     }
 
     private var localBytes: Int64? {
@@ -505,58 +544,69 @@ struct AccountView: View {
     private var librarySummary: some View {
         let count = library.movies.count + library.folders.count + library.favorites.count
         let size = localBytes
-        let heading = LocalizedText("File storage").driveFont(15, relativeTo: .subheadline, weight: .medium)
-        let fileCount = LocalizedText(count == 1 ? "%@ item" : "%@ items", count.formatted(.number.locale(locale)))
+        let heading = LocalizedText("File storage").driveFont(16, relativeTo: .subheadline, weight: .medium)
+        let usage = Group {
+            if let size { Text(verbatim: size.formatted(.byteCount(style: .file).locale(locale))) }
+            else { LocalizedText("Calculating…") }
+        }.driveFont(14, relativeTo: .footnote).monospacedDigit().foregroundStyle(DriveStyle.secondary)
         return Button { storagePresented = true } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 10) {
-                    heading.fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    Group {
-                        if let size { Text(verbatim: size.formatted(.byteCount(style: .file).locale(locale))) }
-                        else { LocalizedText("Calculating…") }
-                    }
-                    .driveFont(14, relativeTo: .footnote).monospacedDigit().foregroundStyle(DriveStyle.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
-                        .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 0 : 180))
-                        .accessibilityHidden(true)
-                }
-                if let size, let deviceCapacity, deviceCapacity > 0 {
-                    DriveMeter(value: Double(size) / Double(deviceCapacity),
-                               tint: Color(red: 0.23, green: 0.72, blue: 0.36), thickness: 4)
-                        .accessibilityHidden(true)
-                }
+            HStack(spacing: 8) {
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        fileCount.fixedSize()
+                    HStack(spacing: 12) {
+                        heading.fixedSize()
+                        storageMeter.frame(width: 70)
                         Spacer(minLength: 0)
-                        availableStorage.fixedSize()
+                        usage.fixedSize()
                     }
-                    VStack(alignment: .leading, spacing: 4) { fileCount; availableStorage }
+                    VStack(alignment: .leading, spacing: 4) {
+                        heading
+                        usage
+                        storageMeter.frame(width: 70)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
-                .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                disclosureChevron
             }
-            .padding(.horizontal, 16).padding(.vertical, 10)
+            .padding(.horizontal, 16).padding(.vertical, 6)
             .foregroundStyle(DriveStyle.ink)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(PressStyle())
         .accessibilityElement(children: .combine)
+        .accessibilityHint(storageDetails(itemCount: count))
     }
 
-    @ViewBuilder private var availableStorage: some View {
-        if let deviceAvailable {
-            LocalizedText("%@ free on this device", deviceAvailable.formatted(.byteCount(style: .file).locale(locale)))
-                .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder private var storageMeter: some View {
+        if let localBytes, let deviceCapacity, deviceCapacity > 0 {
+            DriveMeter(value: Double(localBytes) / Double(deviceCapacity),
+                       tint: Color(red: 0.18, green: 0.78, blue: 0.35), thickness: 8)
         }
+    }
+
+    private var disclosureChevron: some View {
+        Glyph(symbol: .back, size: 10, tint: DriveStyle.secondary)
+            .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 0 : 180))
+            .frame(width: 20, height: 24)
+            .accessibilityHidden(true)
+    }
+
+    private func storageDetails(itemCount: Int) -> Text {
+        let language = AppLanguage.from(locale)
+        let count = L10n.format(itemCount == 1 ? "%@ item" : "%@ items",
+                                [itemCount.formatted(.number.locale(locale))], language: language)
+        if let deviceAvailable {
+            let free = L10n.format("%@ free on this device", [deviceAvailable.formatted(.byteCount(style: .file).locale(locale))], language: language)
+            return Text(verbatim: "\(count). \(free)")
+        }
+        return Text(verbatim: count)
     }
 
     private var plusEntry: some View {
         let description = VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: "Vifol Plus").driveFont(16, relativeTo: .subheadline, weight: .medium)
-            LocalizedText(commerce.premium ? "Plus is active" : "Unlimited online viewing")
+            Text(verbatim: "Ecloud Plus").driveFont(16, relativeTo: .subheadline, weight: .medium)
+            LocalizedText(commerce.premium ? "Plus is active" : "Ad-free")
                 .driveFont(12, relativeTo: .caption).foregroundStyle(DriveStyle.secondary)
         }.fixedSize(horizontal: false, vertical: true)
         let plansButton = Button { paywall = true } label: {
@@ -584,7 +634,7 @@ struct AccountView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 16).padding(.vertical, 8)
     }
 }
 
@@ -654,7 +704,7 @@ struct WatchLimitPrompt: View {
                         else if eligibleForAd { caption("Rewards are unavailable.") }
                     }
                 }
-                choice("Get Plus", detail: kind == .watch ? "Unlimited online viewing" : "Unlimited video saves", primary: false) { showingMembership = true }
+                choice("Get Plus", detail: "View plans", primary: false) { showingMembership = true }
                     .disabled(actionsLocked)
                     .accessibilityIdentifier("watchLimit.viewPlans")
                 Button(action: close) {

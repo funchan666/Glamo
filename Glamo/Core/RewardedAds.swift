@@ -36,6 +36,11 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     private var consentSetupFinished = false
     private var appOpenAd: AppOpenAd?
     private var rewarded: RewardedAd?
+    private var preparedInterstitial: (ad: InterstitialAd, owner: String, expires: ContinuousClock.Instant)?
+    private var interstitialPreload: Task<Void, Never>?
+    private var presentingInterstitial: InterstitialAd?
+    private var refillInterstitial: (() -> Void)?
+    private let interstitialHistoryKey = "glamo.interstitial.last-presentation.demo"
     private var unavailableReward: (() -> Void)?
     private var rewardGranted = false
     private var rewardAttempt: UUID?
@@ -69,7 +74,8 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         luckyReward = nil
         rewardGranted = false
         unavailableReward = nil
-        guard let placement = commerce.release?.googlePlacement(for: policy.rewardedAdType, packagedAppID: packagedAppID) else {
+        guard let placement = GoogleAdPlacement.resolve(for: policy.rewardedAdType, packagedAppID: packagedAppID,
+                                                         release: commerce.release) else {
             appOpenLog.error("Rewarded ad configuration missing, invalid or inconsistent with the packaged App ID")
             grantUnavailableReward(attemptID, owner: owner, commerce: commerce, quota: quota, kind: kind)
             return
@@ -131,6 +137,61 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
             grantUnavailableReward(attemptID, owner: owner, commerce: commerce, quota: quota, kind: kind)
         }
     }
+
+    func preloadInterstitial(commerce: CommerceStore) {
+        guard let placement = GoogleDemoAds.placement(unitID: GoogleDemoAds.interstitialUnit, packagedAppID: packagedAppID),
+              let owner = commerce.api.session?.userId.value, commerce.hasVerifiedRightsForCurrentAccount,
+              !commerce.premium, canRequestAds, !isPresenting, interstitialPreload == nil else { return }
+        if let preparedInterstitial, preparedInterstitial.owner == owner,
+           preparedInterstitial.expires > .now { return }
+        preparedInterstitial = nil
+        startSDKIfNeeded()
+        interstitialPreload = Task { [weak self] in
+            guard let self else { return }
+            defer { if !Task.isCancelled { self.interstitialPreload = nil } }
+            let expires = ContinuousClock.now.advanced(by: .seconds(60 * 60))
+            guard let ad = try? await InterstitialAd.load(with: placement.unitID, request: Request()),
+                  !Task.isCancelled, self.canRequestAds, commerce.api.session?.userId.value == owner,
+                  commerce.hasVerifiedRightsForCurrentAccount, !commerce.premium else { return }
+            self.preparedInterstitial = (ad, owner, expires)
+        }
+    }
+
+    func presentInterstitialIfReady(commerce: CommerceStore) {
+        guard let owner = commerce.api.session?.userId.value, commerce.hasVerifiedRightsForCurrentAccount,
+              !commerce.premium, !commerce.busy, !commerce.preparingPurchase,
+              UIApplication.shared.applicationState == .active,
+              canRequestAds, !busy, !isPreparingAppOpen, !isPresenting,
+              AppOpenTiming.isDue(intervalMinutes: 2,
+                                  lastShown: UserDefaults.standard.object(forKey: interstitialHistoryKey) as? Date) else { return }
+        guard let inventory = preparedInterstitial, inventory.owner == owner, inventory.expires > .now else {
+            preloadInterstitial(commerce: commerce)
+            return
+        }
+        preparedInterstitial = nil
+        do { try inventory.ad.canPresent(from: nil) }
+        catch { preloadInterstitial(commerce: commerce); return }
+        presentingInterstitial = inventory.ad
+        refillInterstitial = { [weak self] in self?.preloadInterstitial(commerce: commerce) }
+        inventory.ad.fullScreenContentDelegate = self
+        isPresenting = true
+        inventory.ad.present(from: nil)
+    }
+
+    private func discardInterstitialInventory() {
+        interstitialPreload?.cancel()
+        interstitialPreload = nil
+        preparedInterstitial = nil
+    }
+
+    private func finishInterstitial() {
+        presentingInterstitial = nil
+        isPresenting = false
+        let refill = refillInterstitial
+        refillInterstitial = nil
+        refill?()
+    }
+
     func cancelRewardLoading() {
         guard !isPresenting else { return }
         rewardAttempt = nil
@@ -155,6 +216,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
               appID.range(of: #"^ca-app-pub-[0-9]{16}~[0-9]{10}$"#, options: .regularExpression) != nil,
               !consentSetupFinished, consentTask == nil, !isPresentingPrivacyForm, !isPresenting else { return }
         discardAppOpenInventory()
+        discardInterstitialInventory()
         consentTask = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -318,11 +380,12 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
                       commerce.rightsVerified, !commerce.premium else {
                     self.finishAppOpen(attempt: attempt, reason: commerce.premium ? "membership" : "rights-unavailable"); return
                 }
-                guard let placement = commerce.release?.googlePlacement(for: 1, packagedAppID: packagedAppID) else {
+                guard let placement = GoogleAdPlacement.resolve(for: 1, packagedAppID: packagedAppID,
+                                                                 release: commerce.release) else {
                     self.appOpenLog.error("App-open configuration missing, invalid or inconsistent with the packaged App ID")
                     self.finishAppOpen(attempt: attempt, reason: "ad-configuration-unavailable"); return
                 }
-                let interval = commerce.release?.appOpenInterval(packagedAppID: packagedAppID)
+                let interval = commerce.release?.appOpenInterval ?? (GoogleDemoAds.isRequested ? 0 : nil)
                 let key = "glamo.app-open.last-impression.\(commerce.api.configuration.servicePackageName).\(commerce.api.configuration.apiBaseURL?.host ?? "none").\(placement.isOfficialDemo ? "demo" : "production")"
                 self.appOpenLog.info("App-open rights/configuration ready; intervalMinutes=\(interval ?? -1)")
                 if self.appOpenAttempt == attempt { self.appOpenStage = "ad-preparation" }
@@ -403,12 +466,18 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
         appOpenLog.info("App-open impression recorded")
     }
 
+    func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
+        guard let current = presentingInterstitial, ad === current else { return }
+        UserDefaults.standard.set(Date(), forKey: interstitialHistoryKey)
+    }
+
     func privacyOptions() async {
         guard canOpenPrivacyOptions, UIApplication.shared.applicationState == .active else { return }
         error = nil
         isPresentingPrivacyForm = true
         returnedFromBackground = false
         discardAppOpenInventory()
+        discardInterstitialInventory()
         defer {
             privacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
             isPresentingPrivacyForm = false
@@ -423,6 +492,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
             if let placement { Task { _ = try? await self.preloadAppOpen(for: placement) } }
             return
         }
+        if let current = presentingInterstitial, ad === current { finishInterstitial(); return }
         guard let current = rewarded, ad === current else { return }
         rewarded = nil
         unavailableReward = nil
@@ -432,6 +502,7 @@ final class RewardedAds: NSObject, ObservableObject, FullScreenContentDelegate {
     }
     func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         if let current = appOpenAd, ad === current { finishAppOpen(); return }
+        if let current = presentingInterstitial, ad === current { finishInterstitial(); return }
         guard let current = rewarded, ad === current else { return }
         rewarded = nil
         isPresenting = false

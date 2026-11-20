@@ -46,6 +46,14 @@ private final class FeedStore: ObservableObject {
         return SearchPlaybackContinuation(query: query, feedID: feedID, cursor: cursor, hasMore: hasMore)
     }
 
+    private var serverQuery: String {
+        let input = requestQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = WebAddress.media(input) else { return requestQuery }
+        return url.pathComponents.last { component in
+            component != "/" && component != "." && component != ".." && component.nilIfBlank != nil
+        } ?? requestQuery
+    }
+
     func configureSearch(_ continuation: SearchPlaybackContinuation) {
         query = continuation.query
         requestQuery = continuation.query
@@ -167,7 +175,7 @@ private final class FeedStore: ObservableObject {
                     hasMore = true
                 }
                 let previousCursor = cursor
-                let response = try await api.feed(query: requestQuery, feedID: feedID, cursor: cursor)
+                let response = try await api.feed(query: serverQuery, feedID: feedID, cursor: cursor)
                 try Task.checkCancellation()
                 guard current == generation else { return }
                 let additions = response.list.compactMap(\.clip).filter { roundVideoIDs.insert($0.id).inserted }
@@ -200,6 +208,7 @@ private final class FeedStore: ObservableObject {
 
 struct VideoSearchResultsView: View {
     let search: String
+    let clearSearch: () -> Void
     var onSearchResult: (String, LessonClip) -> Void = { _, _ in }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
@@ -216,37 +225,40 @@ struct VideoSearchResultsView: View {
                 header
                     .padding(.horizontal, DriveStyle.pageInset).padding(.vertical, 8)
                     .frame(maxWidth: 680).frame(maxWidth: .infinity)
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 14) {
-                        if api.session == nil {
-                            ConnectionPanel()
-                        } else if results.entries.isEmpty, results.resolvedFolder == nil {
-                            emptyResults
-                        } else {
-                            if let folder = results.resolvedFolder {
-                                DriveCollectionRows(collections: [folder], fileListStyle: true)
-                            }
-                            if !results.entries.isEmpty {
-                                DriveRemoteVideoRows(clips: results.entries.map(\.clip),
-                                                     searchContinuation: results.playbackContinuation, fileListStyle: true)
-                            }
-                            if let error = results.error {
-                                ErrorNote(message: error)
-                                ActionButton(title: "Try again", primary: false) { loadMore() }
-                            } else if results.loading {
-                                AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
-                            } else if results.hasMore {
-                                ActionButton(title: "Load more", primary: false) { loadMore() }
+                GeometryReader { contentSpace in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 14) {
+                            if api.session == nil {
+                                ConnectionPanel()
+                            } else if results.entries.isEmpty, results.resolvedFolder == nil {
+                                emptyResults(in: contentSpace.size)
+                                    .frame(minHeight: max(0, contentSpace.size.height - 36))
+                            } else {
+                                if let folder = results.resolvedFolder {
+                                    DriveCollectionRows(collections: [folder], fileListStyle: true)
+                                }
+                                if !results.entries.isEmpty {
+                                    DriveRemoteVideoRows(clips: results.entries.map(\.clip),
+                                                         searchContinuation: results.playbackContinuation, fileListStyle: true)
+                                }
+                                if let error = results.error {
+                                    ErrorNote(message: error)
+                                    ActionButton(title: "Try again", primary: false) { loadMore() }
+                                } else if results.loading {
+                                    AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
+                                } else if results.hasMore {
+                                    ActionButton(title: "Load more", primary: false) { loadMore() }
+                                }
                             }
                         }
+                        .padding(.horizontal, DriveStyle.pageInset).padding(.top, 12).padding(.bottom, 24)
+                        .frame(maxWidth: 680).frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, DriveStyle.pageInset).padding(.top, 12).padding(.bottom, 24)
-                    .frame(maxWidth: 680).frame(maxWidth: .infinity)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .refreshable {
-                    guard api.session != nil else { return }
-                    await results.loadResults(api: api, search: search, refresh: true)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .refreshable {
+                        guard api.session != nil else { return }
+                        await results.loadResults(api: api, search: search, refresh: true)
+                    }
                 }
             }
             .padding(drivePaneMargins(in: container, includesHorizontalFold: true))
@@ -273,21 +285,25 @@ struct VideoSearchResultsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 10) {
-            IconButton(symbol: .back, label: "Back", tint: DriveStyle.ink, glass: true) { dismiss() }
-            VStack(alignment: .leading, spacing: 5) {
-                if !results.entries.isEmpty || results.resolvedFolder != nil {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) { resultTitle.fixedSize(); Spacer(minLength: 0); resultCount.fixedSize() }
-                        VStack(alignment: .leading, spacing: 4) { resultTitle; resultCount }
-                    }
-                } else {
-                    resultTitle
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    Glyph(symbol: .search, size: 16, tint: DriveStyle.ink).accessibilityHidden(true)
+                    Text(verbatim: search).driveFont(15, relativeTo: .subheadline)
+                        .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Text(verbatim: search).font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary)
-                    .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+                .padding(.horizontal, 14).padding(.vertical, 8).frame(minHeight: 46)
+                .glamoGlass(in: Capsule(), tint: .white)
+                .accessibilityElement(children: .combine)
+                IconButton(symbol: .close, label: "Close", tint: DriveStyle.ink, glass: true) { dismiss() }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            if !results.entries.isEmpty || results.resolvedFolder != nil {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { resultTitle.fixedSize(); Spacer(minLength: 0); resultCount.fixedSize() }
+                    VStack(alignment: .leading, spacing: 4) { resultTitle; resultCount }
+                }
+            }
         }
         .foregroundStyle(DriveStyle.ink)
     }
@@ -302,17 +318,28 @@ struct VideoSearchResultsView: View {
             .font(.glam(.caption)).foregroundStyle(GlamoStyle.secondary).monospacedDigit()
     }
 
-    @ViewBuilder private var emptyResults: some View {
+    @ViewBuilder private func emptyResults(in space: CGSize) -> some View {
+        let artworkWidth = min(space.width * 0.56, space.height * 0.40, 240)
         if loadedOwner != api.session?.userId.value || results.loading {
             AccountLoadingIndicator(title: "Loading videos…").frame(maxWidth: .infinity)
         } else if let error = results.error {
-            MessagePanel(title: "Couldn’t load videos", message: error, actionTitle: "Try again", action: refresh)
+            DriveWorkspaceEmpty(artwork: "DriveConnectionArtwork", artworkWidth: artworkWidth,
+                                title: "Couldn’t load files", message: error) {
+                Button(action: refresh) { LocalizedText("Try again") }
+                    .buttonStyle(DrivePrimaryButtonStyle(fillsWidth: false, radius: 8))
+            }
         } else {
-            GlamoEmptyState(title: "No match found", message: "Check the URL with the person who shared it.", art: "DriveShelf") {
-                ActionButton(title: "Try again", primary: false, action: refresh)
-                ActionButton(title: "Search the web") {
+            DriveWorkspaceEmpty(artwork: "DriveSearchEmptyArtwork", artworkWidth: artworkWidth,
+                                title: "No results", message: "Try a different search.") {
+                Button {
+                    clearSearch()
+                    dismiss()
+                } label: { LocalizedText("Clear search") }
+                    .buttonStyle(DriveEmptyActionStyle())
+                Button {
                     if let url = BrowserLessonSearch(query: search).url { browserSearch = PolicyDocument(title: "Web search", url: url) }
-                }
+                } label: { LocalizedText("Search the web") }
+                    .buttonStyle(DriveEmptyActionStyle())
             }
         }
     }
@@ -338,6 +365,7 @@ struct LinkedVideoView: View {
     var collectionHasMore = false
     var initialSearchPage: SearchPlaybackContinuation? = nil
     var onSearchResult: (String, LessonClip) -> Void = { _, _ in }
+    var onPlaybackStarted: () -> Void = {}
     @State private var visible = false
     @State private var loadedFeedOwner: String?
     @State private var watchOptionsPresented = false
@@ -370,11 +398,21 @@ struct LinkedVideoView: View {
                                         if let playback = players.controllers[entry.id] {
                                             ClipPage(clip: clip, active: activeID == entry.id,
                                                      controlInsets: container.safeAreaInsets, playback: playback,
-                                                     didStartPlaying: { players.prepareNext(after: entry.id) },
+                                                     didStartPlaying: {
+                                                         players.prepareNext(after: entry.id)
+                                                         onPlaybackStarted()
+                                                     },
                                                      didStopPlaying: { if activeID == entry.id { players.suspend() } },
                                                      showWatchOptions: { watchOptionsPresented = true },
                                                      purchasePresentation: { nestedPresentationActive = $0 },
-                                                     onSwipeExit: exitPlayer)
+                                                     onSwipeExit: exitPlayer,
+                                                     playNext: activeID == entry.id ? nextClipAction(after: entry.id) : nil,
+                                                     queue: activeID == entry.id ? feed.entries : [],
+                                                     queueEntryID: entry.id,
+                                                     chooseQueueEntry: { chosen in
+                                                         guard activeID == entry.id else { return }
+                                                         activeID = chosen
+                                                     })
                                         } else {
                                             PlayerPoster(url: clip.coverURL)
                                                 .overlay(alignment: .topLeading) {
@@ -385,7 +423,8 @@ struct LinkedVideoView: View {
                                         }
                                     }.frame(width: geometry.size.width, height: geometry.size.height).clipped().id(entry.id)
                                 }
-                                if !feed.entries.isEmpty, initialClips == nil || initialSearchPage != nil || (initialCollection != nil && feed.hasMore) {
+                                if !feed.entries.isEmpty,
+                                   initialClips == nil || (feed.hasMore && (initialSearchPage != nil || initialCollection != nil)) {
                                     VStack(spacing: 16) {
                                         HStack {
                                             PlayerExitButton(action: exitPlayer)
@@ -447,9 +486,6 @@ struct LinkedVideoView: View {
                       id == morePageID || feed.isNearEnd(id) else { return }
                 Task { guard visible else { return }; await loadMore() }
             }
-            .onChange(of: feed.hasMore) { _, hasMore in
-                if initialCollection != nil, !hasMore, activeID == morePageID { activeID = feed.entries.last?.id }
-            }
             .onChange(of: feed.entries) { previous, entries in
                 guard visible else { return }
                 if activeID == morePageID, entries.count > previous.count {
@@ -459,6 +495,11 @@ struct LinkedVideoView: View {
                 if initialClips == nil, let first = entries.first?.clip, recordedQuery != feed.query {
                     recordedQuery = feed.query
                     onSearchResult(feed.query, first)
+                }
+            }
+            .onChange(of: feed.hasMore) { _, hasMore in
+                if initialCollection != nil || initialSearchPage != nil, !hasMore, activeID == morePageID {
+                    activeID = feed.entries.last?.id
                 }
             }
             .onDisappear {
@@ -488,16 +529,18 @@ struct LinkedVideoView: View {
                 .frame(maxWidth: .infinity)
         } else if let request = feed.emptySearch {
             GlamoEmptyState(title: "No match found",
-                            message: "Check the URL with the person who shared it.", art: "DriveShelf") {
+                            message: "Check the URL with the person who shared it.", art: "DriveSearchEmptyArtwork") {
                 ActionButton(title: "Search the web") { openBrowserSearch(request) }
             }
         } else if let error = feed.error {
-            MessagePanel(title: "Couldn’t load videos", message: error, actionTitle: "Try again") {
-                Task { await feed.load(api: api, search: search) }
+            DriveWorkspaceEmpty(artwork: "DriveConnectionArtwork", artworkWidth: 220,
+                                title: "Couldn’t load files", message: error) {
+                Button { Task { await feed.load(api: api, search: search) } } label: { LocalizedText("Try again") }
+                    .buttonStyle(DrivePrimaryButtonStyle(fillsWidth: false, radius: 8))
             }
         } else {
             GlamoEmptyState(title: "No videos available",
-                            message: "Paste a shared video URL on the Files page.", art: "DriveShelf") {
+                            message: "Paste a shared video URL on the Files page.", art: "DriveLinkEmptyArtwork") {
                 ActionButton(title: "Try again") { Task { await feed.load(api: api, search: search) } }
             }
         }
@@ -525,9 +568,19 @@ struct LinkedVideoView: View {
         players.releaseAll()
         dismiss()
     }
+    private func nextClipAction(after id: String) -> (() -> Void)? {
+        guard let index = feed.entries.firstIndex(where: { $0.id == id }),
+              feed.entries.indices.contains(index + 1) else { return nil }
+        let nextID = feed.entries[index + 1].id
+        return {
+            // Use the same selection and quota admission as a vertical swipe.
+            guard activeID == id else { return }
+            activeID = nextID
+        }
+    }
     private func loadMore() async {
         if let initialCollection { await feed.loadCollection(initialCollection, api: api) }
-        else { await feed.load(api: api) }
+        else { await feed.load(api: api, allowsNewRounds: initialSearchPage == nil) }
     }
 }
 
@@ -669,7 +722,7 @@ private struct PlayerSwipeHint: View {
 }
 
 private struct ClipPage: View {
-    private enum OptionsPage: Equatable { case actions, speed, quality }
+    private enum OptionsPage: Equatable { case actions, speed, quality, queue }
     private enum FocusedAction: Hashable { case more, quality }
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var commerce: CommerceStore
@@ -689,14 +742,20 @@ private struct ClipPage: View {
     let showWatchOptions: () -> Void
     var purchasePresentation: (Bool) -> Void = { _ in }
     var onSwipeExit: () -> Void = {}
+    var playNext: (() -> Void)?
+    let queue: [PlaybackQueueEntry]
+    let queueEntryID: String
+    let chooseQueueEntry: (String) -> Void
     @State private var visible = false
     @State private var firstFrameReady = false
+    @State private var hasFinished = false
     @State private var accessChecked = false
     @State private var resumeAfterSheet = false
     @State private var resumeAfterInterruption = false
     @State private var options = false
     @State private var optionsPage = OptionsPage.actions
-    @State private var fitsVideo = false
+    @State private var footerHeight: CGFloat = 88
+    @State private var fitsVideo: Bool? = nil
     @State private var preferredResolution = CGSize.zero
     @State private var editor = false
     @State private var fileManagement = false
@@ -713,9 +772,11 @@ private struct ClipPage: View {
     var body: some View {
         ZStack {
             Color.black
-            VideoSurface(player: playback.player, onReadyForDisplay: { firstFrameReady = $0 },
-                         preferredGravity: fitsVideo ? .resizeAspect : .resizeAspectFill)
-                .clipped().allowsHitTesting(false)
+            GeometryReader { picture in
+                VideoSurface(player: playback.player, onReadyForDisplay: { firstFrameReady = $0 },
+                             preferredGravity: (fitsVideo ?? (picture.size.width > picture.size.height)) ? .resizeAspect : .resizeAspectFill)
+            }
+            .clipped().allowsHitTesting(false)
             if !firstFrameReady {
                 PlayerPoster(url: clip.coverURL)
                     .allowsHitTesting(false)
@@ -743,11 +804,17 @@ private struct ClipPage: View {
                 .allowsHitTesting(false).accessibilityHidden(true)
             playerControls
         }.foregroundStyle(.white).clipped()
-            .onAppear { visible = true; if active { activate() } }
+            .onAppear {
+                let completion = $hasFinished
+                playback.onEnd = { completion.wrappedValue = true }
+                visible = true
+                if active { activate() }
+            }
             .onChange(of: active) { _, active in
                 resumeAfterInterruption = false
                 if active { activate() } else {
                     checkpoint()
+                    hasFinished = false
                     favoriteError = nil
                     resumeAfterSheet = false
                     options = false
@@ -761,6 +828,12 @@ private struct ClipPage: View {
                 }
                 if playing, active, recorded { didStartPlaying() }
                 if !playing, active { checkpoint(); didStopPlaying() }
+            }
+            .onChange(of: playback.intendsPlayback) { _, intendsPlayback in
+                if intendsPlayback { hasFinished = false }
+            }
+            .onChange(of: scrubbing) { _, scrubbing in
+                if scrubbing { hasFinished = false }
             }
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
                 guard active, visible, playback.isPlaying, library.requiresWatchAllowance(clip) else { return }
@@ -783,7 +856,14 @@ private struct ClipPage: View {
                     recorded = false
                 }
             }
-            .onDisappear { checkpoint(); visible = false; resumeAfterInterruption = false; playback.pause() }
+            .onDisappear {
+                checkpoint()
+                playback.onEnd = nil
+                hasFinished = false
+                visible = false
+                resumeAfterInterruption = false
+                playback.pause()
+            }
             .onChange(of: pagingGate) { _, presented in
                 if presented { playback.pause() } else if active { activate() }
             }
@@ -805,9 +885,12 @@ private struct ClipPage: View {
             let insets = resolvedControlInsets(in: viewport)
             let width = max(0, viewport.size.width - insets.leading - insets.trailing)
             let height = max(0, viewport.size.height - insets.top - insets.bottom)
+            let landscape = width > height
             let compact = height < 400 || width < 320 || typeSize.isAccessibilitySize
             let scrollControls = height < 220 || (typeSize >= .xxxLarge && height < 360)
                 || (typeSize.isAccessibilitySize && height < 520)
+            let footer = playerFooter(fitsByDefault: viewport.size.width > viewport.size.height)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { footerHeight = $0 }
 
             VStack(spacing: compact ? 4 : 10) {
                 playerHeader
@@ -821,7 +904,7 @@ private struct ClipPage: View {
                             ScrollView {
                                 VStack(spacing: 16) {
                                     playerCenter(compact: true).padding(.vertical, 12)
-                                    playerFooter
+                                    footer
                                 }
                             }
                             .scrollBounceBehavior(.basedOnSize)
@@ -836,19 +919,21 @@ private struct ClipPage: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .overlay(alignment: .bottom) {
                                         PlayerSwipeHint(eligible: active && visible && firstFrameReady &&
-                                                        playback.error == nil && !playback.isLoading &&
+                                                        playback.error == nil && !playback.isLoading && !hasFinished &&
                                                         !pagingGate && !options && !editor && !ads.isPresenting)
                                             .padding(.bottom, 8)
                                     }
                                 }
-                                playerFooter
+                                footer
                             }
                         }
                     }
                     .disabled(options)
                     .accessibilityHidden(options)
 
-                    if options { playerOptions }
+                    if options {
+                        playerOptions(landscape: landscape, bottomClearance: scrollControls ? 0 : footerHeight)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -894,13 +979,19 @@ private struct ClipPage: View {
                     playerNotice(title: quota.canRequestReward(for: .watch, premium: commerce.premium)
                                  ? "Daily viewing limit reached" : "Playback unavailable",
                                  actionTitle: "Get more views", action: showWatchOptions)
+                } else if let error = playback.error {
+                    playerNotice(title: "Couldn’t play this video", message: error, actionTitle: "Retry") {
+                        activate(reload: true)
+                    }
+                } else if allowed, hasFinished, !playback.isLoading, !playback.intendsPlayback {
+                    DrivePlaybackEndNotice(playNext: playNext) {
+                        guard canControlPlayback else { return }
+                        playback.seek(0)
+                        playback.play()
+                    }
                 } else {
-                    if let error = playback.error {
-                        playerNotice(title: "Couldn’t play this video", message: error, actionTitle: "Retry") {
-                            activate(reload: true)
-                        }
-                    } else if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
-                        PlayerLoadingFeedback(buffering: firstFrameReady).allowsHitTesting(false)
+                    if allowed, playback.isLoading || (!firstFrameReady && playback.intendsPlayback) {
+                        DrivePlaybackActivityNotice(title: currentClip.title, buffering: firstFrameReady)
                     }
                     DrivePlaybackControls(playback: playback, overVideo: true, compact: compact)
                         .disabled(!canControlPlayback || !firstFrameReady)
@@ -910,7 +1001,7 @@ private struct ClipPage: View {
         }
     }
 
-    private var playerFooter: some View {
+    private func playerFooter(fitsByDefault: Bool) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
@@ -921,7 +1012,7 @@ private struct ClipPage: View {
                 .accessibilityLabel("Playback options")
                 .accessibilityFocused($focusedAction, equals: .quality)
                 .accessibilityValue(Text(verbatim: driveRateText(playback.speed, locale: locale)))
-                fitButton
+                fitButton(fitsByDefault: fitsByDefault)
             }
             PlayerProgressControl(playback: playback, timeline: playback.timeline,
                                   enabled: allowed && firstFrameReady,
@@ -929,9 +1020,9 @@ private struct ClipPage: View {
                                   scrubbing: $scrubbing, tint: DriveStyle.accent,
                                   showsInlineTimes: true, overVideo: true)
                 .padding(.horizontal, 12)
-                .modifier(DriveVideoGlass(shape: RoundedRectangle(cornerRadius: 22)))
+                .modifier(DriveVideoGlass(shape: Capsule().inset(by: 5), shade: 0.32))
         }
-        .frame(maxWidth: 840).frame(maxWidth: .infinity)
+        .frame(maxWidth: 1000).frame(maxWidth: .infinity)
     }
 
     private var saveButton: some View {
@@ -954,9 +1045,9 @@ private struct ClipPage: View {
 
     private var playbackSettings: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { speedButton; qualityButton; fitButton }
+            HStack(spacing: 6) { speedButton; qualityButton; fitButton() }
             VStack(alignment: .trailing, spacing: 4) {
-                HStack(spacing: 6) { speedButton; fitButton }
+                HStack(spacing: 6) { speedButton; fitButton() }
                 qualityButton
             }
         }
@@ -984,47 +1075,80 @@ private struct ClipPage: View {
         .accessibilityIdentifier("player.quality")
     }
 
-    private var fitButton: some View {
-        Button { fitsVideo.toggle() } label: {
+    private func fitButton(fitsByDefault: Bool = false) -> some View {
+        let fitting = fitsVideo ?? fitsByDefault
+        return Button { fitsVideo = !fitting } label: {
             Glyph(symbol: .driveExpand, size: 17, tint: .white)
         }
         .buttonStyle(DriveVideoButtonStyle())
-        .accessibilityLabel(LocalizedStringKey(fitsVideo ? "Fill screen" : "Fit video"))
-        .accessibilityAddTraits(fitsVideo ? .isSelected : [])
+        .accessibilityLabel(LocalizedStringKey(fitting ? "Fill screen" : "Fit video"))
+        .accessibilityAddTraits(fitting ? .isSelected : [])
     }
 
     @ViewBuilder
-    private var playerOptions: some View {
+    private func playerOptions(landscape: Bool, bottomClearance: CGFloat) -> some View {
         switch optionsPage {
         case .speed:
-            DriveVideoSpeedOverlay(playback: playback, close: closeOptions)
+            DriveVideoSpeedOverlay(playback: playback, landscape: landscape,
+                                   bottomClearance: bottomClearance, close: closeOptions)
         case .quality:
-            LinkedVideoQualityPicker(playback: playback, selected: $preferredResolution, close: closeOptions)
+            LinkedVideoQualityPicker(playback: playback, selected: $preferredResolution, landscape: landscape,
+                                     bottomClearance: bottomClearance, close: closeOptions)
+        case .queue:
+            LinkedVideoQueue(entries: queue, currentID: queueEntryID, currentDuration: playback.timeline.duration,
+                             close: closeOptions, select: selectQueueEntry)
         case .actions:
-            DriveVideoBottomOverlay(title: "Playback options", columnWidth: 164, close: closeOptions) { columns in
-                ViewThatFits(in: .vertical) {
-                    optionItems(columns: columns).fixedSize(horizontal: false, vertical: true)
-                    ScrollView { optionItems(columns: columns) }.scrollBounceBehavior(.basedOnSize)
-                }
+            DriveVideoBottomOverlay(title: "Playback options", landscape: landscape,
+                                    bottomClearance: bottomClearance, close: closeOptions) {
+                optionItems
             }
         }
     }
 
-    private func optionItems(columns: [GridItem]) -> some View {
-        LazyVGrid(columns: columns, spacing: 4) {
-            optionButton("Playback speed") { openOptions(.speed) }
-            optionButton("Resolution") { openOptions(.quality) }
+    private var optionItems: some View {
+        let resolution = playback.player.currentItem?.preferredMaximumResolution ?? .zero
+        let height = Double(min(resolution.width, resolution.height))
+        let heightFormat = FloatingPointFormatStyle<Double>(locale: locale).precision(.fractionLength(0))
+        let quality = height.isFinite && height > 0
+            ? heightFormat.format(height) + "p"
+            : nil
+        return VStack(spacing: 0) {
+            optionButton("Playback speed", symbol: .driveSettings, color: Color(red: 0.0, green: 0.52, blue: 0.26),
+                         value: driveRateText(playback.speed, locale: locale)) { openOptions(.speed) }
+            Divider().overlay(.white.opacity(0.18)).padding(.leading, 42)
+            optionButton("Resolution", symbol: .feed, color: Color(red: 0.82, green: 0.19, blue: 0.25),
+                         value: quality) { openOptions(.quality) }
+            if queue.count > 1 {
+                Divider().overlay(.white.opacity(0.18)).padding(.leading, 42)
+                optionButton("Play queue", symbol: .driveList, color: DriveStyle.accent) { openOptions(.queue) }
+            }
         }
     }
 
-    private func optionButton(_ title: String, action: @escaping () -> Void) -> some View {
+    private func optionButton(_ title: String, symbol: GlamoGlyph, color: Color, value: String? = nil,
+                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            LocalizedText(title).font(.glam(.subheadline, weight: .medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .padding(.horizontal, 12).padding(.vertical, 4)
-                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-                .contentShape(Rectangle())
+            HStack(spacing: 8) {
+                Glyph(symbol: symbol, size: 15, tint: .white)
+                    .frame(width: 28, height: 28)
+                    .background(color, in: RoundedRectangle(cornerRadius: 8))
+                VStack(alignment: .leading, spacing: 2) {
+                    LocalizedText(title).font(.glam(.subheadline, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if typeSize.isAccessibilitySize, let value {
+                        Text(verbatim: value).font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if !typeSize.isAccessibilitySize, let value {
+                    Text(verbatim: value).font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
+                        .fixedSize()
+                }
+                Glyph(symbol: .back, size: 10, tint: .white.opacity(0.82)).rotationEffect(.degrees(180))
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(PressStyle())
     }
@@ -1083,6 +1207,15 @@ private struct ClipPage: View {
         options = false
         focusedAction = .quality
         resumeAfterControls()
+    }
+
+    private func selectQueueEntry(_ id: String) {
+        guard active, queue.contains(where: { $0.id == id }) else { return }
+        guard id != queueEntryID else { closeOptions(); return }
+        // The paging selection handles allowance checks and starts the selected clip.
+        options = false
+        resumeAfterSheet = false
+        chooseQueueEntry(id)
     }
     private func resolvedControlInsets(in viewport: GeometryProxy) -> EdgeInsets {
         guard #available(iOS 27.1, *) else { return controlInsets }
@@ -1211,6 +1344,86 @@ private struct ClipPage: View {
     }
 }
 
+private struct LinkedVideoQueue: View {
+    let entries: [PlaybackQueueEntry]
+    let currentID: String
+    let currentDuration: Double
+    let close: () -> Void
+    let select: (String) -> Void
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        ScrollViewReader { scroll in
+            DriveVideoBottomOverlay(title: "Play queue", landscape: false, centered: true, close: close) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let index = entries.firstIndex(where: { $0.id == currentID }) {
+                        LocalizedText("File %@ of %@", (index + 1).formatted(.number.locale(locale)),
+                                      entries.count.formatted(.number.locale(locale)))
+                            .font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
+                        Button { scroll.scrollTo(currentID, anchor: .center) } label: {
+                            LocalizedText("Locate current file")
+                        }.buttonStyle(CompactActionStyle())
+                    }
+                    LazyVStack(spacing: 4) {
+                        ForEach(entries) { entry in
+                            row(entry).id(entry.id)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func row(_ entry: PlaybackQueueEntry) -> some View {
+        let current = entry.id == currentID
+        let clip = library.favorites.first(where: { $0.id == entry.clip.id }) ?? entry.clip
+        let duration = [current ? currentDuration : nil, library.savedVideo(clip.id)?.duration, clip.duration,
+                        library.remotePlayback.first(where: { $0.id == clip.id })?.viewing.duration]
+            .compactMap { $0 }.first { $0.isFinite && $0 > 0 }
+        return Button { select(entry.id) } label: {
+            HStack(spacing: 10) {
+                AsyncImage(url: clip.coverURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill().frame(width: 48, height: 34)
+                    } else {
+                        Glyph(symbol: .play, size: 13, tint: DriveStyle.secondary)
+                            .frame(width: 48, height: 34)
+                    }
+                }
+                .background(GlamoStyle.paper).clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(verbatim: clip.title)
+                        .font(.glam(.subheadline, weight: current ? .semibold : .medium))
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 2).truncationMode(.middle)
+                    if let duration {
+                        LocalizedText("Duration · %@", durationLabel(duration)).monospacedDigit()
+                            .font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
+                    }
+                    if current {
+                        LocalizedText("Current file").font(.glam(.caption, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.50, green: 0.80, blue: 1))
+                    }
+                }
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .background(current ? Color.white.opacity(0.15) : .clear,
+                        in: RoundedRectangle(cornerRadius: 12))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityAddTraits(current ? .isSelected : [])
+    }
+}
+
 private struct LinkedVideoQualityPicker: View {
     private struct Resolution: Identifiable {
         let size: CGSize
@@ -1220,32 +1433,30 @@ private struct LinkedVideoQualityPicker: View {
 
     @ObservedObject var playback: PlaybackController
     @Binding var selected: CGSize
+    let landscape: Bool
+    let bottomClearance: CGFloat
     let close: () -> Void
     @State private var resolutions: [Resolution] = []
     @State private var checking = true
     @State private var loadError: String?
     @State private var refreshID = UUID()
-    @ScaledMetric(relativeTo: .subheadline) private var columnWidth: CGFloat = 144
-
     var body: some View {
-        DriveVideoBottomOverlay(title: "Resolution", columnWidth: columnWidth, close: close) { columns in
-            ViewThatFits(in: .vertical) {
-                choices(columns: columns).fixedSize(horizontal: false, vertical: true)
-                ScrollView { choices(columns: columns) }.scrollBounceBehavior(.basedOnSize)
-            }
+        DriveVideoBottomOverlay(title: "Resolution", landscape: landscape,
+                                bottomClearance: bottomClearance, close: close) {
+            choices
         }
         .task(id: refreshID) { await inspectVideo() }
     }
 
     @ViewBuilder
-    private func choices(columns: [GridItem]) -> some View {
+    private var choices: some View {
         if checking {
             LocalizedText("Checking video quality…")
                 .font(.glam(.subheadline)).padding(12)
         } else if let loadError {
             VStack(alignment: .leading, spacing: 8) {
                 LocalizedText("Couldn’t load video quality.").font(.glam(.subheadline, weight: .semibold))
-                Text(verbatim: loadError).font(.glam(.caption)).foregroundStyle(DriveStyle.secondary)
+                Text(verbatim: loadError).font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
                 Button { refreshID = UUID() } label: {
                     LocalizedText("Retry").font(.glam(.subheadline, weight: .semibold))
                         .padding(.horizontal, 14).padding(.vertical, 8)
@@ -1254,7 +1465,7 @@ private struct LinkedVideoQualityPicker: View {
             .fixedSize(horizontal: false, vertical: true).padding(8)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                LazyVGrid(columns: columns, spacing: 4) {
+                VStack(spacing: 2) {
                     choice(resolutions.count > 1 ? "Auto" : "Original", size: .zero)
                     if resolutions.count > 1 {
                         ForEach(resolutions) { resolution in
@@ -1265,7 +1476,7 @@ private struct LinkedVideoQualityPicker: View {
                 LocalizedText(resolutions.count > 1
                               ? "Supported streams adjust quality to your connection."
                               : "This video plays at its original resolution.")
-                    .font(.glam(.caption)).foregroundStyle(DriveStyle.secondary)
+                    .font(.glam(.caption)).foregroundStyle(.white.opacity(0.82))
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 10).padding(.bottom, 4)
             }
@@ -1281,20 +1492,19 @@ private struct LinkedVideoQualityPicker: View {
             selected = size
             close()
         } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                if let value { LocalizedText(title, value) }
-                else { LocalizedText(title) }
-                if isSelected {
-                    LocalizedText("Selected").font(.glam(.caption, weight: .semibold))
+            HStack(spacing: 12) {
+                Group {
+                    if let value { LocalizedText(title, value) }
+                    else { LocalizedText(title) }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                DriveVideoSelectionIndicator(selected: isSelected)
             }
             .font(.glam(.subheadline, weight: isSelected ? .semibold : .medium))
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12).padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .foregroundStyle(isSelected ? DriveStyle.accent : DriveStyle.ink)
-            .background(isSelected ? DriveStyle.accent.opacity(0.06) : .clear,
-                        in: RoundedRectangle(cornerRadius: 10))
+            .foregroundStyle(isSelected ? Color(red: 0.50, green: 0.80, blue: 1) : .white)
             .contentShape(Rectangle())
         }
         .buttonStyle(PressStyle())
@@ -1334,13 +1544,11 @@ private struct LinkedVideoQualityPicker: View {
 }
 
 private struct PlayerExitButton: View {
-    @Environment(\.layoutDirection) private var layoutDirection
     var overVideo = true
     let action: () -> Void
     var body: some View {
         let button = Button(action: action) {
             Glyph(symbol: .back, size: 17, tint: overVideo ? .white : GlamoStyle.ink)
-                .rotationEffect(.degrees(layoutDirection == .rightToLeft ? 180 : 0))
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
@@ -1502,33 +1710,6 @@ private struct PlayerPoster: View {
                 }
             }
         }.clipped().allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
-
-private struct PlayerLoadingFeedback: View {
-    let buffering: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var phase
-    @State private var revealed = false
-    var body: some View {
-        VStack(spacing: 10) {
-            Image("GlamoLoadingMark").renderingMode(.template).resizable().scaledToFit()
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 5)
-                .phaseAnimator([false, true]) { content, dimmed in
-                    content.opacity(reduceMotion || phase != .active ? 1 : (dimmed ? 0.3 : 1))
-                } animation: { _ in
-                    reduceMotion || phase != .active ? nil : .easeInOut(duration: 0.6)
-                }.accessibilityHidden(true)
-            LocalizedText(buffering ? "Buffering…" : "Loading…")
-                .font(.glam(.caption)).foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
-        }.opacity(revealed ? 1 : 0).accessibilityHidden(!revealed)
-            .task {
-                do { try await Task.sleep(for: .milliseconds(250)); try Task.checkCancellation(); revealed = true }
-                catch { }
-            }
-            .onDisappear { revealed = false }
     }
 }
 

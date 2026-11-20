@@ -65,6 +65,7 @@ struct LessonClip: Codable, Identifiable, Hashable {
     let duration: Double?
     var isDirect: Bool? = nil
     var originalURL: URL? = nil
+    var byteCount: Int64? = nil
 }
 struct LessonLinkVisit: Codable, Identifiable {
     let id: UUID
@@ -214,30 +215,37 @@ struct GoogleAdPlacement {
     let appID: String
     let unitID: String
     let isOfficialDemo: Bool
+
+    static func resolve(for type: Int, packagedAppID: String?, release: ReleaseConfiguration?) -> GoogleAdPlacement? {
+        if GoogleDemoAds.isRequested {
+            guard let unitID = GoogleDemoAds.unit(for: type) else { return nil }
+            return GoogleDemoAds.placement(unitID: unitID, packagedAppID: packagedAppID)
+        }
+        return release?.googlePlacement(for: type, packagedAppID: packagedAppID)
+    }
 }
 enum GoogleDemoAds {
     static let appID = "ca-app-pub-3940256099942544~1458002511"
     static let appOpenUnit = "ca-app-pub-3940256099942544/5575463023"
     static let rewardedUnit = "ca-app-pub-3940256099942544/1712485313"
+    static let interstitialUnit = "ca-app-pub-3940256099942544/4411468910"
     // Build-configured test mode (GLAMO_ADS_TEST_MODE). Only honoured together with
     // the exact Google demo App ID packaged in GADApplicationIdentifier.
-    static func isEnabled(packagedAppID: String?) -> Bool {
+    static var isRequested: Bool {
         (Bundle.main.object(forInfoDictionaryKey: "GlamoAdsTestMode") as? String) == "YES"
-            && packagedAppID == appID
+    }
+    static func placement(unitID: String, packagedAppID: String?) -> GoogleAdPlacement? {
+        guard isRequested, packagedAppID == appID else { return nil }
+        return GoogleAdPlacement(appID: appID, unitID: unitID, isOfficialDemo: true)
     }
     static func unit(for type: Int) -> String? {
         switch type { case 1: appOpenUnit; case 5: rewardedUnit; default: nil }
     }
 }
-extension ReleaseConfiguration {
+private extension ReleaseConfiguration {
     // Production: App ID comes from getV2 and must agree with the SDK's packaged identity.
     // Never substitute a sample ad unit for a missing or invalid server value.
-    // Test builds: both ad types request Google's official demo units; getV2 is still requested.
     func googlePlacement(for type: Int, packagedAppID: String?) -> GoogleAdPlacement? {
-        if GoogleDemoAds.isEnabled(packagedAppID: packagedAppID) {
-            guard let unit = GoogleDemoAds.unit(for: type) else { return nil }
-            return GoogleAdPlacement(appID: GoogleDemoAds.appID, unitID: unit, isOfficialDemo: true)
-        }
         let matches = (adList ?? []).filter {
             $0.adType == type && $0.advertiser?.lowercased() == "google"
         }
@@ -253,15 +261,10 @@ extension ReleaseConfiguration {
         if demoApp && !demoUnit { return nil }
         return GoogleAdPlacement(appID: appID, unitID: unitID, isOfficialDemo: demoApp && demoUnit)
     }
-    // App-open interval in minutes. Test mode uses the backend value when present, otherwise 0.
-    // Production: missing or negative values mean "do not show".
-    func appOpenInterval(packagedAppID: String?) -> Double? {
-        let configured = adList?.first { $0.adType == 1 && $0.advertiser?.lowercased() == "google" }?.displayInterval
-        if GoogleDemoAds.isEnabled(packagedAppID: packagedAppID) {
-            if let configured, configured.isFinite, configured < 0 { return nil }
-            return configured ?? 0
-        }
-        return configured
+}
+extension ReleaseConfiguration {
+    var appOpenInterval: Double? {
+        adList?.first { $0.adType == 1 && $0.advertiser?.lowercased() == "google" }?.displayInterval
     }
 }
 
@@ -308,9 +311,9 @@ enum GlamoError: LocalizedError {
     case configuration, invalidResponse, unauthorized, service(String), storage, unsupportedMedia
     var errorDescription: String? {
         switch self {
-        case .configuration: return "Vifol’s online service is not configured yet. Local editing is available."
+        case .configuration: return "Ecloud’s online service is not configured yet. Local editing is available."
         case .invalidResponse: return "The service returned an unreadable response. Please try again."
-        case .unauthorized: return "Your session has expired. Please sign in again."
+        case .unauthorized: return "Your connection to Ecloud expired. Try again."
         case .service(let message): return message
         case .storage: return "Your changes could not be saved on this device. Please try again."
         case .unsupportedMedia: return "This video cannot be edited. Import a local video file to continue."
@@ -321,7 +324,7 @@ enum GlamoError: LocalizedError {
         switch error.code {
         case .secureConnectionFailed, .serverCertificateHasBadDate, .serverCertificateUntrusted,
              .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid:
-            return GlamoError.service("A secure connection to Vifol could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.")
+            return GlamoError.service("A secure connection to Ecloud could not be established. Check your network or VPN, then try again. If it continues, the service may be temporarily unavailable.")
         case .notConnectedToInternet, .networkConnectionLost:
             return GlamoError.service("Your internet connection was interrupted. Reconnect and try again.")
         case .timedOut:
